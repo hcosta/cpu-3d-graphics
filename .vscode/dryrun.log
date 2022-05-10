@@ -1,0 +1,5 @@
+make.exe --dry-run --always-make --keep-going --print-directory
+make: Entering directory 'c:/Users/hcost/Projects/cpu-3d-graphics'
+g++ -I src/include -L src/lib -o bin/main *.cpp -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf
+make: Leaving directory 'c:/Users/hcost/Projects/cpu-3d-graphics'
+ 

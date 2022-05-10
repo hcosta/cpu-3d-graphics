@@ -247,17 +247,17 @@ SDL_Rect dest = {2, 459, text->w, text->h};
 SDL_RenderCopy(renderer, text_texture, NULL, &dest);
 ```
 
-Después de actualizar la pantalla podemos liberar de la memoria la textura:
+Después de actualizar la pantalla podemos liberar de la memoria la textura y la superficie (es muy importante):
 
 ```cpp
 // Liberación de memoria local
 SDL_DestroyTexture(text_texture);
+SDL_FreeSurface(textSurface);
 ```
 
-También deberemos liberar la memoria de la superficie, la fuente y el módulo TTF al destruir la ventana:
+También deberemos liberar la memoria de la fuente y el módulo TTF al destruir la ventana:
 
 ```cpp
-SDL_FreeSurface(text);
 TTF_CloseFont(font);
 TTF_Quit();
 ```
@@ -506,12 +506,341 @@ Aquí se aprecia el cap manual a 60FPS:
 
 ![](./docs/image-6.png)
 
-## Refactorización y reorganización
+## Refactorización
 
-Antes de continuar con el siguiente tema sobre vectores y puntos, me voy a tomar un rato para reorganizar los ficheros del proyecto en clases para que todo sea más cómodo de utilizar.
+Antes de continuar con el siguiente tema sobre vectores y puntos voy a reorganizar los ficheros del proyecto en clases para que todo sea más cómodo de utilizar.
 
-TODO
+Esencialmente voy a abstraer todo el proceso de gestión de la ventana y renderizado en una clase `Window`.
 
+Las cabeceras `window.h` por ahora quedarán de la siguiente forma, también después de cambiar la notación a **PascalCase** en los métodos y **camelCase** en las variables:
+
+```cpp
+#ifndef WINDOW_H
+#define WINDOW_H
+
+#include <iostream>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+#include "timer.h"
+
+class Window
+{
+public:
+    bool running = false;
+
+private:
+    /* Window */
+    bool isFullscreen = false;
+    int windowWidth;
+    int windowHeight;
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+
+    /* Color buffer  */
+    uint32_t *colorBuffer;
+    SDL_Texture *colorBufferTexture;
+
+    /* Text */
+    SDL_Surface *textSurface;
+    SDL_Color textColor = {255, 255, 255};
+    TTF_Font *textFont;
+
+    /* Fps */
+    float avgFPS = 0;
+    bool enableCap = true;
+    int fpsCap = 60;
+    int screenTicksPerFrame = 1000 / fpsCap;
+    long countedFrames = 0;
+
+    /* Timers */
+    Timer fpsTimer, capTimer;
+
+public:
+    Window(int w, int h) : windowWidth(w), windowHeight(h){};
+    ~Window();
+
+    void Init();
+    void Setup();
+
+    void ProcessInput();
+    void Update();
+    void Render();
+    void PostRender();
+
+    void ClearColorBuffer(uint32_t color);
+    void RenderColorBuffer();
+
+    void DrawGrid(unsigned int color);
+    void DrawRect(int sx, int sy, int width, int height, uint32_t color);
+};
+
+#endif
+```
+
+En cuanto al código fuente `window.cpp` la implementción completa es:
+
+```cpp
+#include "window.h"
+
+Window::~Window()
+{
+    std::cout << "Destroying Window";
+
+    // Liberar la memoria dinámica
+    free(colorBuffer);
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+
+    TTF_CloseFont(textFont);
+    TTF_Quit();
+
+    SDL_Quit();
+}
+
+void Window::Init()
+{
+    running = true;
+
+    // Inicializamos SDL
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+    {
+        std::cout << "Error initializing SDL." << std::endl;
+        running = false;
+    }
+
+    // Inicialización TTF
+    if (TTF_Init() < 0)
+    {
+        std::cout << "Error initializing SDL_ttf: " << TTF_GetError() << std::endl;
+        running = false;
+    }
+
+    // Utilizar SDL para preguntar la resolucion maxima del monitor
+    SDL_DisplayMode Window_mode;
+    SDL_GetCurrentDisplayMode(0, &Window_mode);
+
+    if (isFullscreen)
+    {
+        windowWidth = Window_mode.w;
+        windowHeight = Window_mode.h;
+    }
+
+    // Creamos la ventana SDL
+    window = SDL_CreateWindow(
+        NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        windowWidth, windowHeight, SDL_WINDOW_BORDERLESS);
+
+    if (!window)
+    {
+        std::cout << "Error creating SDL Window." << std::endl;
+        running = false;
+    }
+
+    // Creamos el renderizador SDL
+    if (enableCap)
+    {
+        renderer = SDL_CreateRenderer(window, -1, 0);
+    }
+    else
+    {
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    }
+
+    if (!renderer)
+    {
+        std::cout << "Error creating SDL renderer." << std::endl;
+        running = false;
+    }
+
+    // font setup
+    textFont = TTF_OpenFont("assets/FreeSans.ttf", 16);
+    if (!textFont)
+    {
+        std::cout << "Error loading font: " << TTF_GetError() << std::endl;
+        running = false;
+    }
+
+    if (isFullscreen)
+    {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+    }
+
+    if (!running)
+    {
+        std::cout << "Window Init Fail";
+    }
+}
+
+void Window::Setup()
+{
+    // Reservar la memoria requerida en bytes para mantener el color buffer
+    colorBuffer = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * windowWidth * windowHeight));
+
+    // Crear la textura SDL utilizada para mostrar el color buffer
+    colorBufferTexture = SDL_CreateTexture(
+        renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
+
+    // Start Timers
+    fpsTimer.start();
+    capTimer.start();
+}
+
+void Window::ProcessInput()
+{
+    SDL_Event event;
+    SDL_PollEvent(&event);
+
+    switch (event.type)
+    {
+    case SDL_QUIT:
+        running = false;
+        break;
+    case SDL_KEYDOWN:
+        if (event.key.keysym.sym == SDLK_ESCAPE)
+            running = false;
+        break;
+    }
+}
+
+void Window::Update()
+{
+    if (enableCap)
+    {
+        // Iniciar el temporizador de cap
+        capTimer.start();
+    }
+
+    // Calculate fps
+    avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
+    // Increment the frame counter
+    ++countedFrames;
+}
+
+void Window::Render()
+{
+    // Establecer el color del renderizador
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+    // Limpiar la pantalla con el color establecido
+    SDL_RenderClear(renderer);
+
+    // Limpiar el color buffer
+    ClearColorBuffer(static_cast<uint32_t>(0xFF0000000));
+}
+
+void Window::PostRender()
+{
+    // Renderizar el color buffer
+    RenderColorBuffer();
+
+    // Render FPS
+    textSurface = TTF_RenderText_Solid(textFont, (std::to_string(avgFPS) + " fps").c_str(), textColor);
+    if (!textSurface)
+    {
+        std::cout << "Failed to render text: " << TTF_GetError() << std::endl;
+    }
+
+    SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_Rect dest = {2, windowHeight - 21, textSurface->w, textSurface->h};
+    SDL_RenderCopy(renderer, textTexture, NULL, &dest);
+
+    // Liberación de memoria local
+    SDL_FreeSurface(textSurface);
+    SDL_DestroyTexture(textTexture);
+
+    // Finalmente actualizar la pantalla
+    SDL_RenderPresent(renderer);
+
+    // Y por último capear los fotogramas si es necesario
+    if (enableCap)
+    {
+        int frameTicks = capTimer.getTicks();
+        if (frameTicks < screenTicksPerFrame)
+        {
+            // Esperamos el tiempo restante
+            SDL_Delay(screenTicksPerFrame - frameTicks);
+        }
+    }
+}
+
+void Window::ClearColorBuffer(uint32_t color)
+{
+    for (size_t y = 0; y < windowHeight; y++)
+    {
+        for (size_t x = 0; x < windowWidth; x++)
+        {
+            colorBuffer[(windowWidth * y) + x] = color;
+        }
+    }
+}
+
+void Window::RenderColorBuffer()
+{
+    // Copiar el color buffer y su contenido a la textura
+    // Así podremos dibujar la textura en el renderer
+    SDL_UpdateTexture(colorBufferTexture, NULL, colorBuffer, windowWidth * sizeof(uint32_t));
+    SDL_RenderCopy(renderer, colorBufferTexture, NULL, NULL);
+}
+
+void Window::DrawGrid(unsigned int color)
+{
+    for (size_t y = 0; y < windowHeight; y += 10)
+    {
+        for (size_t x = 0; x < windowWidth; x += 10)
+        {
+            colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
+        }
+    }
+}
+
+void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
+{
+    for (size_t y = sy; (y < sy + height) && (y < windowHeight); y++)
+    {
+        for (size_t x = sx; (x < sx + width) && (x < windowWidth); x++)
+        {
+            colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
+        }
+    }
+}
+```
+
+Inicializar y empezar a trabajar con la ventana es ahora muy sencillo, así quedará `main.cpp`:
+
+```cpp
+#include <iostream>
+#include "window.h"
+
+int main(int argc, char *argv[])
+{
+    Window window(640, 480);
+
+    window.Init();
+    window.Setup();
+
+    while (window.running)
+    {
+        window.ProcessInput();
+
+        window.Update();
+        window.Render();
+
+        window.DrawGrid(0xFF616161);
+        window.DrawRect(50, 50, 100, 100, 0xFF1570E8);
+        window.DrawRect(205, 125, 300, 200, 0xFFD93E23);
+        window.DrawRect(375, 225, 300, 300, 0xFFE35FDA);
+
+        window.PostRender();
+    }
+
+    return 0;
+}
+```
+
+A comentar la variable pública `window.running` que permite saber en todo momento si la ventana está funcionando para seguir ejecutando el bucle. 
+
+Luego los distintos métodos de mismo nombre `ProcessInput`, `Update`, `Render` y un nuevo `PostRender` que me permite separar el renderizado en dos partes y dibujar entre tanto diferentes elementos y por encima dibujar los FPS y presentar el `renderer`.
 
 
 

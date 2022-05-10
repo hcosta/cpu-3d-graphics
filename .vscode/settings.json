@@ -1,5 +1,5 @@
 {
-    "code-runner.customCommand": "make && ./bin/main.exe",
+    "code-runner.customCommand": "cls && make && ./bin/main.exe",
     "files.associations": {
         "array": "cpp",
         "string_view": "cpp",
