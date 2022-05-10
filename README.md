@@ -1,8 +1,16 @@
-# CPU 3D Graphics
+# CPU 3D Graphics en C++
 
-La meta de este proyecto es entender el pipeline de funcionamiento en el renderizado 3D sin utilizar la GPU, implementando en C++ y desde cero todo el sistema.
+La meta de este proyecto es entender el pipeline del renderizado 3D sin utilizar la GPU, implementando en C++ todo el sistema desde cero.
 
-Se utilizará SDL2 como biblioteca multiplataforma para manejar el hardware del sistema.
+Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sistema.
+
+## Índice
+
+* [Configuración previa](#configuración-previa)
+* [Buffer de color](#buffer-de-color)
+    * [Dibujar FPS y caparlos](#dibujar-fps-y-caparlos)
+    * [Refactorización](#refactorización-1)
+* [Vectores y puntos](#vectores-y-puntos)
 
 ## Configuración previa
 
@@ -184,7 +192,7 @@ void draw_rect(int sx, int sy, int width, int height, uint32_t color)
 
 ![](./docs/image-3.png)
 
-## Limitador de FPS y renderizado
+### Dibujar FPS y caparlos
 
 He decidido añadir una opción para dibujar la media de FPS. Para ello necesitaré dibujar un texto en pantalla con la biblioteca [SDL_ttf](https://github.com/libsdl-org/SDL_ttf). 
 
@@ -506,7 +514,7 @@ Aquí se aprecia el cap manual a 60FPS:
 
 ![](./docs/image-6.png)
 
-## Refactorización
+### Refactorización 1
 
 Antes de continuar con el siguiente tema sobre vectores y puntos voy a reorganizar los ficheros del proyecto en clases para que todo sea más cómodo de utilizar.
 
@@ -842,6 +850,4 @@ A comentar la variable pública `window.running` que permite saber en todo momen
 
 Luego los distintos métodos de mismo nombre `ProcessInput`, `Update`, `Render` y un nuevo `PostRender` que me permite separar el renderizado en dos partes y dibujar entre tanto diferentes elementos y por encima dibujar los FPS y presentar el `renderer`.
 
-
-
-
+## Vectores y puntos
