@@ -11,6 +11,11 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Dibujar FPS y caparlos](#dibujar-fps-y-caparlos)
     * [Refactorización](#refactorización-1)
 * [Vectores y puntos](#vectores-y-puntos)
+* [Proyección de puntos](#proyección-de-puntos)
+    * [Proyección ortográfica](#proyección-ortográfica)
+    * [Proyección perspectiva](#proyección-perspectiva)
+    * [Regla de la mano](#regla-de-la-mano)
+* [Transformaciones lineales](#transformaciones-lineales)
 
 ## Configuración previa
 
