@@ -535,12 +535,12 @@ class Window
 {
 public:
     bool running = false;
+    int windowWidth;
+    int windowHeight;
 
 private:
     /* Window */
     bool isFullscreen = false;
-    int windowWidth;
-    int windowHeight;
     SDL_Window *window;
     SDL_Renderer *renderer;
 
@@ -727,12 +727,6 @@ void Window::Update()
 
 void Window::Render()
 {
-    // Establecer el color del renderizador
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-    // Limpiar la pantalla con el color establecido
-    SDL_RenderClear(renderer);
-
     // Limpiar el color buffer
     ClearColorBuffer(static_cast<uint32_t>(0xFF0000000));
 }
@@ -850,4 +844,326 @@ A comentar la variable pública `window.running` que permite saber en todo momen
 
 Luego los distintos métodos de mismo nombre `ProcessInput`, `Update`, `Render` y un nuevo `PostRender` que me permite separar el renderizado en dos partes y dibujar entre tanto diferentes elementos y por encima dibujar los FPS y presentar el `renderer`.
 
+Por cierto, tampoco necesitamos limpiar la pantalla en el renderer, pues estamos dibujando directamente nuestro `colorBuffer`:
+
+```cpp
+void Window::Render()
+{
+    // Establecer el color del renderizador
+    // SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    // Limpiar la pantalla con el color establecido
+    // SDL_RenderClear(renderer);
+
+    // Limpiar el color buffer
+    ClearColorBuffer(static_cast<uint32_t>(0xFF0000000));
+}
+```
+
 ## Vectores y puntos
+
+Es hora de empezar a pensar en 3D, eso implica añadir una nueva dimensión: la **profundidad**, que se representa en lo que se conoce como el **eje Z**.
+
+Empezaré creando un nuevo método para pintar un único píxel en pantalla:
+
+```cpp
+void Window::DrawPixel(int x, int y, unsigned int color)
+{
+    if (x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
+    {
+        colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
+    }
+}
+```
+
+Si queremos representar algo en el espacio tridimensional, debemos hacerlo a través de números que indican cantidades.
+
+Las cantidades se dividen en dos tipos:
+
+* **Cantidades escalares**: Representadas con único número: temperatura, área, longitud, presión...
+* **Cantidades vectoriales**: Representadas con más de un número: velocidad, aceleración, fuerza, arrastre, desplazamiento, elevación...
+
+Para representar una cantidad vectorial de dos números, por ejemplo **velocidad (m/s)**, se utiliza un eje de coordenadas 2D y un vector formado por los componentes `X`, `Y`.
+
+De la misma forma podemos representar una cantidad vectorial formada por tres números **ancho**, **alto** y **profundidad** en un eje de coordenadas 3D mediante un vector formado por los componentes `X`, `Y`, `Z`. 
+
+Un **vector** es un conjunto de componentes donde el orden importa para representar una cantidad formada por dos o más números, así que vamos a empezar por definir unas clases para manejar nuestros propios vectores 2D y 3D:
+
+```cpp
+#ifndef VECTOR_H
+#define VECTOR_H
+
+#include <iostream>
+
+class Vector2
+{
+public:
+    double x;
+    double y;
+
+    friend std::ostream &operator<<(std::ostream &os, const Vector2 &v);
+};
+
+class Vector3
+{
+public:
+    double x;
+    double y;
+    double z;
+
+    friend std::ostream &operator<<(std::ostream &os, const Vector3 &v);
+};
+
+#endif
+```
+
+Para la implementación por ahora solo la sobrecarga del `ostream` para imprimir un vector:
+
+```cpp
+#include "vector.h"
+
+std::ostream &operator<<(std::ostream &os, const Vector2 &v)
+{
+    os << "(" << v.x << ", " << v.y << ")";
+    return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const Vector3 &v)
+{
+    os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+    return os;
+}
+```
+
+Vamos a suponer que deseamos representar un cubo 3D de 9 píxeles de ancho, alto y profundidad. Podemos entenderlo como un conjunto de 9*9*9 píxeles, donde cada punto es un vector tridimensional.
+
+Lo que podemos hacer es suponer el centro del cubo como el origen del eje de coordenadas (0,0,0) y a partir de ahí uniformemente (en base de -1 a 1) representarlo a la izquierda, derecha, arriba, abajo, adelante y atrás.
+
+Para ello lo podemos inicializar con tres bucles anidados:
+
+```cpp
+// Cubo de 9x9x9 píxeles
+int counterPoints;
+Vector3 cubePoints[9 * 9 * 9];
+
+// Cargar el array de vectores de -1 a 1 en el cubo 9x9x9
+for (double x = -1; x <= 1; x += 0.25)
+{
+    for (double y = -1; y <= 1; y += 0.25)
+    {
+        for (double z = -1; z <= 1; z += 0.25)
+        {
+            cubePoints[counterPoints++] = Vector3{x, y, z};
+        }
+    }
+}
+```
+
+Este es el principio y final del arreglo 9*9*9 con 729 puntos:
+
+```
+(-1, -1, -1), 
+(-1, -1, -0.75), 
+..., 
+(0, 0, -0.25), 
+(0, 0, 0), 
+(0, 0, 0.25), 
+..., 
+(1, 1, 0.75), 
+(1, 1, 1)
+```
+
+El problema es que nuestro `ColorBuffer` se fundamenta en un eje 2D de ancho y alto. ¿Cómo podemos a representar un arreglo de vectores 3D en un buffer 2D?
+
+## Proyección de puntos
+
+Las técnicas de proyección nos permiten representar, mediante operaciones matemáticas una dimensión 3D en forma  2D.
+
+Existen varios tipos de proyecciones dependiendo del resultado que nos interese.
+
+### Proyección ortográfica
+
+Esta proyección es una proyección paralela que consiste en ignorar la profundidad (eje `Z`).
+
+Para implementar esta proyección en una función recibiremos un vector 3D y devolveremos un vector 2D con únicamente sus componentes X e Y:
+
+```cpp
+Vector2 OrtoraphicProjection(Vector3 p)
+{
+    return Vector2{p.x, p.y};
+}
+```
+
+Para probar la función vamos a crear un cubo de puntos proyectos en 2D:
+
+```cpp
+// Vector 3D proyectado ortográficamente
+Vector2 cubeProjectedPoints[9 * 9 * 9];
+for (int i = 0; i < 9 * 9 * 9; i++)
+{
+    // Proyeccion del punto
+    cubeProjectedPoints[i] = OrtoraphicProjection(cubePoints[i]);
+}
+```
+
+Ahora durante el renderizado, podemos hacer uso de nuestro método `DrawPixel` y establecer todos los píxeles del cubo proyectado en el `ColorBuffer`:
+
+```cpp
+/* Dibujar proyección */
+for (int i = 0; i < 9 * 9 * 9; i++)
+{
+    window.DrawPixel(
+        cubeProjectedPoints[i].x,
+        cubeProjectedPoints[i].y,
+        0xFF00FFFF);
+}
+```
+
+El resultado será el siguiente:
+
+![](./docs/image-7.png)
+
+Un pequeño píxel en la parte superior izquierda. 
+
+¿Por qué? Pues debido a que los valores de nuestro cubo se encuentran normalizados entre `-1` y `1` con el origen en `0`.
+
+Esto nos lleva a la idea de que debemos escalar de alguna forma los valores del cubo.
+
+Este escalar se denomina**FOV** (campo de visión) y podemos probar alguna cantidad hasta dar con la que nos guste y mulitiplicarla en nuestra función de proyección:
+
+```cpp
+float fovFactor = 100;
+
+Vector2 OrtoraphicProjection(Vector3 p)
+{
+    return Vector2{
+        fovFactor * p.x, 
+        fovFactor * p.y};
+}
+```
+
+El resultado por ahora será algo así:
+
+![](./docs/image-8.png)
+
+Debemos tener en cuenta que como consecuencia de aplicar el `fovFactor`, el cubo crece en tamaño y para dibujarlo completamente necesitamos más espacio. Por eso deberemos reposicionarlo, idealmente hacia el centro de la pantalla, tomando su origen `(0, 0)` como el punto `(windowWidth/2, windowHeight/2)`.
+
+Así que simplemente sumamos esa distancia en sus componentes durante el renderizado:
+
+```cpp
+/* Dibujar proyección reposicionada al centro */
+for (int i = 0; i < 9 * 9 * 9; i++)
+{
+    window.DrawPixel(
+        cubeProjectedPoints[i].x + window.windowWidth / 2,
+        cubeProjectedPoints[i].y + window.windowHeight / 2,
+        0xFF00FFFF);
+}
+```
+
+Y ya está, ahora sí con su aspecto real en paralelo:
+
+![](./docs/image-9.png)
+
+### Proyección perspectiva
+
+La proyección en perspectiva consiste en simular la forma en cómo los humanos vemos el mundo, donde los objetos cerca nuestro se perciben mayores que los que están lejos.
+
+Esto introduce la idea de que necesitamos una especie de espectador u ojo como origen de la vista tridimensional con un ángulo de visión que definirá el campo visible, llamado `AOV` (angle of view).
+
+En un videojuego o simulación tridimensional, el origen de la vista es la cámara que nos permite percibir el mundo, abarcando el espacio entre el plano más cercano y el plano más alejado, denominado `View Frustrum`:
+
+![](./docs/image-10.png)
+
+![](./docs/image-12.png)
+
+![](./docs/image-11.png)
+
+Mediante el uso de la geometría y la propiedad de los triángulos similares de compartir proporciones equivalentes, podemos calcular las fórmulas para los puntos proyectados `P'x` y `P'y`:
+
+<img src="https://latex.codecogs.com/svg.image?\frac{P%27x}{Px}=\frac{1}{Pz}\to\frac{Px}{Pz}" style="background: white;padding:8px"/>
+
+<img src="https://latex.codecogs.com/svg.image?\frac{P%27y}{Py}=\frac{1}{Pz}\to\frac{Py}{Pz}" style="background: white;padding:8px"/>
+
+Ambas fórmulas se conocen como **brechas de perspectiva**, en inglés *perspective divide* y dictan que:
+
+* Cuanto menor sea la profundidad `z`, mayor serán `x` e `y`, de manera que los objetos se percibirán más grandes.
+* Cuanto mayor sea la profundidad `z`, menores serán `x` e `y`, de manera que  los objetos se percibirán más pequeños.
+
+Nuestra nueva función de perspectiva simplemente dividirá `x` e `y` entre `z`:
+
+```cpp
+Vector2 PerspectiveProjection(Vector3 p)
+{
+    return Vector2{
+        (fovFactor * p.x) / p.z, 
+        (fovFactor * p.y) / p.z};
+}
+
+cubeProjectedPoints[i] = PerspectiveProjection(cubePoints[i]);
+```
+
+EL resultado se verá más o menos así:
+
+![](./docs/image-13.png)
+
+No es exactamente lo que se espera pero se percibe una especie de profundidad. 
+
+La razón por lo que se ve de esta forma es que estamos suponiendo que el ojo, el origen de la vista, concuerda justo en la cara más profunda del cubo.
+
+Para solucionarlo debemos alejar nuestra vista del cubo, esto lo conseguiremos añadiéndo una profundidad extra mediante un `Vector3` para simular la posición de una cámara alejada del centro del cubo con profundidad `z = 0`:
+
+```cpp
+Vector3 cameraPosition{0, 0, -5};
+```
+
+Esta distancia la vamos a restar del punto antes de realizar la proyección de perspectiva:
+
+```cpp
+for (int i = 0; i < 9 * 9 * 9; i++)
+{
+    // Restamos la distancia de la cámara
+    Vector3 point = cubePoints[i];
+    point.z -= cameraPosition.z;
+    // Proyeccion del punto
+    cubeProjectedPoints[i] = PerspectiveProjection(point);
+}
+```
+
+Si visualizamos el cubo lo visualizaremos muy pequeño pero si se podrá apreciar la perspectiva:
+
+![](./docs/image-14.png)
+
+Podemos rectificar el tamaño ya sea mediante la profundidad de la cámara `cameraPosition.z` o el factor de escalado del punto de vista `fovFactor`, probemos cambiando éste último:
+
+```cpp
+float fovFactor = 200;
+```
+
+Al aumentar el factor de escalado el cubo se percibe más grande:
+
+![](./docs/image-15.png)
+
+Estos valores no son casuales, todo esto tiene una explicación matemática clara.
+
+Dado que el lado del cubo mide 2 unidades uniformes (de -1 a 1), un factor de 200 ocasionará que el cubo tenga un tamaño de -200 a 200 píxeles al escalarlo, por lo que lado completo medirá 400px.
+
+Ahora bien, como la cámara está a 5 unidades de distancia, podemos suponer que el tamaño que percibiremos será 400/5 = 80px... ¿O no? Pues no, el tamaño del costado es exactamente 100px:
+
+![](./docs/image-16.png)
+
+¿Recordáis que al dibujar el cubo lo hacemos desde su cara más profunda?
+
+Considerando eso debemos suponer que para dibujar su cara más cercana debemos alejarnos de la cara profunda exactamente lo que mide el costado del cubo, es decir 2 unidades (200 * 2 px):
+
+```cpp
+Vector3 cameraPosition{0, 0, -2};
+```
+
+Si nuestra suposición es correcta, desde esta posición de la cámara el costado tendrá un tamaño exacto de 400px:
+
+![](./docs/image-17.png)
+
+
+
+
+

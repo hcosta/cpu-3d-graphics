@@ -47,7 +47,7 @@ void Window::Init()
     // Creamos la ventana SDL
     window = SDL_CreateWindow(
         NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        windowWidth, windowHeight, SDL_WINDOW_BORDERLESS);
+        windowWidth, windowHeight, SDL_WINDOW_BORDERLESS); // SDL_WINDOW_BORDERLESS
 
     if (!window)
     {
@@ -101,7 +101,6 @@ void Window::Setup()
 
     // Start Timers
     fpsTimer.start();
-    capTimer.start();
 }
 
 void Window::ProcessInput()
@@ -137,12 +136,6 @@ void Window::Update()
 
 void Window::Render()
 {
-    // Establecer el color del renderizador
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-    // Limpiar la pantalla con el color establecido
-    SDL_RenderClear(renderer);
-
     // Limpiar el color buffer
     ClearColorBuffer(static_cast<uint32_t>(0xFF0000000));
 }
@@ -180,6 +173,7 @@ void Window::PostRender()
             SDL_Delay(screenTicksPerFrame - frameTicks);
         }
     }
+    // SDL_SetWindowTitle(window, (std::to_string(avgFPS)).c_str());
 }
 
 void Window::ClearColorBuffer(uint32_t color)
@@ -209,6 +203,14 @@ void Window::DrawGrid(unsigned int color)
         {
             colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
         }
+    }
+}
+
+void Window::DrawPixel(int x, int y, unsigned int color)
+{
+    if (x >= 0 && x <= windowWidth && y >= 0 && y <= windowHeight)
+    {
+        colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
     }
 }
 

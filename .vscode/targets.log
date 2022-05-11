@@ -8,10 +8,12 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Tue May 10 22:37:22 2022
+# Make data base, printed on Wed May 11 12:28:38 2022
 
 # Variables
 
+# environment
+FPS_BROWSER_APP_PROFILE_STRING = Internet Explorer
 # environment
 SYSTEMDRIVE = C:
 # environment
@@ -21,7 +23,7 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-ce4643db-578f-4d63-8c7f-902c7e747393-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-5bc27b75-44c2-458e-b717-fcd4df3df7fa-sock
 # environment
 VSCODE_CWD = C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code
 # environment
@@ -37,7 +39,9 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_15912_ZCTTLDLSKJUREXSC
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_14824_BHZEUWZCCYKESVVZ
+# environment
+FPS_BROWSER_USER_PROFILE_STRING = Default
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # default
@@ -93,7 +97,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 15912
+VSCODE_PID = 14824
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -192,7 +196,8 @@ TEMP = C:\Users\hcost\AppData\Local\Temp
 VSCODE_IPC_HOOK = \\.\pipe\2a561f950f35ce26bc3a1b1d1e5aab7e-1.67.1-main-sock
 # default
 .RECIPEPREFIX := 
-# automatic
+# au 
+tomatic
 <F = $(notdir $<)
 # default
 SUFFIXES := 
@@ -207,7 +212,7 @@ PROCESSOR_REVISION = 5504
 # environment
 PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 # variable set hash-table stats:
-# Load=97/1024=9%, Rehash=0, Collisions=10/124=8%
+# Load=99/1024=10%, Rehash=0, Collisions=11/126=9%
 
 # Pattern-specific Variable Values
 
@@ -215,9 +220,9 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 
 # Directories
 
-# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652200936): 14 files, no impossibilities.
+# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652219786): 16 files, no impossibilities.
 
-# 14 files, no impossibilities in 1 directories.
+# 16 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -274,12 +279,12 @@ build:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 20 / storage = 134 B / avg = 6 B
-# current buf: size = 8174 B / used = 134 B / count = 20 / avg = 6 B
+# strcache buffers: 1 (0) / strings = 22 / storage = 154 B / avg = 7 B
+# current buf: size = 8174 B / used = 154 B / count = 22 / avg = 7 B
 
-# strcache performance: lookups = 27 / hit rate = 25%
+# strcache performance: lookups = 29 / hit rate = 24%
 # hash-table stats:
-# Load=20/8192=0%, Rehash=0, Collisions=0/27=0%
-# Finished Make data base on Tue May 10 22:37:22 2022
+# Load=22/8192=0%, Rehash=0, Collisions=0/29=0%
+# Finished Make data base on Wed May 11 12:28:38 2022
 
  

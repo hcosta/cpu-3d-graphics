@@ -50,5 +50,12 @@
         "ctime": "cpp",
         "ratio": "cpp",
         "sstream": "cpp"
-    }
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "c:\\Users\\hcost\\Projects\\cpu-3d-graphics\\bin",
+            "binaryPath": "c:\\Users\\hcost\\Projects\\cpu-3d-graphics\\bin\\main",
+            "binaryArgs": []
+        }
+    ]
 }

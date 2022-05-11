@@ -10,12 +10,12 @@ class Window
 {
 public:
     bool running = false;
+    int windowWidth;
+    int windowHeight;
 
 private:
     /* Window */
     bool isFullscreen = false;
-    int windowWidth;
-    int windowHeight;
     SDL_Window *window;
     SDL_Renderer *renderer;
 
@@ -29,9 +29,9 @@ private:
     TTF_Font *textFont;
 
     /* Fps */
-    float avgFPS = 0;
     bool enableCap = true;
     int fpsCap = 60;
+    float avgFPS = 0;
     int screenTicksPerFrame = 1000 / fpsCap;
     long countedFrames = 0;
 
@@ -54,6 +54,7 @@ public:
     void RenderColorBuffer();
 
     void DrawGrid(unsigned int color);
+    void DrawPixel(int sx, int sy, unsigned int color);
     void DrawRect(int sx, int sy, int width, int height, uint32_t color);
 };
 
