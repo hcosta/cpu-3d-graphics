@@ -1163,7 +1163,26 @@ Si nuestra suposición es correcta, desde esta posición de la cámara el costad
 
 ![](./docs/image-17.png)
 
+### Regla de la mano
 
+En nuestro entorno tridimensional hemos asumido algo importante sin darle importancia, me refiero a la dirección de crecimiento para la profundidad en el eje `Z`.
 
+Hemos considerado que cuanto mayor sea la `Z` más profundidad y cuanto menor sea, menos profundidad. Precisamente por eso le restamos al eje `Z` de la cámara `(0,0,-5)`, para alejarla del cubo.
+
+Sin embargo sistemas como **OpenGL** se basan en lo contrario, cuanto mayor sea la `Z` menos profundidad y cuanto menor sea, más profundidad. En ese sistema  para alejar la cámara deberíamos sumar `(0,0,5)` al eje `Z` :
+
+![](./docs/image-18.png)
+
+La dirección de la profundidad es un tema importante en la programación gráfica, la forma de realizar algunos cálculos es distinta dependiendo del sistema elegido.
+
+Si ponemos el pulgar de la mano derecha  mirando hacia la derecha simulando el eje `X` y el índice hacia arriba simulando el eje `Y`, el dedo corazón apuntará hacia nosotros, diremos que la profundidad `Z` crece hacia fuera de la pantalla. Pero si repetimos el proceso con la mano izquierda, el dedo corazón apuntará al lado inverso, la profundidad `Z` crece hacia la pantalla:
+
+![](./docs/image-19.png)
+
+Esto se conoce como **regla de la mano** y nos permite determinar sentidos vectoriales. Nuestro sistema, al igual que **DirectX**, se basa en la mano izquierda (la profundidad crece hacia adentro de la pantalla), mientras que **OpenGL** se basa en la mano derecha, (la profundidad crece hacia afuera de la pantalla). 
+
+Recordar esta sencilla regla nos servirá para más adelante.
+
+## Transformaciones lineales
 
 
