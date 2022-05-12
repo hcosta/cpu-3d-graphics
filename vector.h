@@ -20,6 +20,15 @@ public:
     double z;
 
     friend std::ostream &operator<<(std::ostream &os, const Vector3 &v);
+
+    void RotateX(float angle);
+    void RotateY(float angle);
+    void RotateZ(float angle);
+
+    Vector2 OrtoraphicProjection(float fovFactor);
+    Vector2 PerspectiveProjection(float fovFactor);
+
+    void Rotate(Vector3 angles);
 };
 
 #endif

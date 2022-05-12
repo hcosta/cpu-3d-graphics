@@ -99,6 +99,10 @@ void Window::Setup()
     colorBufferTexture = SDL_CreateTexture(
         renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
 
+    // Custom objects
+    cube = Cube(this, 7);
+    cube.SetRotationAmount(0.01, 0.01, 0.01);
+
     // Start Timers
     fpsTimer.start();
 }
@@ -130,14 +134,27 @@ void Window::Update()
 
     // Calculate fps
     avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
+
+    // Custom objects update
+    cube.Update();
+
     // Increment the frame counter
     ++countedFrames;
 }
 
 void Window::Render()
 {
-    // Limpiar el color buffer
+    // Clear color buffer
     ClearColorBuffer(static_cast<uint32_t>(0xFF0000000));
+
+    // Render the background grid
+    DrawGrid(0xFF616161);
+
+    // Custom objects render
+    cube.Render();
+
+    // Late rendering actions
+    PostRender();
 }
 
 void Window::PostRender()
