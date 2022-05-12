@@ -197,9 +197,9 @@ void Window::RenderColorBuffer()
 
 void Window::DrawGrid(unsigned int color)
 {
-    for (size_t y = 0; y < windowHeight; y += 10)
+    for (size_t y = 0; y <= windowHeight; y += 10)
     {
-        for (size_t x = 0; x < windowWidth; x += 10)
+        for (size_t x = 0; x <= windowWidth; x += 10)
         {
             colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
         }

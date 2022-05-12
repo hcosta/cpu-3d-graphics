@@ -8,12 +8,10 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed May 11 12:28:38 2022
+# Make data base, printed on Thu May 12 10:57:35 2022
 
 # Variables
 
-# environment
-FPS_BROWSER_APP_PROFILE_STRING = Internet Explorer
 # environment
 SYSTEMDRIVE = C:
 # environment
@@ -23,9 +21,9 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-5bc27b75-44c2-458e-b717-fcd4df3df7fa-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-efa06978-a36a-4400-ae7d-f80e2f0a289b-sock
 # environment
-VSCODE_CWD = C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code
+VSCODE_CWD = C:\WINDOWS\system32
 # environment
 CHOCOLATEYINSTALL = C:\ProgramData\chocolatey
 # environment
@@ -39,9 +37,7 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_14824_BHZEUWZCCYKESVVZ
-# environment
-FPS_BROWSER_USER_PROFILE_STRING = Default
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_15936_OSIGIALOWEHMNVVG
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # default
@@ -97,7 +93,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 14824
+VSCODE_PID = 15936
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -105,7 +101,7 @@ VSCODE_PID = 14824
 # automatic
 <D = $(patsubst %/,%,$(patsubst %\,%,$(dir $<)))
 # environment
-VSCODE_NLS_CONFIG = {"locale":"es","availableLanguages":{"*":"es"},"_languagePackId":"16468021c5e76390b081b2c772725871.es","_translationsConfigFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\16468021c5e76390b081b2c772725871.es\\tcf.json","_cacheRoot":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\16468021c5e76390b081b2c772725871.es","_resolvedLanguagePackCoreLocation":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\16468021c5e76390b081b2c772725871.es\\da15b6fd3ef856477bf6f4fb29ba1b7af717770d","_corruptedFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\16468021c5e76390b081b2c772725871.es\\corrupted.info","_languagePackSupport":true}
+VSCODE_NLS_CONFIG = {"locale":"es","availableLanguages":{"*":"es"},"_languagePackId":"125a9a608456aa5e8a25d0a18c7b1d68.es","_translationsConfigFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\tcf.json","_cacheRoot":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es","_resolvedLanguagePackCoreLocation":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\da15b6fd3ef856477bf6f4fb29ba1b7af717770d","_corruptedFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\corrupted.info","_languagePackSupport":true}
 # default
 MAKE_HOST := Windows32
 # environment
@@ -196,8 +192,7 @@ TEMP = C:\Users\hcost\AppData\Local\Temp
 VSCODE_IPC_HOOK = \\.\pipe\2a561f950f35ce26bc3a1b1d1e5aab7e-1.67.1-main-sock
 # default
 .RECIPEPREFIX := 
-# au 
-tomatic
+# automatic
 <F = $(notdir $<)
 # default
 SUFFIXES := 
@@ -206,13 +201,14 @@ ALLUSERSPROFILE = C:\ProgramData
 # environment
 SESSIONNAME = Console
 # default
-.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync load
+.FEATURES := ta 
+rget-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync load
 # environment
 PROCESSOR_REVISION = 5504
 # environment
 PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 # variable set hash-table stats:
-# Load=99/1024=10%, Rehash=0, Collisions=11/126=9%
+# Load=97/1024=9%, Rehash=0, Collisions=10/124=8%
 
 # Pattern-specific Variable Values
 
@@ -220,9 +216,9 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 
 # Directories
 
-# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652219786): 16 files, no impossibilities.
+# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652267265): 17 files, no impossibilities.
 
-# 16 files, no impossibilities in 1 directories.
+# 17 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -279,12 +275,12 @@ build:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 22 / storage = 154 B / avg = 7 B
-# current buf: size = 8174 B / used = 154 B / count = 22 / avg = 7 B
+# strcache buffers: 1 (0) / strings = 23 / storage = 163 B / avg = 7 B
+# current buf: size = 8174 B / used = 163 B / count = 23 / avg = 7 B
 
-# strcache performance: lookups = 29 / hit rate = 24%
+# strcache performance: lookups = 30 / hit rate = 23%
 # hash-table stats:
-# Load=22/8192=0%, Rehash=0, Collisions=0/29=0%
-# Finished Make data base on Wed May 11 12:28:38 2022
+# Load=23/8192=0%, Rehash=0, Collisions=0/30=0%
+# Finished Make data base on Thu May 12 10:57:35 2022
 
  

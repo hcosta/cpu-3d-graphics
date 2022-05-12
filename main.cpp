@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
     // Vector 3D proyectado ortográficamente
     Vector2 cubeProjectedPoints[9 * 9 * 9];
-    for (int i = 0; i < 9 * 9 * 9; i++)
+    for (size_t i = 0; i < 9 * 9 * 9; i++)
     {
         // Restamos la distancia de la cámara
         Vector3 point = cubePoints[i];
@@ -61,14 +61,9 @@ int main(int argc, char *argv[])
         window.Render();
 
         window.DrawGrid(0xFF616161);
-        // window.DrawRect(50, 50, 100, 100, 0xFF1570E8);
-        // window.DrawRect(205, 125, 300, 200, 0xFFD93E23);
-        // window.DrawRect(375, 225, 300, 300, 0xFFE35FDA);
-
-        // window.DrawPixel(20, 20, 0xFFFF00FF);
 
         /* Dibujar proyección reposicionada al centro */
-        for (int i = 0; i < 9 * 9 * 9; i++)
+        for (size_t i = 0; i < 9 * 9 * 9; i++)
         {
             window.DrawPixel(
                 cubeProjectedPoints[i].x + window.windowWidth / 2,

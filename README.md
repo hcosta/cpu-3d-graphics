@@ -16,7 +16,8 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Proyección perspectiva](#proyección-perspectiva)
     * [Regla de la mano](#regla-de-la-mano)
 * [Transformaciones lineales](#transformaciones-lineales)
-
+    * [Transformando vectores](#transformando-vectores)
+    * [Razones trigonométricas](#razones-trigonométricas)
 ## Configuración previa
 
 Este proyecto se desarrolla en Windows 11 con Visual Studio Code. La estructura principal es:
@@ -1085,9 +1086,9 @@ En un videojuego o simulación tridimensional, el origen de la vista es la cáma
 
 Mediante el uso de la geometría y la propiedad de los triángulos similares de compartir proporciones equivalentes, podemos calcular las fórmulas para los puntos proyectados `P'x` y `P'y`:
 
-<img src="https://latex.codecogs.com/svg.image?\frac{P%27x}{Px}=\frac{1}{Pz}\to\frac{Px}{Pz}" style="background: white;padding:8px"/>
-
-<img src="https://latex.codecogs.com/svg.image?\frac{P%27y}{Py}=\frac{1}{Pz}\to\frac{Py}{Pz}" style="background: white;padding:8px"/>
+<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?\frac{P%27x}{Px}=\frac{1}{Pz}\to\frac{Px}{Pz}"/></div>
+<br><br>
+<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?\frac{P%27y}{Py}=\frac{1}{Pz}\to\frac{Py}{Pz}"/></div>
 
 Ambas fórmulas se conocen como **brechas de perspectiva**, en inglés *perspective divide* y dictan que:
 
@@ -1113,9 +1114,9 @@ EL resultado se verá más o menos así:
 
 No es exactamente lo que se espera pero se percibe una especie de profundidad. 
 
-La razón por lo que se ve de esta forma es que estamos suponiendo que el ojo, el origen de la vista, concuerda justo en la cara más profunda del cubo.
+La razón por la que se ve de esta forma es que estamos suponiendo que el ojo, el origen de la vista, concuerda justo en la cara más profunda del cubo.
 
-Para solucionarlo debemos alejar nuestra vista del cubo, esto lo conseguiremos añadiéndo una profundidad extra mediante un `Vector3` para simular la posición de una cámara alejada del centro del cubo con profundidad `z = 0`:
+Para solucionarlo debemos alejar nuestra vista del cubo, esto lo conseguiremos restando una profundidad extra mediante un `Vector3` para simular la posición de una cámara alejada del fondo del cubo:
 
 ```cpp
 Vector3 cameraPosition{0, 0, -5};
@@ -1134,11 +1135,11 @@ for (int i = 0; i < 9 * 9 * 9; i++)
 }
 ```
 
-Si visualizamos el cubo lo visualizaremos muy pequeño pero si se podrá apreciar la perspectiva:
+Si visualizamos el cubo lo visualizaremos muy pequeño pero ya se podrá apreciar la perspectiva:
 
 ![](./docs/image-14.png)
 
-Podemos rectificar el tamaño ya sea mediante la profundidad de la cámara `cameraPosition.z` o el factor de escalado del punto de vista `fovFactor`, probemos cambiando éste último:
+Podemos rectificar el tamaño mediante la profundidad de la cámara `cameraPosition.z` o con el factor de escalado del punto de vista `fovFactor`, probemos cambiando éste último:
 
 ```cpp
 float fovFactor = 200;
@@ -1170,7 +1171,7 @@ Si nuestra suposición es correcta, desde esta posición de la cámara el costad
 
 ### Regla de la mano
 
-En nuestro entorno tridimensional hemos asumido algo importante sin darle importancia, me refiero a la dirección de crecimiento para la profundidad en el eje `Z`.
+En nuestro entorno tridimensional hemos asumido algo importante sin darnos cuenta, me refiero a la dirección de crecimiento para la profundidad en el eje `Z`.
 
 Hemos considerado que cuanto mayor sea la `Z` más profundidad y cuanto menor sea, menos profundidad. Precisamente por eso le restamos al eje `Z` de la cámara `(0,0,-5)`, para alejarla del cubo.
 
@@ -1190,4 +1191,47 @@ Recordar esta sencilla regla nos servirá para más adelante.
 
 ## Transformaciones lineales
 
+Hemos visto como dividiendo entre el eje `Z` hemos conseguido la **brecha de perspectiva** para la proyección en perspectiva. Sin embargo, esta función es solo uno de los diferentes pasos que necesitamos para conseguir la verdadera proyección en perspectiva.
 
+A parte de dvidir entre `Z` necesitamos considerar por ejemplo, cuál es ángulo del `FOV` (el campo de visión) que estamos utilizando, o también el `AR` (la relación de aspecto) de la pantalla. Para conseguir esto necesitaremos acudir a la **proyección de matrices**, pero es un tema que trataremos más adelante.
+
+Por ahora utilizaremos la **brecha de perspectiva** y nos centraremos en algo más interesante, añadir dinamismo a nuestro cubo mediante la aplicación de transformaciones en sus vectores.
+
+### Transformando vectores
+
+Para transformar los vectores necesitamos acudir al **álgebra lineal**, la rama de la matemática que estudia las ecuaciones y funciones lineales, así cómo su representación como vectores y matrices.
+
+Las tres transformaciones esenciales son:
+
+* **Escalado**: Para hacer más grande o más pequeño el vector.
+* **Traslación**: Para mover el vector de sitio a otro.
+* **Rotación**: Para rotar el vector una cierta cantidad.
+
+Las transformaciones las llevaremos a cabo antes de la proyección, durante el evento de actualización y antes del renderizado:
+
+1. `ProcessInput()`
+2. `Update()`
+    1. `TransformPoints()`
+        1. `Rotate(x, y, z)`
+        2. `Scale(amout)`
+        3. `Translate(amout)`
+    2. `ProjectPoints()`
+3. `Render()`
+
+### Razones trigonométricas
+
+Para realizar las transformaciones de los vectores es necesario utilizar la trigonometría, así que vamos a repasar los conceptos básicos.
+
+Trigonometría significa **estudio de los trígonos**, polígonos con tres lados y tres ángulos.
+
+Las razones trigonométricas son las relaciones entre los lados de un triángulo rectángulo:
+
+![](./docs/image-20.png)
+
+<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?sin(\alpha)&space;=&space;\frac{Opuesto}{Hipotenusa}&space;\rightarrow&space;s&space;=&space;o&space;/&space;h"/></div>
+<br><br>
+<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?cos(\alpha)&space;=&space;\frac{Adyacente}{Hipotenusa}&space;\rightarrow&space;c&space;=&space;a&space;/&space;h"/></div>
+<br><br>
+<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?tan(\alpha)&space;=&space;\frac{Opuesto}{Adyacente}&space;\rightarrow&space;t&space;=&space;o&space;/&space;a"/></div>
+
+Estas relaciones nos permitirá realizar distintos cálculos esenciales para las transformaciones lineales como la rotación.
