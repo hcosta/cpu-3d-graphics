@@ -1086,9 +1086,9 @@ En un videojuego o simulación tridimensional, el origen de la vista es la cáma
 
 Mediante el uso de la geometría y la propiedad de los triángulos similares de compartir proporciones equivalentes, podemos calcular las fórmulas para los puntos proyectados `P'x` y `P'y`:
 
-<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?\frac{P%27x}{Px}=\frac{1}{Pz}\to\frac{Px}{Pz}"/></div>
-<br><br>
-<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?\frac{P%27y}{Py}=\frac{1}{Pz}\to\frac{Py}{Pz}"/></div>
+![](https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\frac{P%27x}{Px}=\frac{1}{Pz}\to\frac{Px}{Pz})
+
+![](https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\frac{P%27y}{Py}=\frac{1}{Pz}\to\frac{Py}{Pz})
 
 Ambas fórmulas se conocen como **brechas de perspectiva**, en inglés *perspective divide* y dictan que:
 
@@ -1228,10 +1228,12 @@ Las razones trigonométricas son las relaciones entre los lados de un triángulo
 
 ![](./docs/image-20.png)
 
-<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?sin(\alpha)&space;=&space;\frac{Opuesto}{Hipotenusa}&space;\rightarrow&space;s&space;=&space;o&space;/&space;h"/></div>
-<br><br>
-<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?cos(\alpha)&space;=&space;\frac{Adyacente}{Hipotenusa}&space;\rightarrow&space;c&space;=&space;a&space;/&space;h"/></div>
-<br><br>
-<div style="background: white;padding:8px;display:inline-block;"><img src="https://latex.codecogs.com/svg.image?tan(\alpha)&space;=&space;\frac{Opuesto}{Adyacente}&space;\rightarrow&space;t&space;=&space;o&space;/&space;a"/></div>
+![](https://latex.codecogs.com/png.image?\dpi{150}\bg{white}sin(\alpha)&space;=&space;\frac{opuesto}{hipotenusa}&space;\rightarrow&space;s&space;=&space;o&space;/&space;h)
 
-Estas relaciones nos permitirá realizar distintos cálculos esenciales para las transformaciones lineales como la rotación.
+![](https://latex.codecogs.com/png.image?\dpi{150}\bg{white}cos(\alpha)&space;=&space;\frac{adyacente}{hipotenusa}&space;\rightarrow&space;c&space;=&space;a&space;/&space;h)
+
+![](https://latex.codecogs.com/png.image?\dpi{150}\bg{white}tan(\alpha)&space;=&space;\frac{opuesto}{adyacente}&space;\rightarrow&space;t&space;=&space;o&space;/&space;a)
+
+Estas relaciones nos permitirá realizar distintos cálculos esenciales para las transformaciones lineales como la rotación. 
+
+Una forma de recordarlas es mediante la palabra **sohcahtoa**.
