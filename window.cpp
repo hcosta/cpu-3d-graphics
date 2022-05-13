@@ -58,7 +58,7 @@ void Window::Init()
     // Creamos el renderizador SDL
     if (enableCap)
     {
-        renderer = SDL_CreateRenderer(window, -1, 0);
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     }
     else
     {
@@ -100,7 +100,7 @@ void Window::Setup()
         renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
 
     // Custom objects
-    cube = Cube(this, 7);
+    cube = Cube(this);
     cube.SetRotationAmount(0.01, 0.01, 0.01);
 
     // Start Timers

@@ -1,33 +1,9 @@
 #include "cube.h"
 #include "window.h" // Importamos la fuente de la ventana
 
-Cube::Cube(Window *window, int pointsPerSide)
+Cube::Cube(Window *window)
 {
     this->window = window;
-
-    // Si el numero de puntos por lado es par le sumamos 1
-    // El centro del cuadrado es el punto intermedio 0,0,0
-    // Por eso necesitamos asegurarnos de poder dividirlo
-    if (pointsPerSide % 2 == 0)
-        pointsPerSide++;
-
-    points = std::make_unique<Vector3[]>(pointsPerSide * pointsPerSide * pointsPerSide);
-    projectedPoints = std::make_unique<Vector2[]>(pointsPerSide * pointsPerSide * pointsPerSide);
-
-    // Array de vectores de -1 a 1 (requiere longitud impar)
-    float portion = 1.0f / (pointsPerSide / 2);
-
-    for (float x = -1.0; x <= 1; x += portion)
-    {
-        for (float y = -1.0; y <= 1; y += portion)
-        {
-            for (float z = -1.0; z <= 1; z += portion)
-            {
-                // std::cout << x << "," << y << "," << z << std::endl;
-                points[pointsCounter++] = Vector3{x, y, z};
-            }
-        }
-    }
 }
 
 void Cube::Update()
@@ -37,15 +13,30 @@ void Cube::Update()
     rotation.y += rotationAmount.y;
     rotation.z += rotationAmount.x;
 
-    for (size_t i = 0; i < pointsCounter; i++)
+    // Loop all triangle faces of the mesh
+    for (size_t i = 0; i < 12; i++)
     {
-        Vector3 point = points[i];
-        // Rotation transformation
-        point.Rotate(rotation);
-        //  Restamos la distancia de la cámara
-        point.z -= window->cameraPosition.z;
-        // Proyeccion del punto
-        projectedPoints[i] = point.PerspectiveProjection(window->fovFactor);
+        // Create a new triangle to store data and render it later
+        Triangle triangle;
+        triangle.vertices[0] = meshVertices[static_cast<int>(meshFaces[i].x)];
+        triangle.vertices[1] = meshVertices[static_cast<int>(meshFaces[i].y)];
+        triangle.vertices[2] = meshVertices[static_cast<int>(meshFaces[i].z)];
+
+        // Loop all vertice for the face and apply transformations
+        for (size_t j = 0; j < 3; j++)
+        {
+            // rotate and translate vertex array form the camera
+            triangle.RotateVertex(j, rotation);
+            triangle.TranslateVertex(j, window->cameraPosition);
+            // project the vertex and scale it from 3D to 2D
+            triangle.ProjectVertex(j, window->fovFactor);
+            // translate the projected point to the middle screen
+            triangle.projectedVertices[j].x += (window->windowWidth / 2);
+            triangle.projectedVertices[j].y += (window->windowHeight / 2);
+        }
+
+        // Save the projected triangle in triangles render array
+        trianglesToRender[i] = triangle;
     }
 }
 
@@ -56,12 +47,16 @@ void Cube::SetRotationAmount(float x, float y, float z)
 
 void Cube::Render()
 {
-    /* Dibujar proyección reposicionada al centro */
-    for (size_t i = 0; i < pointsCounter; i++)
+
+    // Loop projected triangles array and render them
+    for (size_t i = 0; i < 12; i++)
     {
-        window->DrawPixel(
-            projectedPoints[i].x + window->windowWidth / 2,
-            projectedPoints[i].y + window->windowHeight / 2,
-            0xFF00FFFF);
+        for (size_t j = 0; j < 3; j++)
+        {
+            window->DrawPixel(
+                trianglesToRender[i].projectedVertices[j].x,
+                trianglesToRender[i].projectedVertices[j].y,
+                0xFF00FFFF);
+        }
     }
 }

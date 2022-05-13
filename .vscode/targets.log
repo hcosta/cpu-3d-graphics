@@ -8,10 +8,12 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Thu May 12 10:57:35 2022
+# Make data base, printed on Fri May 13 11:40:53 2022
 
 # Variables
 
+# environment
+FPS_BROWSER_APP_PROFILE_STRING = Internet Explorer
 # environment
 SYSTEMDRIVE = C:
 # environment
@@ -21,7 +23,7 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-efa06978-a36a-4400-ae7d-f80e2f0a289b-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-97229652-2b62-4c4e-94df-e29f5c38e24b-sock
 # environment
 VSCODE_CWD = C:\WINDOWS\system32
 # environment
@@ -37,7 +39,9 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_15936_OSIGIALOWEHMNVVG
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_14084_PGLYRGYVDFFUWPVE
+# environment
+FPS_BROWSER_USER_PROFILE_STRING = Default
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # default
@@ -93,7 +97,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 15936
+VSCODE_PID = 14084
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -195,20 +199,20 @@ VSCODE_IPC_HOOK = \\.\pipe\2a561f950f35ce26bc3a1b1d1e5aab7e-1.67.1-main-sock
 # automatic
 <F = $(notdir $<)
 # default
+ 
 SUFFIXES := 
 # environment
 ALLUSERSPROFILE = C:\ProgramData
 # environment
 SESSIONNAME = Console
 # default
-.FEATURES := ta 
-rget-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync load
+.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync load
 # environment
 PROCESSOR_REVISION = 5504
 # environment
 PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 # variable set hash-table stats:
-# Load=97/1024=9%, Rehash=0, Collisions=10/124=8%
+# Load=99/1024=10%, Rehash=0, Collisions=11/126=9%
 
 # Pattern-specific Variable Values
 
@@ -216,9 +220,9 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 
 # Directories
 
-# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652267265): 17 files, no impossibilities.
+# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652378435): 19 files, no impossibilities.
 
-# 17 files, no impossibilities in 1 directories.
+# 19 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -275,12 +279,12 @@ build:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 23 / storage = 163 B / avg = 7 B
-# current buf: size = 8174 B / used = 163 B / count = 23 / avg = 7 B
+# strcache buffers: 1 (0) / strings = 25 / storage = 179 B / avg = 7 B
+# current buf: size = 8174 B / used = 179 B / count = 25 / avg = 7 B
 
-# strcache performance: lookups = 30 / hit rate = 23%
+# strcache performance: lookups = 32 / hit rate = 21%
 # hash-table stats:
-# Load=23/8192=0%, Rehash=0, Collisions=0/30=0%
-# Finished Make data base on Thu May 12 10:57:35 2022
+# Load=25/8192=0%, Rehash=0, Collisions=0/32=0%
+# Finished Make data base on Fri May 13 11:40:53 2022
 
  
