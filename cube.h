@@ -15,7 +15,6 @@ private:
     Window *window;
     Vector3 rotation;
     Vector3 rotationAmount;
-    std::unique_ptr<Vector3[]> points;
     Vector3 meshVertices[8] = {
         {-1, -1, -1}, // 0
         {1, -1, -1},  // 1
@@ -50,8 +49,10 @@ private:
 
 public:
     Cube() = default;
-    Cube(Window *window);
+    Cube(Window *window) : window(window){};
+
     void SetRotationAmount(float x, float y, float z);
+
     void Update();
     void Render();
 };

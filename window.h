@@ -45,6 +45,9 @@ private:
     /* Custom objects */
     Cube cube;
 
+    /* Event Handling */
+    SDL_Event event;
+
 public:
     Window(int w, int h) : windowWidth(w), windowHeight(h){};
     ~Window();
@@ -63,6 +66,8 @@ public:
     void DrawGrid(unsigned int color);
     void DrawPixel(int sx, int sy, unsigned int color);
     void DrawRect(int sx, int sy, int width, int height, uint32_t color);
+    void DrawLine(int x0, int y0, int x1, int y1, uint32_t color);
+    void DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
 };
 
 #endif

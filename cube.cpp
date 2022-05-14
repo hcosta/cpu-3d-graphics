@@ -1,9 +1,9 @@
 #include "cube.h"
 #include "window.h" // Importamos la fuente de la ventana
 
-Cube::Cube(Window *window)
+void Cube::SetRotationAmount(float x, float y, float z)
 {
-    this->window = window;
+    rotationAmount = {.x = x, .y = y, .z = z};
 }
 
 void Cube::Update()
@@ -40,23 +40,18 @@ void Cube::Update()
     }
 }
 
-void Cube::SetRotationAmount(float x, float y, float z)
-{
-    rotationAmount = {.x = x, .y = y, .z = z};
-}
-
 void Cube::Render()
 {
-
     // Loop projected triangles array and render them
     for (size_t i = 0; i < 12; i++)
     {
-        for (size_t j = 0; j < 3; j++)
-        {
-            window->DrawPixel(
-                trianglesToRender[i].projectedVertices[j].x,
-                trianglesToRender[i].projectedVertices[j].y,
-                0xFF00FFFF);
-        }
+        window->DrawTriangle(
+            trianglesToRender[i].projectedVertices[0].x,
+            trianglesToRender[i].projectedVertices[0].y,
+            trianglesToRender[i].projectedVertices[1].x,
+            trianglesToRender[i].projectedVertices[1].y,
+            trianglesToRender[i].projectedVertices[2].x,
+            trianglesToRender[i].projectedVertices[2].y,
+            0xFF00FFFF);
     }
 }

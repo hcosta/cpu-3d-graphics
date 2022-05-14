@@ -1,4 +1,5 @@
 #include "window.h"
+#include <math.h>
 
 Window::~Window()
 {
@@ -47,7 +48,7 @@ void Window::Init()
     // Creamos la ventana SDL
     window = SDL_CreateWindow(
         NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        windowWidth, windowHeight, SDL_WINDOW_BORDERLESS); // SDL_WINDOW_BORDERLESS
+        windowWidth, windowHeight, 0); // SDL_WINDOW_BORDERLESS
 
     if (!window)
     {
@@ -103,14 +104,16 @@ void Window::Setup()
     cube = Cube(this);
     cube.SetRotationAmount(0.01, 0.01, 0.01);
 
-    // Start Timers
+    // Start Timer
     fpsTimer.start();
 }
 
 void Window::ProcessInput()
 {
-    SDL_Event event;
+
+    fpsTimer.pause(); // Pausar para prevenir congelamiento
     SDL_PollEvent(&event);
+    fpsTimer.unpause(); // Continuar al reciibir un evento
 
     switch (event.type)
     {
@@ -126,20 +129,16 @@ void Window::ProcessInput()
 
 void Window::Update()
 {
+    // Iniciar el temporizador de cap
     if (enableCap)
-    {
-        // Iniciar el temporizador de cap
         capTimer.start();
-    }
 
-    // Calculate fps
+    // Old version
     avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
+    ++countedFrames;
 
     // Custom objects update
     cube.Update();
-
-    // Increment the frame counter
-    ++countedFrames;
 }
 
 void Window::Render()
@@ -162,8 +161,11 @@ void Window::PostRender()
     // Renderizar el color buffer
     RenderColorBuffer();
 
+    // Remove extra precisition and format the fps text
+    std::string avgFPSText = std::to_string(avgFPS).substr(0, std::to_string(avgFPS).size() - 4) + " fps";
+
     // Render FPS
-    textSurface = TTF_RenderText_Solid(textFont, (std::to_string(avgFPS) + " fps").c_str(), textColor);
+    textSurface = TTF_RenderText_Solid(textFont, avgFPSText.c_str(), textColor);
     if (!textSurface)
     {
         std::cout << "Failed to render text: " << TTF_GetError() << std::endl;
@@ -180,17 +182,19 @@ void Window::PostRender()
     // Finalmente actualizar la pantalla
     SDL_RenderPresent(renderer);
 
-    // Y por último capear los fotogramas si es necesario
+    // Por último capar los fotogramas si es necesario
     if (enableCap)
     {
         int frameTicks = capTimer.getTicks();
-        if (frameTicks < screenTicksPerFrame)
+        if (enableCap && frameTicks < screenTicksPerFrame)
         {
             // Esperamos el tiempo restante
             SDL_Delay(screenTicksPerFrame - frameTicks);
         }
     }
-    // SDL_SetWindowTitle(window, (std::to_string(avgFPS)).c_str());
+
+    // if (fpsTimer.getTicks() % screenTicksPerFrame == 0)
+    //     SDL_SetWindowTitle(window, ("FPS: " + std::to_string(avgFPS)).c_str());
 }
 
 void Window::ClearColorBuffer(uint32_t color)
@@ -240,4 +244,41 @@ void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
             colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
         }
     }
+}
+
+void Window::DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
+{
+    // Calculamos la pendiente m = Δy/Δx
+    float dX = x1 - x0;
+    float dY = y1 - y0;
+
+    // Definimos la longitud con el mayor lado
+    // Si pendiente < 1 tomamos dX (más ancho que alto)
+    // Si pendiente >= 1 tomamos dY (más alto que ancho)
+    // Nota: Como (float / 0.0) es inf no dará error,
+    // incluso siendo la línea completamente vertical
+    int longestSideLength = abs(dY / dX) < 1 ? abs(dX) : abs(dY);
+
+    // Buscamos cuanto debemos ir incrementando x e y
+    // Uno de ellos siempre será 1 y el otro menor que 1
+    float xInc = dX / longestSideLength;
+    float yInc = dY / longestSideLength;
+
+    // Dibujamos todos los puntos para el lado más largo
+    for (size_t i = 0; i < longestSideLength; i++)
+    {
+        // Desde el inicio (x0, y0) dibujamos todos los píxeles
+        // y vamos redondeando al alza o baja hasta el final
+        DrawPixel(
+            round(x0 + (xInc * i)),
+            round(y0 + (yInc * i)),
+            0xFF00FF00);
+    }
+}
+
+void Window::DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+    DrawLine(x0, y0, x1, y1, color);
+    DrawLine(x1, y1, x2, y2, color);
+    DrawLine(x2, y2, x0, y0, color);
 }

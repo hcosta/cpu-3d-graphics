@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Fri May 13 11:40:53 2022
+# Make data base, printed on Sat May 14 11:38:53 2022
 
 # Variables
 
@@ -23,7 +23,7 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-97229652-2b62-4c4e-94df-e29f5c38e24b-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-4a323824-c725-41af-83fd-35221bbe85b2-sock
 # environment
 VSCODE_CWD = C:\WINDOWS\system32
 # environment
@@ -39,7 +39,7 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_14084_PGLYRGYVDFFUWPVE
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_8040_IKQQBCWOTPHITXDR
 # environment
 FPS_BROWSER_USER_PROFILE_STRING = Default
 # environment
@@ -97,7 +97,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 14084
+VSCODE_PID = 8040
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -199,7 +199,6 @@ VSCODE_IPC_HOOK = \\.\pipe\2a561f950f35ce26bc3a1b1d1e5aab7e-1.67.1-main-sock
 # automatic
 <F = $(notdir $<)
 # default
- 
 SUFFIXES := 
 # environment
 ALLUSERSPROFILE = C:\ProgramData
@@ -220,9 +219,9 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 
 # Directories
 
-# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652378435): 19 files, no impossibilities.
+# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652450249): 20 files, no impossibilities.
 
-# 19 files, no impossibilities in 1 directories.
+# 20 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -279,12 +278,12 @@ build:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 25 / storage = 179 B / avg = 7 B
-# current buf: size = 8174 B / used = 179 B / count = 25 / avg = 7 B
+# strcache buffers: 1 (0) / strings = 26 / storage = 190 B / avg = 7 B
+# current buf: size = 8174 B / used = 190 B / count = 26 / avg = 7 B
 
-# strcache performance: lookups = 32 / hit rate = 21%
+# strcache performance: lookups = 33 / hit rate = 21%
 # hash-table stats:
-# Load=25/8192=0%, Rehash=0, Collisions=0/32=0%
-# Finished Make data base on Fri May 13 11:40:53 2022
+# Load=26/8192=0%, Rehash=0, Collisions=0/33=0%
+# Finished Make data base on Sat May 14 11:38:53 2022
 
  
