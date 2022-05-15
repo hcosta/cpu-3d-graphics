@@ -6,7 +6,7 @@
 #include <SDL2/SDL_ttf.h>
 #include "timer.h"
 #include "vector.h"
-#include "cube.h"
+#include "mesh.h"
 
 class Window
 {
@@ -43,7 +43,7 @@ private:
     Timer fpsTimer, capTimer;
 
     /* Custom objects */
-    Cube cube;
+    Mesh mesh;
 
     /* Event Handling */
     SDL_Event event;

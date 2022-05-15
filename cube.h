@@ -2,7 +2,6 @@
 #define CUBE_H
 
 #include <iostream>
-#include <memory>
 #include "vector.h"
 #include "triangle.h"
 

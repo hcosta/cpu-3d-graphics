@@ -101,8 +101,10 @@ void Window::Setup()
         renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
 
     // Custom objects
-    cube = Cube(this);
-    cube.SetRotationAmount(0.01, 0.01, 0.01);
+    Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
+    Vector3 meshFaces[]{{1, 0, 2}, {1, 2, 3}, {4, 5, 7}, {4, 7, 6}, {1, 7, 5}, {1, 3, 7}, {4, 2, 0}, {4, 6, 2}, {2, 7, 3}, {2, 6, 7}, {1, 5, 4}, {1, 4, 0}};
+    mesh = Mesh(this, meshVertices, 8, meshFaces, 12);
+    mesh.SetRotationAmount(0.01, 0.01, 0.01);
 
     // Start Timer
     fpsTimer.start();
@@ -138,7 +140,7 @@ void Window::Update()
     ++countedFrames;
 
     // Custom objects update
-    cube.Update();
+    mesh.Update();
 }
 
 void Window::Render()
@@ -150,7 +152,7 @@ void Window::Render()
     DrawGrid(0xFF616161);
 
     // Custom objects render
-    cube.Render();
+    mesh.Render();
 
     // Late rendering actions
     PostRender();
