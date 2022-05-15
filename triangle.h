@@ -9,6 +9,8 @@ public:
     Vector3 vertices[3];
     Vector2 projectedVertices[3];
 
+    Triangle() = default;
+
     void ProjectVertex(int vertexIndex, float fovFactor)
     {
         projectedVertices[vertexIndex] = vertices[vertexIndex].PerspectiveProjection(fovFactor);

@@ -49,7 +49,8 @@
         "chrono": "cpp",
         "ctime": "cpp",
         "ratio": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "fstream": "cpp"
     },
     "makefile.launchConfigurations": [
         {

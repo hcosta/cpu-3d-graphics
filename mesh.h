@@ -21,6 +21,7 @@ private:
 
 public:
     Mesh() = default;
+    Mesh(Window *window, std::string fileName);
     Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength);
     void SetRotationAmount(float x, float y, float z);
     void Update();

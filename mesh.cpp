@@ -1,14 +1,61 @@
 #include "mesh.h"
 #include "window.h" // Importamos la fuente de la ventana
+#include <fstream>
+
+Mesh::Mesh(Window *window, std::string fileName)
+{
+    this->window = window;
+
+    // Open the file
+    std::ifstream file(fileName);
+    if (!file.is_open())
+    {
+        std::cerr << "Error reading the file " << fileName << std::endl;
+        return;
+    }
+    // If file is loaded in memory read each line
+    std::string line;
+    while (std::getline(file, line))
+    {
+        // if starts with v it's a vertex
+        if (line.rfind("v ", 0) == 0)
+        {
+            Vector3 vertex; // %lf -> double (large float)
+            sscanf(line.c_str(), "v %lf %lf %lf", &vertex.x, &vertex.y, &vertex.z);
+            this->vertices.push_back(vertex);
+        }
+        // if starts with f it's a face
+        else if (line.rfind("f ", 0) == 0)
+        {
+            int vertexIndices[3];
+            int textureIndices[3];
+            int normalIndices[3];
+            sscanf(line.c_str(), "f %d/%d/%d %d/%d/%d %d/%d/%d",
+                   &vertexIndices[0], &textureIndices[0], &normalIndices[0],
+                   &vertexIndices[1], &textureIndices[1], &normalIndices[1],
+                   &vertexIndices[2], &textureIndices[2], &normalIndices[2]);
+            Vector3 face;
+            face.x = vertexIndices[0];
+            face.y = vertexIndices[1];
+            face.z = vertexIndices[2];
+            this->faces.push_back(face);
+            this->triangles.push_back(Triangle());
+        }
+    }
+}
 
 Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength)
 {
     this->window = window;
-    // Initialize the dinamic vertices and faces
+    // Initialize the dinamic vertices
     for (size_t i = 0; i < verticesLength; i++)
         this->vertices.push_back(vertices[i]);
+    // Initialize the dinamic faces and empty triangles (same number)
     for (size_t i = 0; i < facesLength; i++)
+    {
         this->faces.push_back(faces[i]);
+        this->triangles.push_back(Triangle());
+    }
 };
 
 void Mesh::SetRotationAmount(float x, float y, float z)
@@ -23,34 +70,27 @@ void Mesh::Update()
     rotation.y += rotationAmount.y;
     rotation.z += rotationAmount.x;
 
-    // Clear the triangles queue
-    triangles.clear();
-
     // Loop all triangle faces of the mesh
-    for (size_t i = 0; i < faces.size(); i++)
+    for (size_t i = 0; i < triangles.size(); i++)
     {
         // Create a new triangle to store data and render it later
-        Triangle triangle;
-        triangle.vertices[0] = vertices[static_cast<int>(faces[i].x)];
-        triangle.vertices[1] = vertices[static_cast<int>(faces[i].y)];
-        triangle.vertices[2] = vertices[static_cast<int>(faces[i].z)];
+        triangles[i].vertices[0] = vertices[static_cast<int>(faces[i].x) - 1];
+        triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
+        triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
 
         // Loop all vertice for the face and apply transformations
         for (size_t j = 0; j < 3; j++)
         {
             // Rotation
-            triangle.RotateVertex(j, rotation);
+            triangles[i].RotateVertex(j, rotation);
             // Translation (away from camera)
-            triangle.TranslateVertex(j, window->cameraPosition);
+            triangles[i].TranslateVertex(j, window->cameraPosition);
             // project the vertex and scale it from 3D to 2D
-            triangle.ProjectVertex(j, window->fovFactor);
+            triangles[i].ProjectVertex(j, window->fovFactor);
             // Translate the projected vertex to the middle screen
-            triangle.projectedVertices[j].x += (window->windowWidth / 2);
-            triangle.projectedVertices[j].y += (window->windowHeight / 2);
+            triangles[i].projectedVertices[j].x += (window->windowWidth / 2);
+            triangles[i].projectedVertices[j].y += (window->windowHeight / 2);
         }
-
-        // Push transformed triangles
-        triangles.push_back(triangle);
     }
 }
 
