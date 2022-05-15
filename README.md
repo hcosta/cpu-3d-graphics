@@ -29,6 +29,13 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
 * [Ficheros con modelos OBJ](#ficheros-con-modelos-obj)
     * [Carga de OBJ en la memoria](#carga-de-obj-en-la-memoria)
 * [Operaciones con vectores](#operaciones-con-vectores)
+    * [Magnitud vectorial](#magnitud-vectorial)
+    * [Adición y sustracción de vectores](#adición-y-sustracción-de-vectores)
+    * [Multiplicación y división de vectores](#multiplicación-y-división-de-vectores)
+    * [Producto vectorial](#producto-vectorial)
+    * [Cálculo del vector normal](#cálculo-del-vector-normal)
+    * [Producto escalar](#producto-escalar)
+* [Back-face Culling](#back-face-culling)
 
 ## Configuración previa
 
@@ -2459,6 +2466,30 @@ En esta sección hemos dado un paso adelante enorme y ya no estamos limitados a 
 
 ## Operaciones con vectores
 
+En los gráficos por computadora, saber cómo determinar si las  caras de un modelo se encuentran revertidas nos permitirá ahorrarnos su renderizado. Para conseguirlo deberemos aplicar algunas operaciones con vectores así que en esta sección vamos a repasar diferentes operaciones vectoriales.
 
+### Magnitud vectorial
+
+### Adición y sustracción de vectores
+
+### Multiplicación y división de vectores
+
+### Producto vectorial
+
+### Cálculo del vector normal
+
+### Producto escalar
+
+## Back-face Culling
+
+Una vez repasadas las operaciones vectorialesya podemos introducir la técnica del ***Back-face Culling***, basada en desechar las caras invisibles de un modelo y permitiéndos ahorrar su renderizado, aumentado así considerablemente la optimización de nuestro sistema.
+
+![](./docs/image-40.png)
+
+El vector **normal** de cada cara apunta hacia donde mira:
+
+![](./docs/image-41.png)
+
+Si el ángulo formado entre el rayo de la cámara y el vector normal es menor de 90º consideraremos que la cara es visible por la cámara y la renderizaremos, en caso contrario será invisible y la desecharemos (*culling*).
 
 

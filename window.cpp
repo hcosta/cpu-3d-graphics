@@ -104,7 +104,7 @@ void Window::Setup()
     // Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
     // Vector3 meshFaces[]{{1, 0, 2}, {1, 2, 3}, {4, 5, 7}, {4, 7, 6}, {1, 7, 5}, {1, 3, 7}, {4, 2, 0}, {4, 6, 2}, {2, 7, 3}, {2, 6, 7}, {1, 5, 4}, {1, 4, 0}};
     // mesh = Mesh(this, meshVertices, 8, meshFaces, 12);
-    mesh = Mesh(this, "assets/monkey.obj");
+    mesh = Mesh(this, "assets/cube.obj");
     mesh.SetRotationAmount(0.01, 0.01, 0.01);
 
     // Start Timer
