@@ -13,6 +13,74 @@ std::ostream &operator<<(std::ostream &os, const Vector3 &v)
     return os;
 }
 
+float Vector2::Length()
+{
+    return sqrt(x * x + y * y);
+}
+
+Vector2 Vector2::operator+(const Vector2 &v) const
+{
+    return Vector2(x + v.x, y + v.y);
+}
+
+Vector2 Vector2::operator-(const Vector2 &v) const
+{
+    return Vector2(x - v.x, y - v.y);
+}
+
+Vector2 Vector2::operator*(float factor) const
+{
+    return Vector2(x * factor, y * factor);
+}
+
+Vector2 Vector2::operator/(float factor) const
+{
+    return Vector2(x / factor, y / factor);
+}
+
+float Vector2::DotProduct(const Vector2 &v) const
+{
+    return (x * v.x) + (y * v.y);
+}
+
+float Vector3::Length()
+{
+    return sqrt(x * x + y * y + z * z);
+}
+
+Vector3 Vector3::operator+(const Vector3 &v) const
+{
+    return Vector3(x + v.x, y + v.y, z + v.z);
+}
+
+Vector3 Vector3::operator-(const Vector3 &v) const
+{
+    return Vector3(x - v.x, y - v.y, z - v.z);
+}
+
+Vector3 Vector3::operator*(float factor) const
+{
+    return Vector3(x * factor, y * factor, z * factor);
+}
+
+Vector3 Vector3::operator/(float factor) const
+{
+    return Vector3(x / factor, y / factor, z / factor);
+}
+
+Vector3 Vector3::CrossProduct(const Vector3 &v) const
+{
+    return Vector3(
+        y * v.z - z * v.y,
+        z * v.x - x * v.z,
+        x * v.y - y * v.x);
+}
+
+float Vector3::DotProduct(const Vector3 &v) const
+{
+    return (x * v.x) + (y * v.y) + (z * v.z);
+}
+
 void Vector3::RotateX(float angle)
 {
     double newY = y * cos(angle) - z * sin(angle);
