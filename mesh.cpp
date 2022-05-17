@@ -60,7 +60,7 @@ Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces
 
 void Mesh::SetRotationAmount(float x, float y, float z)
 {
-    rotationAmount = {.x = x, .y = y, .z = z};
+    rotationAmount = {x, y, z};
 }
 
 void Mesh::Update()
@@ -78,14 +78,24 @@ void Mesh::Update()
         triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
         triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
 
-        // Loop all vertice for the face and apply transformations
+        /*** Apply transformations for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
             // Rotation
             triangles[i].RotateVertex(j, rotation);
             // Translation (away from camera)
-            triangles[i].TranslateVertex(j, window->cameraPosition);
-            // project the vertex and scale it from 3D to 2D
+            triangles[i].TranslateVertex(j, Vector3(0, 0, -5));
+        }
+
+        /*** Back Face Culling Algorithm ***/
+        triangles[i].ApplyCulling(window->cameraPosition);
+        // Bypass the projection if triangle is being culled
+        if (triangles[i].culling)
+            continue;
+
+        /*** Apply projections for all face vertices ***/
+        for (size_t j = 0; j < 3; j++)
+        {
             triangles[i].ProjectVertex(j, window->fovFactor);
             // Translate the projected vertex to the middle screen
             triangles[i].projectedVertices[j].x += (window->windowWidth / 2);
@@ -99,6 +109,10 @@ void Mesh::Render()
     // Loop projected triangles array and render them
     for (size_t i = 0; i < triangles.size(); i++)
     {
+        // If culling is true bypass the current triangle
+        if (triangles[i].culling)
+            continue;
+
         window->DrawTriangle(
             triangles[i].projectedVertices[0].x,
             triangles[i].projectedVertices[0].y,

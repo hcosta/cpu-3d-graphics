@@ -3,7 +3,7 @@
 
 void Cube::SetRotationAmount(float x, float y, float z)
 {
-    rotationAmount = {.x = x, .y = y, .z = z};
+    rotationAmount = {x, y, z};
 }
 
 void Cube::Update()

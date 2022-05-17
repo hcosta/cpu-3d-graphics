@@ -15,7 +15,9 @@ public:
     Vector2 operator*(float factor) const;
     Vector2 operator/(float factor) const;
 
+    Vector2() = default;
     Vector2(double x, double y) : x(x), y(y){};
+    void Normalize();
     float DotProduct(const Vector2 &v) const;
     float Length();
 };
@@ -35,8 +37,10 @@ public:
     Vector3 CrossProduct(const Vector3 &v) const;
     float DotProduct(const Vector3 &v) const;
 
+    Vector3() = default;
     Vector3(double x, double y, double z) : x(x), y(y), z(z){};
-
+    void Normalize();
+    void Rotate(Vector3 angles);
     float Length();
 
     void RotateX(float angle);
@@ -45,8 +49,6 @@ public:
 
     Vector2 OrtoraphicProjection(float fovFactor);
     Vector2 PerspectiveProjection(float fovFactor);
-
-    void Rotate(Vector3 angles);
 };
 
 #endif

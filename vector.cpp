@@ -18,6 +18,13 @@ float Vector2::Length()
     return sqrt(x * x + y * y);
 }
 
+void Vector2::Normalize()
+{
+    float length = Length();
+    x = x / length;
+    y = y / length;
+}
+
 Vector2 Vector2::operator+(const Vector2 &v) const
 {
     return Vector2(x + v.x, y + v.y);
@@ -46,6 +53,14 @@ float Vector2::DotProduct(const Vector2 &v) const
 float Vector3::Length()
 {
     return sqrt(x * x + y * y + z * z);
+}
+
+void Vector3::Normalize()
+{
+    float length = Length();
+    x = x / length;
+    y = y / length;
+    z = z / length;
 }
 
 Vector3 Vector3::operator+(const Vector3 &v) const

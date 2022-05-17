@@ -15,7 +15,7 @@ public:
     int windowWidth;
     int windowHeight;
     float fovFactor = 400;
-    Vector3 cameraPosition{0, 0, -5};
+    Vector3 cameraPosition{0, 0, 0};
 
 private:
     /* Window */
