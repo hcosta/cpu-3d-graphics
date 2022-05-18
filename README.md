@@ -3035,30 +3035,114 @@ Ahora nos toca implementar los algoritmos para dibujar ambos triángulos.
 
 El algoritmo para dibujar el triángulo con lado inferior plano enumera los sigientes pasos:
 
-1. 
-2. 
-3. 
+![](./docs/image-54.png)
+
+1. Empezaremos desde arriba en el vértice `(x0, y0)`.
+2. Calcularemos la `pendiente 1` y la `pendiente 2`.
+3. Realizaremos un bucle para todos los *scanlines* desde `y0` a `y2`:
+    1. En base a las pendientes, calcularemos cada píxel de inicio `x_start` y final `x_end`.
+    2. Dibujaremos la **línea** que va desde `x_start` hasta `x_end`.
+    3. En base a los valores de la pendiente, incrementar `x_start` y `x_end` para el siguiente *scanline*.
+
+Para calcular las pendientes solo debemos encontrar la relación entre el alto y ancho de los triángulos que se forman:
+
+![](./docs/image-55.png)
+
+![](https://latex.codecogs.com/png.image?\dpi{150}\bg{white}m&space;=&space;\frac{\Delta&space;y}{\Delta&space;x})
+
+```
+m1 = b/a = (y2 - y0) / (x2 - x0) 
+m2 = b/c = (y1 - y0) / (x0 - x1)
+```
+
+Con la pendiente podemos aplicar lo que hicimos con el algoritmo DDA y determinarl os puntos de inicio y fin de `x` para cada `y`.
 
 El código quedará:
 
 ```cpp
 void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
 {
+    // Algoritmo propio
+    float m1 = -((y1 - y0) / static_cast<float>((x0 - x1))); // m1 izquierda -
+    float m2 = (y2 - y0) / static_cast<float>((x2 - x0));    // m2 derecha +
 
+    for (int i = 0; i < (y1 - y0); i++)
+    {
+        DrawLine(x0 + (i / m1), y0 + i, x0 + (i / m2), y0 + i, color);
+    }
 }
 ```
 
+El resultado en este punto será el triángulo superior:
+
+```cpp
+DrawTriangle(200, 50, 150, 300, 500, 450, 0xFFFF00FF);
+DrawFilledTriangle(200, 50, 150, 300, 500, 450, 0xFF00FF00);
+```
+
+![](./docs/image-56.png)
+
 El algoritmo para dibujar el triángulo con lado superior plano enumera los sigientes pasos:
 
-1. 
-2. 
-3. 
+1. Empezaremos desde abajo en el vértice `(x2, y2)`.
+2. Calcularemos la `pendiente 1` y la `pendiente 2`.
+3. Realizaremos un bucle para todos los *scanlines* desde `y2` a `y0`:
+    1. En base a las pendientes, calcularemos cada píxel de inicio `x_start` y final `x_end`.
+    2. Dibujaremos la **línea** que va desde `x_start` hasta `x_end`.
+    3. En base a los valores de la pendiente, decrementar `x_start` y `x_end` para el siguiente *scanline*.
+
+![](./docs/image-57.png)
+
+Quizá en este triángulo no queda muy claro cómo calcular las pendientes, la siguiente figura muestra esas pendientes en base a la altura y anchura marcadas en azul:
+
+![](./docs/image-58.png)
+
 
 Y el código quedará:
 
 ```cpp
-void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+void Window::FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
 {
+    // Algoritmo propio
+    float m1 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m1 izquierda -
+    float m2 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m2 izquierda -
 
+    for (int i = 0; i <= (y2 - y1); i++)
+    {
+        DrawLine(x2 + (i / m1), y2 - i, x2 + (i / m2), y2 - i, color);
+    }
 }
 ```
+
+El resultado en este punto será el triángulo inferior:
+
+```cpp
+void Window::FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+    // Algoritmo propio
+    float m1 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m1 izquierda (-)
+    float m2 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m2 izquierda (-)
+
+    for (int i = 0; i <= (y2 - y1); i++)
+    {
+        DrawLine(x2 + (i / m1), y2 - i, x2 + (i / m2), y2 - i, color);
+    }
+}
+```
+
+![](./docs/image-59.png)
+
+Con ambos triángulos activos tendremos la cara completa rasterizada:
+
+![](./docs/image-60.png)
+
+Así que vamos a probar como queda nuestro nuevo método para pintar las caras del cubo, dibujando los triángulos rasterizados en blanco y por encima los vértices en negro:
+
+
+
+
+### Funciones de rasterizado
+
+### Colorear caras en triángulos
+
+### Refactorización 4

@@ -113,13 +113,16 @@ void Mesh::Render()
         if (triangles[i].culling)
             continue;
 
+        window->DrawFilledTriangle(
+            triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y,
+            triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y,
+            triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y,
+            0xFFFFFFFF);
+
         window->DrawTriangle(
-            triangles[i].projectedVertices[0].x,
-            triangles[i].projectedVertices[0].y,
-            triangles[i].projectedVertices[1].x,
-            triangles[i].projectedVertices[1].y,
-            triangles[i].projectedVertices[2].x,
-            triangles[i].projectedVertices[2].y,
-            0xFF00FFFF);
+            triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y,
+            triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y,
+            triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y,
+            0xFF000000);
     }
 }

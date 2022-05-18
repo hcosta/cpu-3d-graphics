@@ -155,8 +155,7 @@ void Window::Render()
     DrawGrid(0xFF616161);
 
     // Custom objects render
-    // mesh.Render();
-    DrawFilledTriangle(200, 50, 150, 300, 500, 450, 0xFF00FFFF);
+    mesh.Render();
 
     // Late rendering actions
     PostRender();
@@ -271,14 +270,14 @@ void Window::DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
     float yInc = dY / longestSideLength;
 
     // Dibujamos todos los puntos para el lado más largo
-    for (size_t i = 0; i < longestSideLength; i++)
+    for (size_t i = 0; i <= longestSideLength; i++)
     {
         // Desde el inicio (x0, y0) dibujamos todos los píxeles
         // y vamos redondeando al alza o baja hasta el final
         DrawPixel(
             round(x0 + (xInc * i)),
             round(y0 + (yInc * i)),
-            0xFF00FF00);
+            color);
     }
 }
 
@@ -314,21 +313,84 @@ void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, 
         SwapIntegers(&y0, &y1);
         SwapIntegers(&x0, &x1);
     }
+    if (y0 == y1)
+    {
+        return;
+    }
+    else if (y1 == y2)
+    {
+        return;
+    }
+    else
+    {
+        // Calcular el vértice (Mx, My) usando similitudes
+        int Mx = (((x2 - x0) * (y1 - y0)) / static_cast<float>((y2 - y0))) + x0;
+        int My = y1;
 
-    // Calcular el vértice (Mx, My) usando similitudes
-    int Mx = (((x2 - x0) * (y1 - y0)) / static_cast<float>((y2 - y0))) + x0;
-    int My = y1;
-
-    // Dibujar triángulo con lado inferior plano
-    FillFlatBottomTriangle(x0, y0, x1, y1, Mx, My, color);
-    // Dibujar triángulo con lado superior plano
-    FillFlatTopTriangle(x1, y1, Mx, My, x2, y2, color);
+        // Dibujar triángulo con lado inferior plano
+        FillFlatBottomTriangle(x0, y0, x1, y1, Mx, My, color);
+        // Dibujar triángulo con lado superior plano
+        FillFlatTopTriangle(x1, y1, Mx, My, x2, y2, color);
+    }
 }
 
 void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
 {
+    // Algoritmo propio
+    float m1 = -((y1 - y0) / static_cast<float>((x0 - x1))); // m1 izquierda (-)
+    float m2 = (y2 - y0) / static_cast<float>((x2 - x0));    // m2 derecha (+)
+
+    for (int i = 0; i < (y1 - y0); i++)
+    {
+        DrawLine(x0 + (i / m1), y0 + i, x0 + (i / m2), y0 + i, color);
+    }
+    /*
+    // Algoritmo Gustadolf
+    // ===================
+
+    // Calculamos las pendientes pero respecto a la altura que es la que tenemos
+    // La pendiente y/x es respecto a x, la pendiente inversa x/y es respecto a y
+    // Con este cálculo conseguiremos el incremento exacto por pixel en altura y
+
+    // Para el triángulo izquierdo tomamos la distancia hacia la izquierda y arriba
+    float m1 = static_cast<float>((x1 - x0)) / (y1 - y0);
+    // Para el triángulo derecho tomamos la distancia hacia la derecha y arriba
+    float m2 = static_cast<float>((x2 - x0)) / (y2 - y0);
+
+    float xStart = x0;
+    float xEnd = x0;
+
+    for (int y = y0; y < y2; y++)
+    {
+        DrawLine(xStart, y, xEnd, y, color);
+        xStart += m1;
+        xEnd += m2;
+    } */
 }
 
 void Window::FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
 {
+    // Algoritmo propio
+    float m1 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m1 izquierda (-)
+    float m2 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m2 izquierda (-)
+
+    for (int i = 0; i <= (y2 - y1); i++)
+    {
+        DrawLine(x2 + (i / m1), y2 - i, x1 + (i / m2), y2 - i, color);
+    }
+
+    /* Versión de Gustafolf
+    // Pendientes inversas
+    float m1 = (x2 - x0) / static_cast<float>((y2 - y0));
+    float m2 = (x2 - x1) / static_cast<float>((y2 - y1));
+
+    float xStart = x2;
+    float xEnd = x2;
+
+    for (int y = y2; y >= y0; y--)
+    {
+        DrawLine(xStart, y, xEnd, y, color);
+        xStart -= m1;
+        xEnd -= m2;
+    } */
 }
