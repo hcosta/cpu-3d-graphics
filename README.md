@@ -2696,26 +2696,26 @@ El algoritmo de *culling* enumera los pasos para determinar si dibujar o no una 
 Para aplicar este algoritmo en el código primero vamos a separar lo que son las transformaciones de las proyecciones en el `Mesh` para entre medio determinar si aplicar o no el `back-face culling`:
 
 ```cpp
-        // Loop all vertice for the face and apply transformations
-        for (size_t j = 0; j < 3; j++)
-        {
-            // Rotation
-            triangles[i].RotateVertex(j, rotation);
-            // Translation (away from camera)
-            triangles[i].TranslateVertex(j, Vector3(0, 0, -5));
-        }
+// Loop all vertice for the face and apply transformations
+for (size_t j = 0; j < 3; j++)
+{
+    // Rotation
+    triangles[i].RotateVertex(j, rotation);
+    // Translation (away from camera)
+    triangles[i].TranslateVertex(j, Vector3(0, 0, -5));
+}
 
-        // Before project the faces check backface culling bypass
-        
+// Before project the faces check backface culling bypass
 
-        // Loop all vertice for the face and apply projections
-        for (size_t j = 0; j < 3; j++)
-        {
-            triangles[i].ProjectVertex(j, window->fovFactor);
-            // Translate the projected vertex to the middle screen
-            triangles[i].projectedVertices[j].x += (window->windowWidth / 2);
-            triangles[i].projectedVertices[j].y += (window->windowHeight / 2);
-        }
+
+// Loop all vertice for the face and apply projections
+for (size_t j = 0; j < 3; j++)
+{
+    triangles[i].ProjectVertex(j, window->fovFactor);
+    // Translate the projected vertex to the middle screen
+    triangles[i].projectedVertices[j].x += (window->windowWidth / 2);
+    triangles[i].projectedVertices[j].y += (window->windowHeight / 2);
+}
 ```
 
 La parte del `culling` quedará:
@@ -2799,15 +2799,15 @@ El vector normalizado `u` de un vector `v` con una magnitud y dirección, es el 
 
 Si no necesitamos representar la longitud (o magnitud) del vector, lo ideal es normalizarlo, transformándolo en un vector unitario de `longitud = 1`.
 
-La fómula es muy simple:
+La fórmula es muy simple:
 
 <img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\widehat{u}&space;=&space;&space;\frac{\overrightarrow{v}}{\left\|&space;\overrightarrow{v}&space;\right\|}"/>
 
-Esto significa dividir cada componente del vector `(v.x, v.y, v.z)` por la longitud del propio vector `v`.
+Esto significa dividir cada componente del vector `(v.x, v.y, v.z)` entre la longitud del propio vector `v`.
 
-Esto es interesante porque el **vector normal** es el clásico ejemplo de un vector que se debe normalizar, pues lo único que nos interesa de él es su dirección.
+Es algo interesante porque el **vector normal** es el clásico ejemplo de un vector que se debe normalizar, pues lo único que nos interesa de él es su dirección. 
 
-Así que vamos a implementar un método para normalizar un vector y utilizarlo para nuestro vector `normal`.
+Así que vamos a implementar un método para normalizar el propio vector:
 
 ```cpp
 void Vector2::Normalize()
@@ -2828,7 +2828,7 @@ void Vector3::Normalize()
 }
 ```
 
-Aplicamos el método en el vector `normal` y también, ya que estamos, a los vectores para calcularla:
+Aplicamos el método en el vector `normal` y también, ya que estamos, a los vectores `vectorAB` y `vectorAC`:
 
 ```cpp
 // Get the vector substracion B-A and C - A and normalize 'em
@@ -2879,4 +2879,186 @@ triangles[i].ApplyCulling(window->cameraPosition);
 // Bypass the projection if triangle is being culled
 if (triangles[i].culling)
     continue;
+```
+
+## Rasterización de triángulos
+
+En esta unidad vamos a ver cómo aplicar un algoritmo para rellenar de color nuestros triángulos en lugar de simplemente trazar las líneas entre sus vértices.
+
+Esto lo conseguiremos recorriendo cada `scanline` (las líneas horizontales que conforman lo que sería la pantalla), determinando si forma parte de un triángulo y activando el color en ese lugar.
+
+### Técnica Flat-Bottom Flat-Top
+
+El método que vamos a utilizar para rellenar los triángulos consiste en dividir cada cara en dos triángulos, uno con el costado inferior plano y otro con el costado superior plano, de manera que coincidan en ese costado:
+
+![](./docs/image-49.png)
+
+Primero deberemos aprender a dividir el triángulo y tan pronto lo tengamos dividido en dos triángulos, uno con inferior plano y otro con superior plano, podremos realizar un bucle de arriba hacia abajo rellenando cada línea de ambos triángulos color.
+
+Para dividir nuestro triángulo, lo primero que tomaremos son los tres vértices del triángulo:
+
+![](./docs/image-50.png)
+
+Ahora bien, ¿cómo determinamos cuál es el vértice superior? Tan pronto como empecemos a realizar transformaciones, escalar y rotar el triángulo, ese vértice dejará de ser el superior.
+
+Pues lo que tenemos que hacer es ir reordenando los vértices en función de su altura, el componente `y`:
+
+```
+y0 < y1 < y2
+```
+
+Una vez ordenados los vértices debemos pensar cómo identificar los dos triángulos que comparten el lado plano y para ello deberemos identificar el segundo punto que cortará el triángulo desde `(x1,y1)` al que llamaremos `(Mx, My)`:
+
+![](./docs/image-51.png)
+
+Cuando tengamos el **punto medio** `M`, podremos utilizar dos funciones para dibujar ambos triángulos rellenos:
+
+```cpp
+// Dibujar triángulo con lado inferior plano
+void DrawFlatBottom(x0, y0, x1, y1, Mx, My);
+
+// Dibujar triángulo con lado superior plano
+void DrawFlatTop(x1, y1, Mx, My, x2, y2);
+```
+
+Determinar `My` es simple, está a la misma altura que `y1`, sin embargo `Mx` no es tan fácil a simple vista.
+
+Para determinar `Mx` acudiremos a la propiedad de los triángulos similares donde se comparte la misma proporción en sus costados para las bases y las alturas:
+
+![](./docs/image-52.png)
+
+La relación quedará:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\frac{Mx&space;-&space;x_0}{x_2&space;-&space;x_0}&space;=&space;\frac{y_1&space;-&space;y_0}{y_2&space;-&space;y_0}"/>
+
+Aplicando un poco de álgebra podemos aislar `Mx`:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\\&space;(Mx&space;-&space;x_0)(y_2&space;-&space;y_0)&space;=&space;(x_2&space;-&space;x_0)(y_1&space;-&space;y_0)\\\\&space;Mx&space;-&space;x_0&space;=&space;\frac{(x_2&space;-&space;x_0)(y_1&space;-&space;y_0)}{(y_2&space;-&space;y_0)}\\\\&space;Mx&space;=&space;\frac{(x_2&space;-&space;x_0)(y_1&space;-&space;y_0)}{(y_2&space;-&space;y_0)}&space;&plus;&space;x_0"/>
+
+Una vez encontrada `Mx` ya podemos implementar la primera parte de la solución.
+
+Supongamos el siguiente triángulo:
+
+```cpp
+DrawTriangle(200, 50, 150, 300, 500, 450, 0xFF00FFFF);
+```
+
+Que se vería de esta forma:
+
+![](./docs/image-53.png)
+
+Ahora queremos dibujar el triángulo con relleno, para lo cuál empezaremos por dividir el triángulo en dos partes en un nuevo método:
+
+```cpp
+DrawFilledTriangle(200, 50, 150, 300, 500, 450, 0xFF00FFFF);
+```
+
+Lo primero que necesitaremos es reordenar los vértices ascendientemente, quedando primero el de más arriba (`y` más pequeña) y así sucesivmente. 
+
+Si esto cuesta de comprender imaginemos que las `y` de los tres vértices son las siguientes `{3, 2, 1}`. El objetivo es ordenadorlos ascendentemente de manera que quede `{1, 2, 3}`. Para ello deberemos realizar tres intercambios:
+
+* El primer intercambio dejará como resultado {2, 3, 1}
+* El segundo intercambio dejará como resultado {2, 1, 3}
+* El tercer intercambio dejará como resultado {1, 2, 3}
+
+Después de tres intercambios tendremos las `y` ordenadas.
+
+La implementación requería crea un método `SwapIntegers` en la clase, luego podríamos refactorizarlo:
+
+```cpp
+void Window::SwapIntegers(int *a, int *b)
+{
+    int *tmp = a;
+    a = b;
+    b = tmp;
+}
+
+void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+    // Reordenamiento de los vértices y0 < y1 < y2
+    if (y0 > y1) // Primer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+    }
+    if (y1 > y2) // Segundo intercambio
+    {
+        SwapIntegers(&y1, &y2);
+        SwapIntegers(&x1, &x2);
+    }
+    if (y0 > y1) // Tercer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+    }
+
+    // TODO: Dibujar triángulo con lado inferior plano
+
+    // TODO: Dibujar triángulo con lado superior plano
+}
+```
+
+Una vez ordenados los vértices debemos calcular el punto medio `M` para poder dibujar los dos triángulos, los cuales voy a abstraer en dos nuevos métodos `FillFlatBottomTriangle` y `FillFlatTopTriangle`:
+
+```cpp
+void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+    // Reordenamiento de los vértices y0 < y1 < y2
+    if (y0 > y1) // Primer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+    }
+    if (y1 > y2) // Segundo intercambio
+    {
+        SwapIntegers(&y1, &y2);
+        SwapIntegers(&x1, &x2);
+    }
+    if (y0 > y1) // Tercer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+    }
+
+    // Calcular el vértice (Mx, My) usando similitudes
+    int Mx = (((x2 - x0) * (y1 - y0)) / static_cast<float>((y2 - y0))) + x0;
+    int My = y1;
+
+    // Dibujar triángulo con lado inferior plano
+    FillFlatBottomTriangle(x0, y0, x1, y1, Mx, My, color);
+    // Dibujar triángulo con lado superior plano
+    FillFlatTopTriangle(x1, y1, Mx, My, x2, y2, color);
+}
+```
+
+Ahora nos toca implementar los algoritmos para dibujar ambos triángulos.
+
+El algoritmo para dibujar el triángulo con lado inferior plano enumera los sigientes pasos:
+
+1. 
+2. 
+3. 
+
+El código quedará:
+
+```cpp
+void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+
+}
+```
+
+El algoritmo para dibujar el triángulo con lado superior plano enumera los sigientes pasos:
+
+1. 
+2. 
+3. 
+
+Y el código quedará:
+
+```cpp
+void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+
+}
 ```

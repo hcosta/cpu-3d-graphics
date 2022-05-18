@@ -104,7 +104,7 @@ void Window::Setup()
     // Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
     // Vector3 meshFaces[]{{1, 0, 2}, {1, 2, 3}, {4, 5, 7}, {4, 7, 6}, {1, 7, 5}, {1, 3, 7}, {4, 2, 0}, {4, 6, 2}, {2, 7, 3}, {2, 6, 7}, {1, 5, 4}, {1, 4, 0}};
     // mesh = Mesh(this, meshVertices, 8, meshFaces, 12);
-    mesh = Mesh(this, "assets/cube.obj");
+    mesh = Mesh(this, "assets/cone.obj");
     mesh.SetRotationAmount(0.01, 0.01, 0.01);
 
     // Start Timer
@@ -155,7 +155,8 @@ void Window::Render()
     DrawGrid(0xFF616161);
 
     // Custom objects render
-    mesh.Render();
+    // mesh.Render();
+    DrawFilledTriangle(200, 50, 150, 300, 500, 450, 0xFF00FFFF);
 
     // Late rendering actions
     PostRender();
@@ -286,4 +287,48 @@ void Window::DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
     DrawLine(x0, y0, x1, y1, color);
     DrawLine(x1, y1, x2, y2, color);
     DrawLine(x2, y2, x0, y0, color);
+}
+
+void Window::SwapIntegers(int *a, int *b)
+{
+    int *tmp = a;
+    a = b;
+    b = tmp;
+}
+
+void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+    // Reordenamiento de los vértices y0 < y1 < y2
+    if (y0 > y1) // Primer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+    }
+    if (y1 > y2) // Segundo intercambio
+    {
+        SwapIntegers(&y1, &y2);
+        SwapIntegers(&x1, &x2);
+    }
+    if (y0 > y1) // Tercer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+    }
+
+    // Calcular el vértice (Mx, My) usando similitudes
+    int Mx = (((x2 - x0) * (y1 - y0)) / static_cast<float>((y2 - y0))) + x0;
+    int My = y1;
+
+    // Dibujar triángulo con lado inferior plano
+    FillFlatBottomTriangle(x0, y0, x1, y1, Mx, My, color);
+    // Dibujar triángulo con lado superior plano
+    FillFlatTopTriangle(x1, y1, Mx, My, x2, y2, color);
+}
+
+void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
+}
+
+void Window::FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
+{
 }

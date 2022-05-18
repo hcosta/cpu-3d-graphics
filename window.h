@@ -68,6 +68,10 @@ public:
     void DrawRect(int sx, int sy, int width, int height, uint32_t color);
     void DrawLine(int x0, int y0, int x1, int y1, uint32_t color);
     void DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
+    void DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
+    void SwapIntegers(int *a, int *b);
+    void FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
+    void FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
 };
 
 #endif
