@@ -101,10 +101,7 @@ void Window::Setup()
         renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
 
     // Custom objects
-    // Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
-    // Vector3 meshFaces[]{{1, 0, 2}, {1, 2, 3}, {4, 5, 7}, {4, 7, 6}, {1, 7, 5}, {1, 3, 7}, {4, 2, 0}, {4, 6, 2}, {2, 7, 3}, {2, 6, 7}, {1, 5, 4}, {1, 4, 0}};
-    // mesh = Mesh(this, meshVertices, 8, meshFaces, 12);
-    mesh = Mesh(this, "assets/cone.obj");
+    mesh = Mesh(this, "assets/cube.obj");
     mesh.SetRotationAmount(0.01, 0.01, 0.01);
 
     // Start Timer
@@ -156,6 +153,8 @@ void Window::Render()
 
     // Custom objects render
     mesh.Render();
+    // DrawTriangle(200, 50, 150, 300, 500, 450, 0xFFFF00FF);
+    // DrawFilledTriangle(200, 50, 150, 300, 500, 450, 0xFF00FF00);
 
     // Late rendering actions
     PostRender();
@@ -290,9 +289,9 @@ void Window::DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
 
 void Window::SwapIntegers(int *a, int *b)
 {
-    int *tmp = a;
-    a = b;
-    b = tmp;
+    int tmp = *a;
+    *a = *b;
+    *b = tmp;
 }
 
 void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
@@ -313,13 +312,16 @@ void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, 
         SwapIntegers(&y0, &y1);
         SwapIntegers(&x0, &x1);
     }
-    if (y0 == y1)
+
+    // Si la cara es plana por abajo bypaseamos el triángulo inferior
+    if (y1 == y2)
     {
-        return;
+        FillFlatBottomTriangle(x0, y0, x1, y1, x2, y2, color);
     }
-    else if (y1 == y2)
+    // Si la cara es plana por abajo bypaseamos el triángulo inferior
+    else if (y0 == y1)
     {
-        return;
+        FillFlatTopTriangle(x0, y0, x1, y1, x2, y2, color);
     }
     else
     {
@@ -337,8 +339,8 @@ void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, 
 void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
 {
     // Algoritmo propio
-    float m1 = -((y1 - y0) / static_cast<float>((x0 - x1))); // m1 izquierda (-)
-    float m2 = (y2 - y0) / static_cast<float>((x2 - x0));    // m2 derecha (+)
+    float m1 = -((y1 - y0) / static_cast<float>((x0 - x1))); // m1 izquierda -
+    float m2 = (y2 - y0) / static_cast<float>((x2 - x0));    // m2 derecha +
 
     for (int i = 0; i < (y1 - y0); i++)
     {
@@ -371,15 +373,16 @@ void Window::FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int 
 void Window::FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
 {
     // Algoritmo propio
-    float m1 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m1 izquierda (-)
-    float m2 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m2 izquierda (-)
+    float m1 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m1 izquierda -
+    float m2 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m2 izquierda -
 
     for (int i = 0; i <= (y2 - y1); i++)
     {
-        DrawLine(x2 + (i / m1), y2 - i, x1 + (i / m2), y2 - i, color);
+        DrawLine(x2 + (i / m1), y2 - i, x2 + (i / m2), y2 - i, color);
     }
 
-    /* Versión de Gustafolf
+    /*
+    // Versión de Gustafolf
     // Pendientes inversas
     float m1 = (x2 - x0) / static_cast<float>((y2 - y0));
     float m2 = (x2 - x1) / static_cast<float>((y2 - y1));

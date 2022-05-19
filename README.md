@@ -38,6 +38,12 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
 * [Back-face Culling](#back-face-culling)
     * [Normalización de vectores](#normalización-de-vectores)
     * [Refactorización 3](#refactorización-3)
+* [Rasterización de triángulos](#rasterización-de-triángulos)
+    * [Técnica Flat-Bottom Flat-Top](#técnica-flat-bottom-flat-top)
+    * [Evitar división entre cero](#evitar-división-entre-cero)
+    * [Funciones de rasterizado](#funciones-de-rasterizado)
+    * [Colorear caras en triángulos](#colorear-caras-en-triángulos)
+    * [Refactorización 4](#refactorización-4)
 
 ## Configuración previa
 
@@ -2968,9 +2974,9 @@ La implementación requería crea un método `SwapIntegers` en la clase, luego p
 ```cpp
 void Window::SwapIntegers(int *a, int *b)
 {
-    int *tmp = a;
-    a = b;
-    b = tmp;
+    int tmp = *a;
+    *a = *b;
+    *b = tmp;
 }
 
 void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
@@ -3018,7 +3024,7 @@ void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, 
     {
         SwapIntegers(&y0, &y1);
         SwapIntegers(&x0, &x1);
-    }
+    }    
 
     // Calcular el vértice (Mx, My) usando similitudes
     int Mx = (((x2 - x0) * (y1 - y0)) / static_cast<float>((y2 - y0))) + x0;
@@ -3116,20 +3122,6 @@ void Window::FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2,
 
 El resultado en este punto será el triángulo inferior:
 
-```cpp
-void Window::FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
-{
-    // Algoritmo propio
-    float m1 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m1 izquierda (-)
-    float m2 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m2 izquierda (-)
-
-    for (int i = 0; i <= (y2 - y1); i++)
-    {
-        DrawLine(x2 + (i / m1), y2 - i, x2 + (i / m2), y2 - i, color);
-    }
-}
-```
-
 ![](./docs/image-59.png)
 
 Con ambos triángulos activos tendremos la cara completa rasterizada:
@@ -3138,7 +3130,92 @@ Con ambos triángulos activos tendremos la cara completa rasterizada:
 
 Así que vamos a probar como queda nuestro nuevo método para pintar las caras del cubo, dibujando los triángulos rasterizados en blanco y por encima los vértices en negro:
 
+```cpp
+void Mesh::Render()
+{
+    // Loop projected triangles array and render them
+    for (size_t i = 0; i < triangles.size(); i++)
+    {
+        // If culling is true bypass the current triangle
+        if (triangles[i].culling)
+            continue;
 
+        window->DrawFilledTriangle(
+            triangles[i].projectedVertices[0].x, 
+            triangles[i].projectedVertices[0].y,
+            triangles[i].projectedVertices[1].x, 
+            triangles[i].projectedVertices[1].y,
+            triangles[i].projectedVertices[2].x, 
+            triangles[i].projectedVertices[2].y,
+            0xFFFFFFFF);
+
+        window->DrawTriangle(
+            triangles[i].projectedVertices[0].x, 
+            triangles[i].projectedVertices[0].y,
+            triangles[i].projectedVertices[1].x, 
+            triangles[i].projectedVertices[1].y,
+            triangles[i].projectedVertices[2].x, 
+            triangles[i].projectedVertices[2].y,
+            0xFF000000);
+    }
+}
+```
+
+Si lo probamos...
+
+![](./docs/anim-11.gif)
+
+Lo tenemos perfecto pero hay una optimización que debemos añadir lo antes posible para prevenir divisiones entre cero, que en C++ al dividr números flotantes dan lugar a valores potencialmente infinitos.
+
+### Evitar división entre cero
+
+Cuando una cara tiene un lado plano debemos podemos saltataros el dibujado de uno de los dos triángulos, ya que simplemente será una línea recta.
+
+El primer caso es que la altura del segundo vértice `y1` y tercero `y2` sean la misma, por ejemplo en una cara como esta:
+
+![](./docs/image-61.png)
+
+En ese caso haremos un by-pass para dibujar únicamente el triángulo superior:
+
+```cpp
+if (y1 == y2)
+{
+    FillFlatBottomTriangle(x0, y0, x1, y1, x2, y2, color);
+}
+```
+
+En el segundo caso en que la altura del primer vértice `y0` y la del segundo `y1` sea la misma:
+
+![](./docs/image-62.png)
+
+En este caso haremos un by-pass para dibujar únicamente el triángulo inferior:
+
+```cpp
+else if (y1 == y2)
+{
+    FillFlatTopTriangle(x0, y0, x1, y1, x2, y2, color);
+}
+```
+
+En cualquier otro caso dibujaremos la cara a partir de los dos triángulos:
+
+```cpp
+else
+{
+    // Calcular el vértice (Mx, My) usando similitudes
+    int Mx = (((x2 - x0) * (y1 - y0)) / static_cast<float>((y2 - y0))) + x0;
+    int My = y1;
+
+    // Dibujar triángulo con lado inferior plano
+    FillFlatBottomTriangle(x0, y0, x1, y1, Mx, My, color);
+    // Dibujar triángulo con lado superior plano
+    FillFlatTopTriangle(x1, y1, Mx, My, x2, y2, color);
+}
+```
+
+El resultado será el mismo pero habremos optimizado bastante el código al saltarnos el renderizado y los cálculos del punto medio `M` cuando no nos hace falta:
+
+![](./docs/anim-12.gif)
 
 
 ### Funciones de rasterizado

@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed May 18 11:51:03 2022
+# Make data base, printed on Thu May 19 11:11:45 2022
 
 # Variables
 
@@ -23,7 +23,7 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-fff7ba4e-65ba-492b-a894-bdc9ffbe78fc-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-3b70b137-689a-413a-b67c-33f884401035-sock
 # environment
 VSCODE_CWD = C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code
 # environment
@@ -39,7 +39,7 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_22160_GYYWITMTSYVDDDAV
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_9336_QLNMQAOGKZHCXUWW
 # environment
 FPS_BROWSER_USER_PROFILE_STRING = Default
 # environment
@@ -55,7 +55,7 @@ VSCODE_LOG_STACK = false
 # automatic
 %F = $(notdir $%)
 # environment
-VSCODE_CODE_CACHE_PATH = C:\Users\hcost\AppData\Roaming\Code\CachedData\da15b6fd3ef856477bf6f4fb29ba1b7af717770d
+VSCODE_CODE_CACHE_PATH = C:\Users\hcost\AppData\Roaming\Code\CachedData\c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5
 # environment
 LANG = C
 # default
@@ -97,7 +97,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 22160
+VSCODE_PID = 9336
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -105,7 +105,7 @@ VSCODE_PID = 22160
 # automatic
 <D = $(patsubst %/,%,$(patsubst %\,%,$(dir $<)))
 # environment
-VSCODE_NLS_CONFIG = {"locale":"es","availableLanguages":{"*":"es"},"_languagePackId":"125a9a608456aa5e8a25d0a18c7b1d68.es","_translationsConfigFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\tcf.json","_cacheRoot":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es","_resolvedLanguagePackCoreLocation":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\da15b6fd3ef856477bf6f4fb29ba1b7af717770d","_corruptedFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\corrupted.info","_languagePackSupport":true}
+VSCODE_NLS_CONFIG = {"locale":"es","availableLanguages":{"*":"es"},"_languagePackId":"125a9a608456aa5e8a25d0a18c7b1d68.es","_translationsConfigFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\tcf.json","_cacheRoot":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es","_resolvedLanguagePackCoreLocation":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5","_corruptedFile":"C:\\Users\\hcost\\AppData\\Roaming\\Code\\clp\\125a9a608456aa5e8a25d0a18c7b1d68.es\\corrupted.info","_languagePackSupport":true}
 # default
 MAKE_HOST := Windows32
 # environment
@@ -193,11 +193,10 @@ ELECTRON_RUN_AS_NODE = 1
 # environment
 TEMP = C:\Users\hcost\AppData\Local\Temp
 # environment
-VSCODE_IPC_HOOK = \\.\pipe\2a561f950f35ce26bc3a1b1d1e5aab7e-1.67.1-main-sock
+VSCODE_IPC_HOOK = \\.\pipe\2a561f950f35ce26bc3a1b1d1e5aab7e-1.67.2-main-sock
 # default
 .RECIPEPREFIX := 
-# au 
-tomatic
+# automatic
 <F = $(notdir $<)
 # default
 SUFFIXES := 
@@ -285,6 +284,6 @@ build:
 # strcache performance: lookups = 35 / hit rate = 20%
 # hash-table stats:
 # Load=28/8192=0%, Rehash=0, Collisions=0/35=0%
-# Finished Make data base on Wed May 18 11:51:03 2022
+# Finished Make data base on Thu May 19 11:11:45 2022
 
  
