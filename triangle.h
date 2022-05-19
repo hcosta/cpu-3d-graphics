@@ -22,14 +22,14 @@ public:
         vertices[vertexIndex].Rotate(rotation);
     }
 
-    void TranslateVertex(int vertexIndex, Vector3 distance)
+    void TranslateVertex(int vertexIndex, float *distance)
     {
-        vertices[vertexIndex].x -= distance.x;
-        vertices[vertexIndex].y -= distance.y;
-        vertices[vertexIndex].z -= distance.z;
+        vertices[vertexIndex].x -= distance[0];
+        vertices[vertexIndex].y -= distance[1];
+        vertices[vertexIndex].z -= distance[2];
     }
 
-    void ApplyCulling(Vector3 cameraPosition)
+    void ApplyCulling(float *cameraPosition)
     {
         // Get the vector substracion B-A and C - A and normalize 'em
         Vector3 vectorAB = this->vertices[1] - this->vertices[0];
@@ -42,7 +42,7 @@ public:
         Vector3 normal = vectorAB.CrossProduct(vectorAC);
         normal.Normalize();
         // Find the vector betweenn a triangle point and camera origin
-        Vector3 cameraRay = cameraPosition - this->vertices[0];
+        Vector3 cameraRay = Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]) - this->vertices[0];
         // Calculate how aligned the camera ray is with the face normal
         float dotNormalCamera = normal.DotProduct(cameraRay);
         // Test the dotNormalCamera and render the triangle if is >0

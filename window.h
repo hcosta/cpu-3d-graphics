@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 #include "timer.h"
 #include "vector.h"
 #include "mesh.h"
@@ -14,37 +13,33 @@ public:
     bool running = false;
     int windowWidth;
     int windowHeight;
-    float fovFactor = 400;
-    Vector3 cameraPosition{0, 0, 0};
+
+    /* Configurable options */
+    bool drawGrid = true;
+    bool drawWireframe = true;
+    bool drawWireframeDots = true;
+    bool drawFilledTriangles = true;
+    bool enableBackfaceCulling = true;
+    float modelPosition[3] = {0, 0, -5};
+    float modelRotationSpeed[3] = {0.01, 0.01, 0.01};
+    float cameraPosition[3] = {0, 0, 0};
+    int fovFactor = 400;
 
 private:
     /* Window */
-    bool isFullscreen = false;
     SDL_Window *window;
     SDL_Renderer *renderer;
-
     /* Color buffer  */
     uint32_t *colorBuffer;
     SDL_Texture *colorBufferTexture;
-
-    /* Text */
-    SDL_Surface *textSurface;
-    SDL_Color textColor = {255, 255, 255};
-    TTF_Font *textFont;
-
     /* Fps */
-    bool enableCap = true;
     int fpsCap = 60;
-    float avgFPS = 0;
+    bool enableCap = true;
     int screenTicksPerFrame = 1000 / fpsCap;
-    long countedFrames = 0;
-
     /* Timers */
-    Timer fpsTimer, capTimer;
-
+    Timer capTimer;
     /* Custom objects */
     Mesh mesh;
-
     /* Event Handling */
     SDL_Event event;
 

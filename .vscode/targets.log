@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Thu May 19 11:11:45 2022
+# Make data base, printed on Thu May 19 18:37:48 2022
 
 # Variables
 
@@ -23,9 +23,9 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-3b70b137-689a-413a-b67c-33f884401035-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-2f46dc23-31da-476f-ac5e-edbb4d00ef74-sock
 # environment
-VSCODE_CWD = C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code
+VSCODE_CWD = C:\WINDOWS\system32
 # environment
 CHOCOLATEYINSTALL = C:\ProgramData\chocolatey
 # environment
@@ -39,7 +39,7 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_9336_QLNMQAOGKZHCXUWW
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_5752_NQNFLRURBRHQXCYZ
 # environment
 FPS_BROWSER_USER_PROFILE_STRING = Default
 # environment
@@ -97,7 +97,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 9336
+VSCODE_PID = 5752
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -219,9 +219,9 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 
 # Directories
 
-# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652611780): 22 files, no impossibilities.
+# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652976829): 23 files, no impossibilities.
 
-# 22 files, no impossibilities in 1 directories.
+# 23 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -232,14 +232,15 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-05-10 18:24:01
+#  Last modified 2022-05-19 18:37:10
 #  File has been updated.
 #  Successfully updated.
 
 clean:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
-#  File has not been updated.
+#  Fi 
+le has not been updated.
 #  recipe to execute (from 'Makefile', line 6):
 	rm ./bin/main.exe
 
@@ -268,7 +269,7 @@ build:
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'Makefile', line 2):
-	g++ -I src/include -L src/lib -o bin/main *.cpp -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf
+	g++ -I src/include -L src/lib  -o bin/main *.cpp src/include/imgui/*.cpp -lmingw32 -lSDL2main -lSDL2
 
 # files hash-table stats:
 # Load=7/1024=1%, Rehash=0, Collisions=0/17=0%
@@ -278,12 +279,12 @@ build:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 28 / storage = 206 B / avg = 7 B
-# current buf: size = 8174 B / used = 206 B / count = 28 / avg = 7 B
+# strcache buffers: 1 (0) / strings = 29 / storage = 216 B / avg = 7 B
+# current buf: size = 8174 B / used = 216 B / count = 29 / avg = 7 B
 
-# strcache performance: lookups = 35 / hit rate = 20%
+# strcache performance: lookups = 36 / hit rate = 19%
 # hash-table stats:
-# Load=28/8192=0%, Rehash=0, Collisions=0/35=0%
-# Finished Make data base on Thu May 19 11:11:45 2022
+# Load=29/8192=0%, Rehash=0, Collisions=0/36=0%
+# Finished Make data base on Thu May 19 18:37:48 2022
 
  

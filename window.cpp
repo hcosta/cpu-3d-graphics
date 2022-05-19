@@ -1,5 +1,12 @@
 #include "window.h"
 #include <math.h>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_sdl.h"
+#include "imgui/imgui_impl_sdlrenderer.h"
+
+#if !SDL_VERSION_ATLEAST(2, 0, 17)
+#error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
+#endif
 
 Window::~Window()
 {
@@ -8,11 +15,14 @@ Window::~Window()
     // Liberar la memoria dinámica
     free(colorBuffer);
 
+    // Liberamos ImGUI
+    ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
+    // Liberamos SDL
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-
-    TTF_CloseFont(textFont);
-    TTF_Quit();
 
     SDL_Quit();
 }
@@ -28,27 +38,12 @@ void Window::Init()
         running = false;
     }
 
-    // Inicialización TTF
-    if (TTF_Init() < 0)
-    {
-        std::cout << "Error initializing SDL_ttf: " << TTF_GetError() << std::endl;
-        running = false;
-    }
-
     // Utilizar SDL para preguntar la resolucion maxima del monitor
     SDL_DisplayMode Window_mode;
     SDL_GetCurrentDisplayMode(0, &Window_mode);
 
-    if (isFullscreen)
-    {
-        windowWidth = Window_mode.w;
-        windowHeight = Window_mode.h;
-    }
-
     // Creamos la ventana SDL
-    window = SDL_CreateWindow(
-        NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        windowWidth, windowHeight, 0); // SDL_WINDOW_BORDERLESS
+    window = SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 0); // SDL_WINDOW_BORDERLESS
 
     if (!window)
     {
@@ -63,7 +58,7 @@ void Window::Init()
     }
     else
     {
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
     }
 
     if (!renderer)
@@ -72,60 +67,40 @@ void Window::Init()
         running = false;
     }
 
-    // font setup
-    textFont = TTF_OpenFont("assets/FreeSans.ttf", 16);
-    if (!textFont)
-    {
-        std::cout << "Error loading font: " << TTF_GetError() << std::endl;
-        running = false;
-    }
-
-    if (isFullscreen)
-    {
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
-    }
-
-    if (!running)
-    {
-        std::cout << "Window Init Fail";
-    }
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer_Init(renderer);
 }
 
 void Window::Setup()
 {
     // Reservar la memoria requerida en bytes para mantener el color buffer
     colorBuffer = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * windowWidth * windowHeight));
-
     // Crear la textura SDL utilizada para mostrar el color buffer
-    colorBufferTexture = SDL_CreateTexture(
-        renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
-
+    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
     // Custom objects
     mesh = Mesh(this, "assets/cube.obj");
-    mesh.SetRotationAmount(0.01, 0.01, 0.01);
-
-    // Start Timer
-    fpsTimer.start();
 }
 
 void Window::ProcessInput()
 {
-
-    fpsTimer.pause(); // Pausar para prevenir congelamiento
-    capTimer.pause(); // Pausar para prevenir congelamiento
-    SDL_PollEvent(&event);
-    fpsTimer.unpause(); // Continuar al reciibir un evento
-    capTimer.unpause(); // Pausar para prevenir congelamiento
-
-    switch (event.type)
+    while (SDL_PollEvent(&event))
     {
-    case SDL_QUIT:
-        running = false;
-        break;
-    case SDL_KEYDOWN:
-        if (event.key.keysym.sym == SDLK_ESCAPE)
+        ImGui_ImplSDL2_ProcessEvent(&event);
+        switch (event.type)
+        {
+        case SDL_QUIT:
             running = false;
-        break;
+            break;
+        case SDL_KEYDOWN:
+            if (event.key.keysym.sym == SDLK_ESCAPE)
+                running = false;
+            break;
+        }
     }
 }
 
@@ -135,9 +110,40 @@ void Window::Update()
     if (enableCap)
         capTimer.start();
 
-    // Old version
-    avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
-    ++countedFrames;
+    // Iniciamos un Frame de Imgui
+    ImGui_ImplSDLRenderer_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+    // Creamos ventana demo de ImGUI
+    ImGui::Begin("CPU 3D Rendering");
+    ImGui::Checkbox("Limitar FPS", &this->enableCap);
+    ImGui::SliderInt(" ", &this->fpsCap, 5, 300);
+    ImGui::Checkbox("Dibujar cuadrícula", &this->drawGrid);
+    ImGui::Checkbox("Dibujar vértices", &this->drawWireframeDots);
+    ImGui::Checkbox("Dibujar wireframe", &this->drawWireframe);
+    ImGui::Checkbox("Rellenar triángulos", &this->drawFilledTriangles);
+    ImGui::Checkbox("Back-face culling", &this->enableBackfaceCulling);
+    ImGui::Separator();
+    ImGui::Text("Posición del modelo");
+    ImGui::SliderFloat2("Pos", modelPosition, -2, 2);
+    ImGui::Text("Velocidad de rotación");
+    ImGui::SliderFloat3("Rot", modelRotationSpeed, 0, 0.05f);
+    ImGui::Separator();
+    // ImGui::Text("Posición cámara (X,Y,Z)");
+    // ImGui::SliderFloat3("-5, 5", cameraPosition, -5, 5);
+    ImGui::Text("Campo de visión");
+    ImGui::SliderInt("Fov", &this->fovFactor, 75, 1000);
+    ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
+    ImGui::Separator();
+    ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+
+    // Update Model Rotation Speed
+    mesh.SetRotationAmount(
+        modelRotationSpeed[0], modelRotationSpeed[1], modelRotationSpeed[2]);
+
+    // Update Screen Ticks si han sido mofificados
+    screenTicksPerFrame = 1000 / this->fpsCap;
 
     // Custom objects update
     mesh.Update();
@@ -149,12 +155,14 @@ void Window::Render()
     ClearColorBuffer(static_cast<uint32_t>(0xFF0000000));
 
     // Render the background grid
-    DrawGrid(0xFF616161);
+    if (this->drawGrid)
+        DrawGrid(0xFF616161);
 
     // Custom objects render
     mesh.Render();
-    // DrawTriangle(200, 50, 150, 300, 500, 450, 0xFFFF00FF);
-    // DrawFilledTriangle(200, 50, 150, 300, 500, 450, 0xFF00FF00);
+
+    // Renderizamos el frame de ImGui
+    ImGui::Render();
 
     // Late rendering actions
     PostRender();
@@ -165,23 +173,8 @@ void Window::PostRender()
     // Renderizar el color buffer
     RenderColorBuffer();
 
-    // Remove extra precisition and format the fps text
-    std::string avgFPSText = std::to_string(avgFPS).substr(0, std::to_string(avgFPS).size() - 4) + " fps";
-
-    // Render FPS
-    textSurface = TTF_RenderText_Solid(textFont, avgFPSText.c_str(), textColor);
-    if (!textSurface)
-    {
-        std::cout << "Failed to render text: " << TTF_GetError() << std::endl;
-    }
-
-    SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    SDL_Rect dest = {2, windowHeight - 21, textSurface->w, textSurface->h};
-    SDL_RenderCopy(renderer, textTexture, NULL, &dest);
-
-    // Liberación de memoria local
-    SDL_FreeSurface(textSurface);
-    SDL_DestroyTexture(textTexture);
+    // Antes de presentar llamamos al SDL Renderer de ImGUI
+    ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
 
     // Finalmente actualizar la pantalla
     SDL_RenderPresent(renderer);
@@ -196,9 +189,6 @@ void Window::PostRender()
             SDL_Delay(screenTicksPerFrame - frameTicks);
         }
     }
-
-    // if (fpsTimer.getTicks() % screenTicksPerFrame == 0)
-    //     SDL_SetWindowTitle(window, ("FPS: " + std::to_string(avgFPS)).c_str());
 }
 
 void Window::ClearColorBuffer(uint32_t color)
@@ -222,9 +212,9 @@ void Window::RenderColorBuffer()
 
 void Window::DrawGrid(unsigned int color)
 {
-    for (size_t y = 0; y <= windowHeight; y += 10)
+    for (size_t y = 0; y < windowHeight; y += 10)
     {
-        for (size_t x = 0; x <= windowWidth; x += 10)
+        for (size_t x = 0; x < windowWidth; x += 10)
         {
             colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
         }

@@ -68,7 +68,7 @@ void Mesh::Update()
     // Set new framr rotation amounts
     rotation.x += rotationAmount.x;
     rotation.y += rotationAmount.y;
-    rotation.z += rotationAmount.x;
+    rotation.z += rotationAmount.z;
 
     // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
@@ -84,14 +84,18 @@ void Mesh::Update()
             // Rotation
             triangles[i].RotateVertex(j, rotation);
             // Translation (away from camera)
-            triangles[i].TranslateVertex(j, Vector3(0, 0, -5));
+            triangles[i].TranslateVertex(j, window->modelPosition);
         }
 
         /*** Back Face Culling Algorithm ***/
-        triangles[i].ApplyCulling(window->cameraPosition);
-        // Bypass the projection if triangle is being culled
-        if (triangles[i].culling)
-            continue;
+        if (window->enableBackfaceCulling)
+        {
+            triangles[i].ApplyCulling(window->cameraPosition);
+            // Bypass the projection if triangle is being culled
+
+            if (triangles[i].culling)
+                continue;
+        }
 
         /*** Apply projections for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
@@ -109,20 +113,36 @@ void Mesh::Render()
     // Loop projected triangles array and render them
     for (size_t i = 0; i < triangles.size(); i++)
     {
-        // If culling is true bypass the current triangle
+        // If culling is true and enabled globally bypass the current triangle
         if (triangles[i].culling)
             continue;
 
-        window->DrawFilledTriangle(
-            triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y,
-            triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y,
-            triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y,
-            0xFFFFFFFF);
+        // Triángulos
+        if (window->drawFilledTriangles)
+        {
+            window->DrawFilledTriangle(
+                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y,
+                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y,
+                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y,
+                0xFFFFFFFF);
+        }
 
-        window->DrawTriangle(
-            triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y,
-            triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y,
-            triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y,
-            0xFF000000);
+        // Wireframe
+        if (window->drawWireframe)
+        {
+            window->DrawTriangle(
+                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y,
+                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y,
+                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y,
+                0xFF0095FF);
+        }
+
+        // Vértices
+        if (window->drawWireframeDots)
+        {
+            window->DrawRect(triangles[i].projectedVertices[0].x - 2, triangles[i].projectedVertices[0].y - 2, 5, 5, 0xFFFF0000);
+            window->DrawRect(triangles[i].projectedVertices[1].x - 2, triangles[i].projectedVertices[1].y - 2, 5, 5, 0xFFFF0000);
+            window->DrawRect(triangles[i].projectedVertices[2].x - 2, triangles[i].projectedVertices[2].y - 2, 5, 5, 0xFFFF0000);
+        }
     }
 }
