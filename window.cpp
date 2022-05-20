@@ -41,6 +41,8 @@ void Window::Init()
     // Utilizar SDL para preguntar la resolucion maxima del monitor
     SDL_DisplayMode Window_mode;
     SDL_GetCurrentDisplayMode(0, &Window_mode);
+    // Set the max FPS as the monitor max hz
+    screenRefreshRate = Window_mode.refresh_rate;
 
     // Creamos la ventana SDL
     window = SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 0); // SDL_WINDOW_BORDERLESS
@@ -52,14 +54,7 @@ void Window::Init()
     }
 
     // Creamos el renderizador SDL
-    if (enableCap)
-    {
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    }
-    else
-    {
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
-    }
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
 
     if (!renderer)
     {
@@ -83,7 +78,11 @@ void Window::Setup()
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
     // Custom objects
-    mesh = Mesh(this, "assets/cube.obj");
+    Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
+    Vector3 meshFaces[]{{2, 1, 3}, {2, 3, 4}, {5, 6, 8}, {5, 8, 7}, {2, 8, 6}, {2, 4, 8}, {5, 3, 1}, {5, 7, 3}, {3, 8, 4}, {3, 7, 8}, {2, 6, 5}, {2, 5, 1}};
+    uint32_t meshColors[]{0xFFFF0000, 0xFFFF0000, 0xFF00FF00, 0xFF00FF00, 0xFF0000FF, 0xFF0000FF, 0xFFFFA500, 0xFFFFA500, 0xFFFFFF00, 0xFFFFFF00, 0xFF00FFFF, 0xFF00FFFF};
+    mesh = Mesh(this, meshVertices, 8, meshFaces, 12, meshColors); //
+    // mesh = Mesh(this, "assets/cube.obj");
 }
 
 void Window::ProcessInput()
@@ -106,6 +105,7 @@ void Window::ProcessInput()
 
 void Window::Update()
 {
+
     // Iniciar el temporizador de cap
     if (enableCap)
         capTimer.start();
@@ -117,7 +117,7 @@ void Window::Update()
     // Creamos ventana demo de ImGUI
     ImGui::Begin("CPU 3D Rendering");
     ImGui::Checkbox("Limitar FPS", &this->enableCap);
-    ImGui::SliderInt(" ", &this->fpsCap, 5, 300);
+    ImGui::SliderInt(" ", &this->fpsCap, 5, this->screenRefreshRate);
     ImGui::Checkbox("Dibujar cuadrícula", &this->drawGrid);
     ImGui::Checkbox("Dibujar vértices", &this->drawWireframeDots);
     ImGui::Checkbox("Dibujar wireframe", &this->drawWireframe);

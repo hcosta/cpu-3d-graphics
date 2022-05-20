@@ -20,7 +20,7 @@ public:
     bool drawWireframeDots = true;
     bool drawFilledTriangles = true;
     bool enableBackfaceCulling = true;
-    float modelPosition[3] = {0, 0, -5};
+    float modelPosition[3] = {-2, 0, -5};
     float modelRotationSpeed[3] = {0.01, 0.01, 0.01};
     float cameraPosition[3] = {0, 0, 0};
     int fovFactor = 400;
@@ -34,7 +34,8 @@ private:
     SDL_Texture *colorBufferTexture;
     /* Fps */
     int fpsCap = 60;
-    bool enableCap = true;
+    int screenRefreshRate = fpsCap;
+    bool enableCap = false;
     int screenTicksPerFrame = 1000 / fpsCap;
     /* Timers */
     Timer capTimer;

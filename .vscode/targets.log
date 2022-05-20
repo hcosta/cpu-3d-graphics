@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Thu May 19 18:37:48 2022
+# Make data base, printed on Fri May 20 19:51:22 2022
 
 # Variables
 
@@ -23,9 +23,9 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-2f46dc23-31da-476f-ac5e-edbb4d00ef74-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-33e9f54f-d5c0-4ee1-b3d7-33473f31a93b-sock
 # environment
-VSCODE_CWD = C:\WINDOWS\system32
+VSCODE_CWD = C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code
 # environment
 CHOCOLATEYINSTALL = C:\ProgramData\chocolatey
 # environment
@@ -39,7 +39,7 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_5752_NQNFLRURBRHQXCYZ
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_16752_XQEKPSNLSWZVFXGM
 # environment
 FPS_BROWSER_USER_PROFILE_STRING = Default
 # environment
@@ -97,7 +97,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 5752
+VSCODE_PID = 16752
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -129,7 +129,7 @@ MAKELEVEL := 0
 # default
 MAKE = $(MAKE_COMMAND)
 # environment
-PATH = C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Users\hcost\AppData\Local\Microsoft\WindowsApps;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\ProgramData\chocolatey\bin;C:\Program Files\Git\cmd;C:\mingw64\bin;C:\Program Files\AutoFirma\AutoFirma;C:\Program Files\dotnet\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\CMake\bin;C:\Program Files\PowerShell\7\;C:\Program Files (x86)\dotnet\;C:\Users\hcost\AppData\Local\Programs\Python\Python310\Scripts\;C:\Users\hcost\AppData\Local\Programs\Python\Python310\;C:\Users\hcost\AppData\Local\Programs\Python\Python39\Lib\site-packages\PySide6;C:\Users\hcost\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Microsoft VS Code\bin;C:\Users\hcost\AppData\Local\Microsoft\WindowsApps;C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\heroku\bin;C:\Users\hcost\.dotnet\tools;C:\Program Files\wkhtmltopdf\bin;
+PATH = C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Intel\iCLS Client\;C:\Program Files\Intel\iCLS Client\;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Users\hcost\AppData\Local\Microsoft\WindowsApps;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\ProgramData\chocolatey\bin;C:\Program Files\Git\cmd;C:\mingw64\bin;C:\Program Files\AutoFirma\AutoFirma;C:\Program Files\dotnet\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\CMake\bin;C:\Program Files (x86)\dotnet\;C:\Program Files\PowerShell\7\;C:\Users\hcost\AppData\Local\Programs\Python\Python310\Scripts\;C:\Users\hcost\AppData\Local\Programs\Python\Python310\;C:\Users\hcost\AppData\Local\Programs\Python\Python39\Lib\site-packages\PySide6;C:\Users\hcost\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Microsoft VS Code\bin;C:\Users\hcost\AppData\Local\Microsoft\WindowsApps;C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\heroku\bin;C:\Users\hcost\.dotnet\tools;C:\Program Files\wkhtmltopdf\bin;
 # environment
 COMPUTERNAME = EUREKA
 # default
@@ -219,7 +219,7 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 85 Stepping 4, GenuineIntel
 
 # Directories
 
-# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652976829): 23 files, no impossibilities.
+# . (key c:/Users/hcost/Projects/cpu-3d-graphics, mtime 1652979245): 23 files, no impossibilities.
 
 # 23 files, no impossibilities in 1 directories.
 
@@ -239,8 +239,7 @@ Makefile:
 clean:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
-#  Fi 
-le has not been updated.
+#  File has not been updated.
 #  recipe to execute (from 'Makefile', line 6):
 	rm ./bin/main.exe
 
@@ -285,6 +284,6 @@ build:
 # strcache performance: lookups = 36 / hit rate = 19%
 # hash-table stats:
 # Load=29/8192=0%, Rehash=0, Collisions=0/36=0%
-# Finished Make data base on Thu May 19 18:37:48 2022
+# Finished Make data base on Fri May 20 19:51:22 2022
 
  

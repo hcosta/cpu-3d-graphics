@@ -8,9 +8,17 @@ class Triangle
 public:
     Vector3 vertices[3];
     Vector2 projectedVertices[3];
-    bool culling;
+    uint32_t color = 0xFFFFFFFF;
+    bool culling = false;
+    float averageDepth;
 
     Triangle() = default;
+    Triangle(uint32_t color) : color(color){};
+
+    bool operator<(const Triangle &t) const
+    {
+        return averageDepth < t.averageDepth;
+    }
 
     void ProjectVertex(int vertexIndex, float fovFactor)
     {
@@ -47,6 +55,11 @@ public:
         float dotNormalCamera = normal.DotProduct(cameraRay);
         // Test the dotNormalCamera and render the triangle if is >0
         this->culling = (dotNormalCamera < 0);
+    }
+
+    void CalculateAverageDepth()
+    {
+        averageDepth = (vertices[0].z + vertices[1].z + vertices[2].z) / 3;
     }
 };
 
