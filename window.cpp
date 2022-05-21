@@ -43,6 +43,7 @@ void Window::Init()
     SDL_GetCurrentDisplayMode(0, &Window_mode);
     // Set the max FPS as the monitor max hz
     screenRefreshRate = Window_mode.refresh_rate;
+    fpsCap = screenRefreshRate;
 
     // Creamos la ventana SDL
     window = SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 0); // SDL_WINDOW_BORDERLESS
@@ -81,7 +82,7 @@ void Window::Setup()
     Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
     Vector3 meshFaces[]{{2, 1, 3}, {2, 3, 4}, {5, 6, 8}, {5, 8, 7}, {2, 8, 6}, {2, 4, 8}, {5, 3, 1}, {5, 7, 3}, {3, 8, 4}, {3, 7, 8}, {2, 6, 5}, {2, 5, 1}};
     uint32_t meshColors[]{0xFFFF0000, 0xFFFF0000, 0xFF00FF00, 0xFF00FF00, 0xFF0000FF, 0xFF0000FF, 0xFFFFA500, 0xFFFFA500, 0xFFFFFF00, 0xFFFFFF00, 0xFF00FFFF, 0xFF00FFFF};
-    mesh = Mesh(this, meshVertices, 8, meshFaces, 12, meshColors); //
+    mesh = Mesh(this, meshVertices, 8, meshFaces, 12, meshColors);
     // mesh = Mesh(this, "assets/cube.obj");
 }
 

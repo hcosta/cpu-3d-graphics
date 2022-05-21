@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Fri May 20 19:51:22 2022
+# Make data base, printed on Sat May 21 12:25:29 2022
 
 # Variables
 
@@ -23,7 +23,7 @@ USERPROFILE = C:\Users\hcost
 # environment
 LOCALAPPDATA = C:\Users\hcost\AppData\Local
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-33e9f54f-d5c0-4ee1-b3d7-33473f31a93b-sock
+VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-aedf7f77-1a5f-4179-9ae7-24cd22de627a-sock
 # environment
 VSCODE_CWD = C:\Users\hcost\AppData\Local\Programs\Microsoft VS Code
 # environment
@@ -39,7 +39,7 @@ MAKE_COMMAND := C:/ProgramData/chocolatey/lib/make/tools/install/bin/make.exe
 # automatic
 @D = $(patsubst %/,%,$(patsubst %\,%,$(dir $@)))
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_16752_XQEKPSNLSWZVFXGM
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_6320_WRWHXPHRBRWSHLIQ
 # environment
 FPS_BROWSER_USER_PROFILE_STRING = Default
 # environment
@@ -97,7 +97,7 @@ MAKEFILE_LIST := Makefile
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_PID = 16752
+VSCODE_PID = 6320
 # automatic
 ?D = $(patsubst %/,%,$(patsubst %\,%,$(dir $?)))
 # automatic
@@ -196,7 +196,8 @@ TEMP = C:\Users\hcost\AppData\Local\Temp
 VSCODE_IPC_HOOK = \\.\pipe\2a561f950f35ce26bc3a1b1d1e5aab7e-1.67.2-main-sock
 # default
 .RECIPEPREFIX := 
-# automatic
+# auto 
+matic
 <F = $(notdir $<)
 # default
 SUFFIXES := 
@@ -284,6 +285,6 @@ build:
 # strcache performance: lookups = 36 / hit rate = 19%
 # hash-table stats:
 # Load=29/8192=0%, Rehash=0, Collisions=0/36=0%
-# Finished Make data base on Fri May 20 19:51:22 2022
+# Finished Make data base on Sat May 21 12:25:29 2022
 
  

@@ -46,6 +46,10 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
 * [Ordenar caras por profundidad](#ordenar-caras-por-profundidad)
     * [Algoritmo del pintor](#algoritmo-del-pintor)
 * [Operaciones con matrices](#operaciones-con-matrices)
+    * [Adición de matrices](#adición-de-matrices)
+    * [Sustracción de matrices](#sustracción-de-matrices)
+    * [Multiplicación de matrices](#multiplicación-de-matrices)
+    * [Matriz de identidad](#matriz-de-identidad)
 
 ## Configuración previa
 
@@ -3536,7 +3540,7 @@ void Mesh::Render()
     for (size_t i = 0; i < triangles.size(); i++)
     {
         // If culling is true and enabled globally bypass the current triangle
-        if (triangles[i].culling)
+        if (window->enableBackfaceCulling && triangles[i].culling)
             continue;
 
         // Triángulos
@@ -3754,7 +3758,7 @@ void Mesh::Render()
     for (size_t i = 0; i < sortedTriangles.size(); i++)
     {
         // If culling is true and enabled globally bypass the current triangle
-        if (sortedTriangles[i].culling)
+        if (window->enableBackfaceCulling && sortedTriangles[i].culling)
             continue;
 
         // Triángulos
@@ -3802,3 +3806,140 @@ En todo caso retomaré el tema más adelante, una vez repasado  lo referente a l
 
 ## Operaciones con matrices
 
+Una **matriz** es un arreglo rectangular de valores dispuestos en **filas** y **columnas**:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}M&space;=&space;\begin{bmatrix}-2&space;&&space;5&space;&&space;6&space;\\&space;5&space;&&space;2&space;&&space;7&space;\\\end{bmatrix}" />
+
+Esencialmente es una construcción matemática para representar valores ordenados.
+
+La **dimensión de una matriz** es la expresión de su longitud por su altura.
+
+En la matriz siguiente matriz podemos observar dos filas y tres columnas:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}A&space;=&space;\begin{bmatrix}-2&space;&&space;5&space;&&space;6&space;\\&space;5&space;&&space;2&space;&&space;7&space;\\\end{bmatrix}" />
+
+La dimensión de la matriz es `2 x 3` *(2 filas x 3 columnas)*.
+
+En la siguiente matriz:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}B&space;=&space;\begin{bmatrix}-8&space;&&space;-4&space;\\&space;23&space;&&space;12&space;\\&space;18&space;&&space;10&space;\\\end{bmatrix}" />
+
+La dimensión es `3x2` *(3 filas x 2 columnas)*.
+
+Más allá de tener una dimensión, en cada uno de los lugares de la matriz tenemos **elementos**:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}{\color{DarkRed}&space;M}_{3x2}&space;=&space;\begin{bmatrix}m_{{\color{Blue}&space;1}&space;{\color{DarkGreen}&space;1}}&space;&&space;m_{{\color{Blue}&space;1}&space;{\color{DarkGreen}&space;2}}&space;\\m_{{\color{Blue}&space;2}&space;{\color{DarkGreen}&space;1}}&space;&&space;m_{{\color{Blue}&space;2}&space;{\color{DarkGreen}&space;2}}&space;\\m_{{\color{Blue}&space;3}&space;{\color{DarkGreen}&space;1}}&space;&&space;m_{{\color{Blue}&space;3}&space;{\color{DarkGreen}&space;2}}&space;\\\end{bmatrix}" />
+
+En una matriz `M` cuya dimensión es `3x2` podemos representar sus elementos `m` en función de su fila y columna.
+
+Así que una matriz es una serie de valores dispuestos o presentados de forma rectangular, a modo de tabla. 
+
+¿Pero para qué sirven?
+
+Una utilidad de las matrices es ayudarnos a representar datos que no se pueden medir en una dimensión. Por ejemplo, un contador es un número escalar con una sola dimensión:
+
+```
+Nº de manzanas
+--------------
+3
+```
+
+Pero si cada manzana tiene diferentes propiedades: variedad, color, sabor... No podemos representarlo en un  número, necesitamos una estructura de dos dimensiones:
+
+![](./docs/image-66.png)
+
+```
+Variedad     Color       Sabor
+------------------------------------
+Fuji         Naranja     Muy dulce
+Golden       Amarillo    Menos dulce
+Pink Lady    Rosadoo     Algo ácido
+```
+
+Las tablas y hojas de cálculos (*spreadsheets*) son formas de representar estos datos multidimensionales.
+
+Otra utilidad de las matrices es su uso para describir sistemas de ecuaciones lineales en las matemáticas, donde cada entrada representa un *coeficiente* de la ecuación original.
+
+Por ejemplo este **sistema lineal**:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\begin{cases}x&space;&plus;2y&space;-4z&space;=&space;5&space;\\2x&space;&plus;y&space;-6z&space;=&space;8&space;\\4x&space;-y&space;-12z&space;=&space;13&space;\\\end{cases}"/>
+
+Expresado en forma de **matriz aumentada**:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\left[&space;&space;\begin{matrix}&space;&space;&space;&space;1&&space;2&space;&&space;-4&space;\\&space;2&space;&&space;1&space;&&space;-6&space;\\&space;4&space;&&space;-1&space;&&space;-12&space;\\&space;&space;\end{matrix}\left|&space;\,&space;&space;\begin{matrix}&space;&space;&space;&space;5&space;\\&space;8&space;\\&space;13&space;\\&space;&space;&space;\end{matrix}&space;&space;&space;\right.&space;\right]"/>
+
+En los **gráficos por computadora**, una aplicación de las matrices es su habilidad para convertir conjuntos de datos geométricos a otros sistemas de coordenadas. Por ejemplo, una **matriz de multiplicación** nos ayudará a representar transformaciones como la **traslación**, **rotación**, **proyección** y muchas otras.
+
+### Adición de matrices
+
+La adición o suma de matrices es un cálculo simple entre dos matrices de la misma dimensión. Los elementos de cada posición se suman dando lugar a una nueva matriz con la misma dimensión:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\begin{bmatrix}2&space;&&space;3&space;\\1&space;&&space;-5&space;\\\end{bmatrix}&plus;\begin{bmatrix}3&space;&&space;1&space;\\1&space;&&space;2&space;\\\end{bmatrix}=&space;\begin{bmatrix}5&space;&&space;4&space;\\2&space;&&space;-3&space;\\\end{bmatrix}&space;"/>
+
+### Sustracción de matrices
+
+La sustracción o resta de matrices es otro cálculo simple entre dos matrices de la misma dimensión. Los elementos de cada posición se restan dando lugar a una nueva matriz con la misma dimensión:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\begin{bmatrix}2&space;&&space;3&space;\\1&space;&&space;-5&space;\\\end{bmatrix}-\begin{bmatrix}3&space;&&space;1&space;\\1&space;&&space;2&space;\\\end{bmatrix}=&space;\begin{bmatrix}-1&space;&&space;2&space;\\0&space;&&space;-7&space;\\\end{bmatrix}&space;"/>
+
+### Multiplicación de matrices
+
+La multiplicación de matrices no es un cálculo simple porque no se basa en multiplicar los elementos de la misma posición sino en multiplicar las filas de la primera matriz por las columnas de la segunda:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\\\begin{bmatrix}1&space;&&space;2&space;\\3&space;&&space;4&space;\\\end{bmatrix}*&space;\begin{bmatrix}5&space;&&space;6&space;\\7&space;&&space;8&space;\\\end{bmatrix}&space;" />
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\\\begin{bmatrix}(1*5)&space;&plus;&space;(2*7)&space;&&space;(1*6)&space;&plus;&space;(2*8)&space;\\(3*5)&space;&plus;&space;(4*7)&space;&&space;(3*6)&space;&plus;&space;(4*8)&space;\\\end{bmatrix}" />
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\\\begin{bmatrix}1&space;&&space;2&space;\\3&space;&&space;4&space;\\\end{bmatrix}*&space;\begin{bmatrix}5&space;&&space;6&space;\\7&space;&&space;8&space;\\\end{bmatrix}=\begin{bmatrix}{\color{Blue}&space;19}&space;&&space;{\color{Blue}&space;22}&space;\\{\color{Blue}&space;43}&space;&&space;{\color{Blue}&space;50}&space;\\&space;\end{bmatrix}&space;" />
+
+El punto interesante es que, si recordamos los vectores, podemos ver un patrón en la forma en que se multiplican las filas y las columnas. Me refiero ni más ni menos que al **producto escalar**.
+
+Debemos recordar las **propiedades de la mulitplicación** de matrices:
+
+1. Una **multiplicación de matrices solo es posible** cuando el número de columnas de la matriz izquierda `M` es equivalente al número de filas de la matriz derecha `M`.
+
+    <img src="https://latex.codecogs.com/png.image?\large&space;\dpi{175}\bg{white}\begin{bmatrix}...\end{bmatrix}_{{\color{Red}&space;N}x{\color{Blue}&space;M}}*\begin{bmatrix}...\end{bmatrix}_{{\color{Blue}&space;M}x{\color{Magenta}&space;P}}" />
+
+2. La **dimensión de la matriz** resultante tendrá el mismo número de filas que la matriz izquierda `N` y el mismo número de columnas que la matriz derecha `P`.
+
+    <img src="https://latex.codecogs.com/png.image?\large&space;\dpi{175}\bg{white}\begin{bmatrix}...\end{bmatrix}_{{\color{Red}&space;N}x{\color{Blue}&space;M}}*\begin{bmatrix}...\end{bmatrix}_{{\color{Blue}&space;M}x{\color{Magenta}&space;P}}=\begin{bmatrix}...\end{bmatrix}_{{\color{Red}&space;N}x{\color{Magenta}&space;P}}" />
+
+3. La multiplicación de matrices **no es conmutativa**, el orden afecta al resultado.
+
+    <img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}A&space;{\color{Red}&space;*}&space;B&space;{\color{Blue}&space;\neq}&space;B&space;{\color{Red}&space;*}&space;A"/>
+
+### Matriz de identidad
+
+Una matriz de identididad, también llamada *unit matrix* o *eye matrix*, es una matriz con todos los elementos diagonales en 1 y los demás en 0. 
+
+1. Para cualquier matriz cuadrada `M` de dimensión `nxn` siempre existe una matriz de identidad `I`:
+
+    <img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}M\begin{bmatrix}2&space;&&space;-3&space;&&space;3&space;\\4&space;&&space;3&space;&&space;&space;0&space;\\3&space;&&space;3&space;&&space;&space;4&space;\\\end{bmatrix}\rightarrow&space;&space;I\begin{bmatrix}1&space;&&space;0&space;&&space;0&space;\\0&space;&&space;1&space;&&space;&space;0&space;\\0&space;&&space;0&space;&&space;&space;1&space;\\\end{bmatrix}&space;">
+
+2. Multiplicar una matriz cuadrada `M` por su matriz de identidad `I` siempre resultará en la propia matriz `M`, es por así decirlo como multiplicar un número por 1:
+
+    <img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\begin{bmatrix}2&space;&&space;-3&space;&&space;3&space;\\4&space;&&space;3&space;&&space;&space;0&space;\\3&space;&&space;3&space;&&space;&space;4&space;\\\end{bmatrix}*\begin{bmatrix}1&space;&&space;0&space;&&space;0&space;\\0&space;&&space;1&space;&&space;&space;0&space;\\0&space;&&space;0&space;&&space;&space;1&space;\\\end{bmatrix}&space;=&space;\begin{bmatrix}2&space;&&space;-3&space;&&space;3&space;\\4&space;&&space;3&space;&&space;&space;0&space;\\3&space;&&space;3&space;&&space;&space;4&space;\\\end{bmatrix}&space;"/>
+
+### Ejemplo de rotación 2D con matrices
+
+Por último en esta sección vamos a repasar una aplicación de las matrices para representar una transformación lineal como sería una rotación en 2D.
+
+Anteriormente ya hablamos de la forma de rotar un vector por un ángulo:
+
+![](./docs/image-21.png)
+
+Llegamos a la conclusión que para hacerlo debíamos aplicar las fórmulas:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}\\x'&space;=&space;xcos\alpha&space;-&space;ysin\alpha\\y'&space;=&space;xsin\alpha&space;-&space;ycos\alpha"/>
+
+Esto se puede representar con la siguiente **matriz de rotación 2D**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{175}\bg{white}\begin{bmatrix}x'&space;\\y'&space;\\\end{bmatrix}=\begin{bmatrix}cos&space;(\alpha)&space;&&space;-sin(\alpha)\\sin(\alpha)&space;&&space;cos(\alpha)\\\end{bmatrix}&space;*\begin{bmatrix}x&space;\\y&space;\\\end{bmatrix}"/>
+
+Esta multiplicación de matrices dará como resultado:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{175}\bg{white}\begin{bmatrix}x'&space;\\y'&space;\\\end{bmatrix}=\begin{bmatrix}xcos&space;\alpha - ysin\alpha\\xsin\alpha+ycos\alpha\\\end{bmatrix}"/>
+
+Es un atajo para conseguir lo mismo que hicimos trabajando con vectores pero dispuesto de forma más cómoda.
+
+## Transformaciones de matrices 3D

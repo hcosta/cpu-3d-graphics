@@ -124,7 +124,7 @@ void Mesh::Render()
     for (size_t i = 0; i < sortedTriangles.size(); i++)
     {
         // If culling is true and enabled globally bypass the current triangle
-        if (sortedTriangles[i].culling)
+        if (window->enableBackfaceCulling && sortedTriangles[i].culling)
             continue;
 
         // Triángulos
