@@ -2,6 +2,7 @@
 #include "window.h" // Importamos la fuente de la ventana
 #include <fstream>
 #include <algorithm>
+#include "matrix.h"
 
 Mesh::Mesh(Window *window, std::string fileName)
 {
@@ -61,17 +62,20 @@ Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces
     }
 };
 
-void Mesh::SetRotationAmount(float x, float y, float z)
+void Mesh::SetScale(float *scale)
 {
-    rotationAmount = {x, y, z};
+    this->scale = {scale[0], scale[1], scale[2]};
+}
+
+void Mesh::SetRotation(float *rotation)
+{
+    this->rotation = {rotation[0], rotation[1], rotation[2]};
 }
 
 void Mesh::Update()
 {
-    // Set new framr rotation amounts
-    rotation.x += rotationAmount.x;
-    rotation.y += rotationAmount.y;
-    rotation.z += rotationAmount.z;
+    // Set new scalation, rotation and translation amounts
+    rotation += rotationAmount;
 
     // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
@@ -81,9 +85,14 @@ void Mesh::Update()
         triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
         triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
 
+        // preparing matrix transformation
+        triangles[i].PrepareTransform();
+
         /*** Apply transformations for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
+            // Scale using the matrix
+            triangles[i].ScaleVertex(j, scale);
             // Rotation
             triangles[i].RotateVertex(j, rotation);
             // Translation (away from camera)

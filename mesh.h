@@ -11,10 +11,15 @@ class Window;
 
 class Mesh
 {
+public:
+    Vector3 scale{1, 1, 1};
+    Vector3 rotation{0, 0, 0};
+    Vector3 rotationAmount{0, 0, 0};
+    Vector3 translation{0, 0, 0};
+
 private:
     Window *window;
-    Vector3 rotation;
-    Vector3 rotationAmount;
+
     std::deque<Vector3> faces;
     std::deque<Vector3> vertices;
     std::deque<Triangle> triangles;
@@ -23,7 +28,8 @@ public:
     Mesh() = default;
     Mesh(Window *window, std::string fileName);
     Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength, uint32_t *colors);
-    void SetRotationAmount(float x, float y, float z);
+    void SetScale(float *scale);
+    void SetRotation(float *rotation);
     void Update();
     void Render();
 };

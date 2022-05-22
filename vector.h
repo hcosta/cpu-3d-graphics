@@ -2,6 +2,7 @@
 #define VECTOR_H
 
 #include <iostream>
+#include "matrix.h"
 
 class Vector2
 {
@@ -31,6 +32,7 @@ public:
 
     friend std::ostream &operator<<(std::ostream &os, const Vector3 &v);
     Vector3 operator+(const Vector3 &v) const;
+    Vector3 &operator+=(const Vector3 &v);
     Vector3 operator-(const Vector3 &v) const;
     Vector3 operator*(float factor) const;
     Vector3 operator/(float factor) const;
@@ -49,6 +51,22 @@ public:
 
     Vector2 OrtoraphicProjection(float fovFactor);
     Vector2 PerspectiveProjection(float fovFactor);
+};
+
+class Vector4
+{
+public:
+    double x{0};
+    double y{0};
+    double z{0};
+    double w{0};
+
+    Vector4() = default;
+    Vector4(Vector3 v) : x(v.x), y(v.y), z(v.z), w(1){};
+    Vector3 ToVector3();
+
+    Vector4 operator*(Matrix4 m) const;
+    Vector4 &operator*=(const Matrix4 &m);
 };
 
 #endif

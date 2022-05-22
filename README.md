@@ -50,6 +50,12 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Sustracción de matrices](#sustracción-de-matrices)
     * [Multiplicación de matrices](#multiplicación-de-matrices)
     * [Matriz de identidad](#matriz-de-identidad)
+* [Matrices de transformación 3D](#matrices-de-transformación-3d)
+    * [Matriz de escalado 3D](#matriz-de-escalado-3d)
+    * [Matriz de traslación 3D](#matriz-de-traslación-3d)
+    * [Matriz de rotación 3D](#matriz-de-rotación-3d)
+    * [Matriz de mundo 3D](#matriz-de-mundo-3d)
+    * [Refactorización 4](#refactorización-4)
 
 ## Configuración previa
 
@@ -1330,9 +1336,11 @@ Tomando el triángulo que forma `(x, y)` con ángulo `β` y el triángulo que fo
 
 ![](./docs/image-22.png)
 
-Para determinar los valores rotados necesitamos asumimos el ángulo como la suma de `θ` y `β`: 
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\cos(&space;\theta&space;)&space;=&space;x/r&space;\to&space;x&space;=&space;r&space;*&space;cos(\theta)\\sin(&space;\theta&space;)&space;=&space;y/r&space;\to&space;y&space;=&space;r&space;*&space;sin(\theta)"/>
 
-<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\cos(&space;\theta&space;)&space;=&space;x/r&space;\to&space;x&space;=&space;r&space;*&space;cos(\theta)\\sin(&space;\theta&space;)&space;=&space;y/r&space;\to&space;y&space;=&space;r&space;*&space;sin(\theta)\\\\cos(&space;\theta&space;&space;&plus;&space;\beta&space;)&space;=&space;x'/r&space;\to&space;x'&space;=&space;r'&space;*&space;cos(\theta&space;&plus;&space;\beta)\\sin(&space;\theta&space;&space;&plus;&space;\beta)&space;=&space;y'/r&space;\to&space;y'&space;=&space;r'&space;*&space;sin(\theta&space;&plus;&space;\beta)"/>
+Para determinar los valores rotados necesitamos asumirlos como la suma de `θ` y `β`: 
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\cos(&space;\theta&space;&space;&plus;&space;\beta&space;)&space;=&space;x'/r&space;\to&space;x'&space;=&space;r'&space;*&space;cos(\theta&space;&plus;&space;\beta)\\sin(&space;\theta&space;&space;&plus;&space;\beta)&space;=&space;y'/r&space;\to&space;y'&space;=&space;r'&space;*&space;sin(\theta&space;&plus;&space;\beta)"/>
 
 No sabemos el ángulo `β` pero en trigonometría existen las conocidas **fórmulas de adición** que explican como expandir el seno y el coseno de una suma o resta de dos ángulos:
 
@@ -3938,8 +3946,272 @@ Esto se puede representar con la siguiente **matriz de rotación 2D**:
 
 Esta multiplicación de matrices dará como resultado:
 
-<img src="https://latex.codecogs.com/png.image?\dpi{175}\bg{white}\begin{bmatrix}x'&space;\\y'&space;\\\end{bmatrix}=\begin{bmatrix}xcos&space;\alpha - ysin\alpha\\xsin\alpha+ycos\alpha\\\end{bmatrix}"/>
+<img src="https://latex.codecogs.com/png.image?\dpi{175}\bg{white}\begin{bmatrix}x'&space;\\y'&space;\\\end{bmatrix}=\begin{bmatrix}xcos&space;\alpha-ysin\alpha\\xsin\alpha+ycos\alpha\\\end{bmatrix}"/>
 
-Es un atajo para conseguir lo mismo que hicimos trabajando con vectores pero dispuesto de forma más cómoda.
+Como veamos es un atajo para conseguir lo mismo que hicimos trabajando con vectores pero dispuesto de una forma más cómoda.
 
-## Transformaciones de matrices 3D
+## Matrices de transformación 3D
+
+En este bloque vamos a repasar las diferentes matrices de transformación para aplicar en entornos 3D. Estas matrices se pueden presentar individualmente o de forma combinada (**traslación**, **rotación**, **escalado** o **transformación de mundo**).
+
+En álgebra lineal, las transformaciones lineales pueden representarse con matrices. Generalmente se utilizan matrices `4x4` para representar transformaciones 3D:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}m&space;&&space;m&space;&&space;m&space;&&space;m&space;\\m&space;&&space;&space;m&&space;m&space;&&space;m&space;\\m&space;&&space;m&space;&&space;m&space;&&space;m&space;\\m&space;&&space;m&space;&&space;m&space;&&space;m&space;\\\end{bmatrix}{\color{Red}*&space;}\begin{bmatrix}x&space;\\y&space;\\z&space;\\&space;\\\end{bmatrix}&space;"/>
+
+Utilizamos matrices `4x4` en lugar de `3x3` porque algunas transformaciones especiales, como la traslación, requiere una columna/fila extra para realizarse correctamente. 
+
+Para permtir la multiplicación matriz-vector añadiremos un componente `w` al vector al que por ahora daremos el valor `1`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}m&space;&&space;m&space;&&space;m&space;&&space;m&space;\\m&space;&&space;&space;m&&space;m&space;&&space;m&space;\\m&space;&&space;m&space;&&space;m&space;&&space;m&space;\\m&space;&&space;m&space;&&space;m&space;&&space;m&space;\\\end{bmatrix}{\color{Red}*&space;}\begin{bmatrix}x&space;\\y&space;\\z&space;\\1&space;\\\end{bmatrix}&space;"/>
+
+### Matriz de escalado 3D
+
+La matriz que aplicaremos para realizar un escalado 3D es la siguiente:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{Blue}&space;sx}&space;&&space;0&space;&&space;0&space;&&space;0&space;\\0&space;&&space;&space;{\color{Blue}&space;sy}&&space;0&space;&&space;0&space;\\0&space;&&space;0&space;&&space;{\color{Blue}&space;sz}&space;&&space;0&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}{\color{Red}*&space;}\begin{bmatrix}x&space;\\y&space;\\z&space;\\1&space;\\\end{bmatrix}&space;"/>
+
+Aquí `sx`, `sy` y `sz` representan el factor de escalado para cada componente.
+
+El resultado de aplicarla será el siguiente:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}({\color{Blue}&space;sx}&space;*&space;x)&plus;&space;0&space;&plus;&space;0&space;&plus;&space;0&space;\\0&space;&plus;&space;&space;({\color{Blue}&space;sy}&space;*&space;y)&plus;&space;0&space;&plus;&space;0&space;\\0&space;&plus;&space;0&space;&plus;&space;({\color{Blue}&space;sz}&space;*&space;z)&space;&plus;&space;0&space;\\0&space;&plus;&space;0&space;&plus;&space;0&space;&plus;&space;(1&space;*1)&space;\\\end{bmatrix}=\begin{bmatrix}{\color{Blue}&space;sx}&space;*&space;x&space;\\{\color{Blue}&space;sy}&space;*&space;y&space;\\{\color{Blue}&space;sz}&space;*&space;z&space;\\1&space;\\\end{bmatrix}&space;"/>
+
+Para poder aplicar esta funcionalidad necesitamos modificar el código, ya que en él no estamos utilizando matrices sino que estamos aplicando las fórmulas trigonométricas manualmente. Así que lo primero será definir nuestro nuevo tipo `Matrix4`:
+
+```cpp
+#ifndef MATRIX_H
+#define MATRIX_H
+
+#include "vector.h"
+
+class Matrix4
+{
+public:
+    float m[4][4];
+    static Matrix4 IdentityMatrix()
+    {
+        //  |  1  0  0  0 |
+        //  |  0  1  0  0 |
+        //  |  0  0  1  0 |
+        //  |  0  0  0  1 |
+
+        return Matrix4{{{1, 0, 0, 0},
+                        {0, 1, 0, 0},
+                        {0, 0, 1, 0},
+                        {0, 0, 0, 1}}};
+    }
+
+    static Matrix4 ScaleMatrix(float x, float y, float z)
+    {
+        //  | sx  0  0  0 |
+        //  |  0 sy  0  0 |
+        //  |  0  0 sz  0 |
+        //  |  0  0  0  1 |
+        Matrix4 m = Matrix4::IdentityMatrix();
+        m.m[0][0] = x;
+        m.m[1][1] = y;
+        m.m[2][2] = z;
+        return m;
+    }
+};
+
+#endif
+```
+
+Ahora debemos de hacer uso de esta nueva clase matriz y sus métodos en el `mesh`. 
+
+Primero añadiremos vectores para manejar la rotación, escalado y traslación, preparando ya el terreno también para las próximas transformaciones:
+
+```cpp
+class Mesh
+{
+public:
+    Vector3 scale{1, 1, 1};
+    Vector3 rotation{0, 0, 0};
+    Vector3 rotationAmount{0, 0, 0};
+    Vector3 translation{0, 0, 0};
+}
+```
+
+Realizaremos la magia en el método `mesh.Update()`, justo después de recomponer los vértices utilizaremos un nuevo método de `Triangle` llamado `PrepareTransform()`:
+
+```cpp
+// Loop all triangle faces of the mesh
+for (size_t i = 0; i < triangles.size(); i++)
+{
+    // Create a new triangle to store data and render it later
+    triangles[i].vertices[0] = vertices[static_cast<int>(faces[i].x) - 1];
+    triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
+    triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
+
+    // preparing matrix transformation
+    triangles[i].PrepareTransform();
+```
+
+En él inicializaremos un arreglo de `Vector4` llamado `transformedVertices` con los valores iniciales de `vertices` pero en formato `Vector3`: 
+
+```cpp
+class Triangle
+{
+public:
+    // 3d matrix transformations
+    Vector4 transformedVertices[3]; 
+
+    void PrepareTransform()
+    {
+        transformedVertices[0] = Vector4(vertices[0]);
+        transformedVertices[1] = Vector4(vertices[1]);
+        transformedVertices[2] = Vector4(vertices[2]);
+    }
+}
+```
+
+Este nuevo tipo de dato `Vector4` es esencialmente un `Vector3` con la capacidad de ser multriplicado por una `Matrix4`. Tendrá un constructor base y uno a partir de un `Vector3`, así como métodos para transformarlo a un `Vector3` y las sobrecargas de la multiplicación con `Matrix4`:
+
+```cpp
+// Declaración
+#include "matrix.h"
+
+class Vector4
+{
+public:
+    double x{0};
+    double y{0};
+    double z{0};
+    double w{0};
+
+    Vector4() = default;
+    Vector4(Vector3 v) : x(v.x), y(v.y), z(v.z), w(1){};
+    Vector3 ToVector3();
+
+    Vector4 operator*(Matrix4 m) const;
+    Vector4 &operator*=(const Matrix4 &m);
+};
+
+// Definición
+Vector3 Vector4::ToVector3()
+{
+    return Vector3(x, y, z);
+}
+
+Vector4 Vector4::operator*(Matrix4 m) const
+{
+    Vector4 result;
+    result.x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
+    result.y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
+    result.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
+    result.w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    return result;
+}
+
+Vector4 &Vector4::operator*=(const Matrix4 &m)
+{
+    x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
+    y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
+    z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
+    w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    return *this;
+}
+```
+
+Siguiendo con las transformaciones en el `mesh.Update()`, recorremos los vértices de los triángulos y aplicamos el nuevo método `Vector3.ScaleVertex()`:
+
+```cpp
+/*** Apply transformations for all face vertices ***/
+for (size_t j = 0; j < 3; j++)
+{
+    // Scale using the scale matrix
+    triangles[i].ScaleVertex(j, scale);
+```
+
+Nuestro nuevo método tomará el índice del vértice, en formato `Vector4` y aplicará la multiplicación usando la matriz de escalado, con un método estático por cierto. Luego estableceremos de nuevo el valor de los vértices en formato `Vector3` para que el programa siga funcionando:
+
+```cpp
+void ScaleVertex(int vertexIndex, Vector3 scale)
+{
+    // Use a matrix to transform scale the origin vertex
+    transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.y);
+    vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
+}
+```
+
+Con esto tendremos el sistema preparado, podemos configurar la interfaz para intentar modificar el vector de escalado en tiempo real mediante un nuevo método de la malla para establecer el escalado:
+
+```cpp
+void Mesh::SetScale(float *scale)
+{
+    this->scale = {scale[0], scale[1], scale[2]};
+}
+```
+
+En la interfaz añadiremos el widget para el nuevo campo `modelScale`:
+
+```cpp
+class Window
+{
+public:
+    /*Model settings */
+    float modelScale[3] = {1, 1, 1};
+}
+```
+
+El código para **ImGui**:
+
+```cpp
+ImGui::Separator();
+ImGui::Text("Posición del modelo");
+ImGui::SliderFloat3("Position", modelPosition, -2, 2);
+ImGui::Text("Escalado del modelo");
+ImGui::SliderFloat3("Scale", modelScale, -2, 2);
+```
+
+Y justo después estableceremos los nuevos cambios:
+
+De paso modificaremos un poco la rotación ya que realmente no queremos una rotación automatizada, eso es una prueba, sino que podamos establecer la rotación actual:
+
+```cpp
+class Window
+{
+public:
+    /*Model settings */
+    float modelRotation[3] = {0, 0, 0};
+}
+```
+
+El widget:
+
+```cpp
+ImGui::Text("Vector de rotación");
+ImGui::SliderFloat3("Rotation", modelRotation, 0, 1);
+```
+
+Y la actualización:
+
+```cpp
+mesh.SetRotation(modelRotation);
+```
+
+Que llamará al nuevo método:
+
+```cpp
+void Mesh::SetRotation(float *rotation)
+{
+    this->rotation = {rotation[0], rotation[1], rotation[2]};
+}
+```
+
+Es hora de probar las mieles del éxito, este es el resultado final:
+
+![](./docs/anim-17.gif)
+
+En este punto nos falta realizar la traslación y rotación también con matrices de transformación.
+
+### Matriz de traslación 3D
+
+### Matriz de rotación 3D
+
+### Matriz de mundo 3D
+
+### Refactorización 4
+
+TODO: Unificar las transformaciones o algo que no haya que transformar constantemente de Vector3 a Vector4 y de nuevo a Vector3.

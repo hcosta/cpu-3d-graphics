@@ -6,8 +6,9 @@
 class Triangle
 {
 public:
-    Vector3 vertices[3];
-    Vector2 projectedVertices[3];
+    Vector3 vertices[3];            // 3d  vertices
+    Vector2 projectedVertices[3];   // 2d vertices
+    Vector4 transformedVertices[3]; // 3d matrix transformations
     uint32_t color = 0xFFFFFFFF;
     bool culling = false;
     float averageDepth;
@@ -20,10 +21,19 @@ public:
         return averageDepth < t.averageDepth;
     }
 
-    void ProjectVertex(int vertexIndex, float fovFactor)
+    void PrepareTransform()
     {
-        projectedVertices[vertexIndex] = vertices[vertexIndex].PerspectiveProjection(fovFactor);
-    };
+        transformedVertices[0] = Vector4(vertices[0]);
+        transformedVertices[1] = Vector4(vertices[1]);
+        transformedVertices[2] = Vector4(vertices[2]);
+    }
+
+    void ScaleVertex(int vertexIndex, Vector3 scale)
+    {
+        // Use a matrix to transform scale the origin vertex
+        transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.y);
+        vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
+    }
 
     void RotateVertex(int vertexIndex, Vector3 rotation)
     {
@@ -36,6 +46,11 @@ public:
         vertices[vertexIndex].y -= distance[1];
         vertices[vertexIndex].z -= distance[2];
     }
+
+    void ProjectVertex(int vertexIndex, float fovFactor)
+    {
+        projectedVertices[vertexIndex] = vertices[vertexIndex].PerspectiveProjection(fovFactor);
+    };
 
     void ApplyCulling(float *cameraPosition)
     {

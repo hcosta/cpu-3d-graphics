@@ -68,6 +68,14 @@ Vector3 Vector3::operator+(const Vector3 &v) const
     return Vector3(x + v.x, y + v.y, z + v.z);
 }
 
+Vector3 &Vector3::operator+=(const Vector3 &v)
+{
+    x += v.x;
+    y += v.y;
+    z += v.z;
+    return *this;
+}
+
 Vector3 Vector3::operator-(const Vector3 &v) const
 {
     return Vector3(x - v.x, y - v.y, z - v.z);
@@ -104,6 +112,7 @@ void Vector3::RotateX(float angle)
     y = newY;
     z = newZ;
 }
+
 void Vector3::RotateY(float angle)
 {
     double newX = x * cos(angle) - z * sin(angle);
@@ -112,6 +121,7 @@ void Vector3::RotateY(float angle)
     x = newX;
     z = newZ;
 }
+
 void Vector3::RotateZ(float angle)
 {
     double newX = x * cos(angle) - y * sin(angle);
@@ -139,4 +149,28 @@ Vector2 Vector3::OrtoraphicProjection(float fovFactor)
 Vector2 Vector3::PerspectiveProjection(float fovFactor)
 {
     return Vector2{(fovFactor * x) / z, (fovFactor * y) / z};
+}
+
+Vector3 Vector4::ToVector3()
+{
+    return Vector3(x, y, z);
+}
+
+Vector4 Vector4::operator*(Matrix4 m) const
+{
+    Vector4 result;
+    result.x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
+    result.y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
+    result.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
+    result.w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    return result;
+}
+
+Vector4 &Vector4::operator*=(const Matrix4 &m)
+{
+    x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
+    y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
+    z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
+    w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    return *this;
 }

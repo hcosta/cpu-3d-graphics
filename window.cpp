@@ -126,9 +126,11 @@ void Window::Update()
     ImGui::Checkbox("Back-face culling", &this->enableBackfaceCulling);
     ImGui::Separator();
     ImGui::Text("Posición del modelo");
-    ImGui::SliderFloat2("Pos", modelPosition, -2, 2);
-    ImGui::Text("Velocidad de rotación");
-    ImGui::SliderFloat3("Rot", modelRotationSpeed, 0, 0.05f);
+    ImGui::SliderFloat3("Position", modelPosition, -2, 2);
+    ImGui::Text("Escalado del modelo");
+    ImGui::SliderFloat3("Scale", modelScale, 0, 2);
+    ImGui::Text("Vector de rotación");
+    ImGui::SliderFloat3("Rotation", modelRotation, 0, 5);
     ImGui::Separator();
     // ImGui::Text("Posición cámara (X,Y,Z)");
     // ImGui::SliderFloat3("-5, 5", cameraPosition, -5, 5);
@@ -139,9 +141,9 @@ void Window::Update()
     ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
 
-    // Update Model Rotation Speed
-    mesh.SetRotationAmount(
-        modelRotationSpeed[0], modelRotationSpeed[1], modelRotationSpeed[2]);
+    // Update Model Settings
+    mesh.SetScale(modelScale);
+    mesh.SetRotation(modelRotation);
 
     // Update Screen Ticks si han sido mofificados
     screenTicksPerFrame = 1000 / this->fpsCap;

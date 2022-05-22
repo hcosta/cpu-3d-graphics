@@ -20,8 +20,13 @@ public:
     bool drawWireframeDots = true;
     bool drawFilledTriangles = true;
     bool enableBackfaceCulling = true;
+
+    /* Model settings */
+    float modelScale[3] = {1, 1, 1};
     float modelPosition[3] = {-2, 0, -5};
-    float modelRotationSpeed[3] = {0.01, 0.01, 0.01};
+    float modelRotation[3] = {0, 0, 0};
+
+    /* Camera settings */
     float cameraPosition[3] = {0, 0, 0};
     int fovFactor = 400;
 
