@@ -2,7 +2,8 @@
 #define VECTOR_H
 
 #include <iostream>
-#include "matrix.h"
+
+class Matrix4; /* Pre declaration */
 
 class Vector2
 {
@@ -66,7 +67,6 @@ public:
     Vector3 ToVector3();
 
     Vector4 operator*(Matrix4 m) const;
-    Vector4 &operator*=(Matrix4 m);
 };
 
 #endif

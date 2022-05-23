@@ -2,6 +2,7 @@
 #define TRIANGLE_H
 
 #include "vector.h"
+#include "matrix.h"
 
 class Triangle
 {
@@ -24,7 +25,7 @@ public:
     {
         // Use a matrix to transform scale the origin vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
-        transformedVertex *= Matrix4::ScalationMatrix(scale.x, scale.y, scale.z);
+        transformedVertex = transformedVertex * Matrix4::ScalationMatrix(scale.x, scale.y, scale.z);
         vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 
@@ -32,9 +33,9 @@ public:
     {
         // Use a matrix to transform rotate the origin vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
-        transformedVertex *= Matrix4::RotationXMatrix(rotation.x);
-        transformedVertex *= Matrix4::RotationYMatrix(rotation.y);
-        transformedVertex *= Matrix4::RotationZMatrix(rotation.z);
+        transformedVertex = transformedVertex * Matrix4::RotationXMatrix(rotation.x);
+        transformedVertex = transformedVertex * Matrix4::RotationYMatrix(rotation.y);
+        transformedVertex = transformedVertex * Matrix4::RotationZMatrix(rotation.z);
         vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 
@@ -42,7 +43,15 @@ public:
     {
         // Use a matrix to transform translate the origin vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
-        transformedVertex *= Matrix4::TranslationMatrix(translation.x, translation.y, translation.z);
+        transformedVertex = transformedVertex * Matrix4::TranslationMatrix(translation.x, translation.y, translation.z);
+        vertices[vertexIndex] = transformedVertex.ToVector3();
+    }
+
+    void WorldVertex(int vertexIndex, Vector3 scale, Vector3 angle, Vector3 translate)
+    {
+        // Use a matrix to world transform the origin vertex
+        Vector4 transformedVertex{vertices[vertexIndex]};
+        transformedVertex = transformedVertex * Matrix4::WorldMatrix(scale, angle, translate);
         vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 

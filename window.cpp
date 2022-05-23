@@ -131,12 +131,12 @@ void Window::Update()
     ImGui::Text("Escalado del modelo");
     ImGui::SliderFloat3("Scale", modelScale, 0, 5);
     ImGui::Text("Traslación del modelo");
-    ImGui::SliderFloat3("Translation", modelTranslation, -5, 5);
+    ImGui::SliderFloat2("Translation", modelTranslation, -5, 5);
     ImGui::Text("Vector de rotación");
     ImGui::SliderFloat3("Rotation", modelRotation, 0, 10);
     ImGui::Separator();
     ImGui::Text("Posición cámara (X,Y,Z)");
-    ImGui::SliderFloat3("Camera", cameraPosition, -5, 5);
+    ImGui::SliderFloat2("Camera", cameraPosition, -5, 5);
     ImGui::Text("Campo de visión");
     ImGui::SliderInt("Fov", &this->fovFactor, 75, 1000);
     ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));

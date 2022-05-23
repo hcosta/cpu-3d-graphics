@@ -2,7 +2,6 @@
 #include "window.h" // Importamos la fuente de la ventana
 #include <fstream>
 #include <algorithm>
-#include "matrix.h"
 
 Mesh::Mesh(Window *window, std::string fileName)
 {
@@ -88,16 +87,10 @@ void Mesh::Update()
         triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
         triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
 
-        /*** Apply transformations for all face vertices ***/
+        /*** Apply world transformation for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
-            // ORDER MATTERS
-            // 1. Scale using the matrix
-            triangles[i].ScaleVertex(j, scale);
-            // 2. Rotate using the matrices
-            triangles[i].RotateVertex(j, rotation);
-            // 3. Translation using the matrix
-            triangles[i].TranslateVertex(j, translation);
+            triangles[i].WorldVertex(j, scale, rotation, translation);
         }
 
         /*** Back Face Culling Algorithm ***/
@@ -126,6 +119,7 @@ void Mesh::Update()
 
 void Mesh::Render()
 {
+
     // Antes de renderizar triángulos ordenarlos por media de profundidad
     std::deque sortedTriangles(triangles);
     std::sort(sortedTriangles.begin(), sortedTriangles.end());

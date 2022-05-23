@@ -55,7 +55,8 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Matriz de traslación 3D](#matriz-de-traslación-3d)
     * [Matriz de rotación 3D](#matriz-de-rotación-3d)
     * [Matriz de mundo 3D](#matriz-de-mundo-3d)
-    * [Refactorización 4](#refactorización-4)
+    * [Reflexión sobre la traslación](#reflexión-sobre-la-traslación)
+* [Matriz de proyección](#matriz-de-proyección)
 
 ## Configuración previa
 
@@ -4058,7 +4059,7 @@ void ScaleVertex(int vertexIndex, Vector3 scale)
 {
     // Use a matrix to transform scale the origin vertex
     Vector4 transformedVertex{vertices[vertexIndex]};
-    transformedVertex *= Matrix4::ScalationMatrix(scale.x, scale.y, scale.z);
+    transformedVertex = transformedVertex * Matrix4::ScalationMatrix(scale.x, scale.y, scale.z);
     vertices[vertexIndex] = transformedVertex.ToVector3();
 }
 ```
@@ -4066,9 +4067,12 @@ void ScaleVertex(int vertexIndex, Vector3 scale)
 El nuevo tipo de dato `Vector4` es esencialmente un `Vector3` con la capacidad de ser multiplicado por una `Matrix4`. Tiene un constructor base y uno a partir de un `Vector3`, así como métodos para transformarlo a un `Vector3` y las sobrecargas de la multiplicación pasándole una `Matrix4`:
 
 ```cpp
-// Declaración
-#include "matrix.h"
+#ifndef VECTOR_H
+#define VECTOR_H
 
+#include <iostream>
+
+class Matrix4; /* Pre declaration */
 class Vector4
 {
 public:
@@ -4082,9 +4086,11 @@ public:
     Vector3 ToVector3();
 
     Vector4 operator*(Matrix4 m) const;
-    Vector4 &operator*=(Matrix4 m);
 };
+#endif
+```
 
+```cpp
 // Definición
 Vector3 Vector4::ToVector3()
 {
@@ -4099,22 +4105,6 @@ Vector4 Vector4::operator*(Matrix4 m) const
     result.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
     result.w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
     return result;
-}
-
-Vector4 &Vector4::operator*=(Matrix4 m)
-{
-    /* Importante generar los cálculos a parte para no encadenarlos */
-    Vector4 result;
-    result.x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
-    result.y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
-    result.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
-    result.w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
-    /* Luego asignar los valores a la instancia una vez calculados  */
-    x = result.x;
-    y = result.y;
-    z = result.z;
-    w = result.w;
-    return *this;
 }
 ```
 
@@ -4221,7 +4211,7 @@ void TranslateVertex(int vertexIndex, Vector3 translation)
 {
     // Use a matrix to transform translate the origin vertex
     Vector4 transformedVertex{vertices[vertexIndex]};
-    transformedVertex *= Matrix4::TranslationMatrix(translation.x, translation.y, translation.z);
+    transformedVertex = transformedVertex * Matrix4::TranslationMatrix(translation.x, translation.y, translation.z);
     vertices[vertexIndex] = transformedVertex.ToVector3();
 }
 ```
@@ -4335,21 +4325,21 @@ La matriz de rotación alrededor del eje `Y`, manteniéndo ese eje intocable (se
 <img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{Blue}&space;cos(\alpha)}&0&{\color{Orange}&space;sin(\alpha)}&0\\0&1&0&0\\{\color{Orange}&space;-sin(\alpha)}&0&{\color{Blue}&space;cos(\alpha)}&0\\0&0&0&1\\\end{bmatrix}{\color{Red}*}\begin{bmatrix}x\\y\\z\\1\\\end{bmatrix}"/>
 
 ```cpp
-    static Matrix4 RotationYMatrix(float angle)
-    {
-        float c = cos(angle);
-        float s = sin(angle);
-        //  |  c  0  s  0  |
-        //  |  0  1  0  0  |
-        //  | -s  0  c  0  |
-        //  |  0  0  0  1  |
-        Matrix4 m = Matrix4::IdentityMatrix();
-        m.m[0][0] = c;
-        m.m[0][2] = s;
-        m.m[2][0] = -s;
-        m.m[2][2] = c;
-        return m;
-    }
+static Matrix4 RotationYMatrix(float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    //  |  c  0  s  0  |
+    //  |  0  1  0  0  |
+    //  | -s  0  c  0  |
+    //  |  0  0  0  1  |
+    Matrix4 m = Matrix4::IdentityMatrix();
+    m.m[0][0] = c;
+    m.m[0][2] = s;
+    m.m[2][0] = -s;
+    m.m[2][2] = c;
+    return m;
+}
 ```
 
 Es importante notar que **el signo de los senos está cambiado en todas las matrices**. La notación formal es para cuando `Z` crece en sentido horario, en nuestro sistema hemos aplicado lo contrario (crece en sentido antihorario), por tanto los senos estás negados.
@@ -4377,9 +4367,9 @@ void RotateVertex(int vertexIndex, Vector3 rotation)
 {
     // Use a matrix to transform rotate the origin vertex
     Vector4 transformedVertex{vertices[vertexIndex]};
-    transformedVertex *= Matrix4::RotationXMatrix(rotation.x);
-    transformedVertex *= Matrix4::RotationYMatrix(rotation.y);
-    transformedVertex *= Matrix4::RotationZMatrix(rotation.z);
+    transformedVertex = transformedVertex * Matrix4::RotationXMatrix(rotation.x);
+    transformedVertex = transformedVertex * Matrix4::RotationYMatrix(rotation.y);
+    transformedVertex = transformedVertex * Matrix4::RotationZMatrix(rotation.z);
     vertices[vertexIndex] = transformedVertex.ToVector3();
 }
 ```
@@ -4390,6 +4380,80 @@ En principio podemos reutilizar lo que teníamos de la interfaz y ya tendremos u
 
 ### Matriz de mundo 3D
 
-### Refactorización 4
+La matriz de mundo es una combinación de todas las demás transformaciones (escalado, rotación, traslación...) en una sola matriz.
 
-TODO: Unificar las transformaciones o algo que no haya que transformar constantemente de Vector3 a Vector4 y de nuevo a Vector3.
+En la práctica es una multiplicación de todas las demás matrices:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}m_{11}&space;&&space;m_{12}&space;&&space;m_{13}&space;&&space;m_{14}&space;\\m_{21}&space;&&space;m_{22}&space;&&space;m_{23}&space;&&space;m_{24}&space;\\m_{31}&space;&&space;m_{32}&space;&&space;m_{33}&space;&&space;m_{34}&space;\\m_{41}&space;&&space;m_{42}&space;&&space;m_{43}&space;&&space;m_{44}&space;\\\end{bmatrix}{\color{Red}&space;*}\begin{bmatrix}m_{11}&space;&&space;m_{12}&space;&&space;m_{13}&space;&&space;m_{14}&space;\\m_{21}&space;&&space;m_{22}&space;&&space;m_{23}&space;&&space;m_{24}&space;\\m_{31}&space;&&space;m_{32}&space;&&space;m_{33}&space;&&space;m_{34}&space;\\m_{41}&space;&&space;m_{42}&space;&&space;m_{43}&space;&&space;m_{44}&space;\\\end{bmatrix}"/>
+
+Necesitaremos implementar la multiplicación de dos matrices `Matrix4` aplicando las reglas de multiplicación sobrecargando operadores: 
+
+```cpp
+Matrix4 operator*(Matrix4 m2) const
+{
+    Matrix4 result;
+    for (size_t i = 0; i < 4; i++)
+    {
+        for (size_t j = 0; j < 4; j++)
+        {
+            result.m[i][j] = m[i][0] * m2.m[0][j] +
+                                m[i][1] * m2.m[1][j] +
+                                m[i][2] * m2.m[2][j] +
+                                m[i][3] * m2.m[3][j];
+        }
+    }
+    return result;
+}
+```
+
+Como este método para generar la matriz de mundo es global recibirá la escala, ángulo y traslación. 
+
+Es extremadamente importante respetar el orden de multiplicación de matrices, recodemos que `AxB != BxA` y aquí **debemos multiplicar siempre primero por la matriz de transformación**. Por supuesto también debemos respetar el orden: primero escalar, luego rotar y finalmente trasladar:
+
+```cpp
+static Matrix4 WorldMatrix(Vector3 scale, Vector3 angle, Vector3 translate)
+{
+    Matrix4 worldMatrix = Matrix4::IdentityMatrix();
+    /* El orden de la multiplicación importa ROTACIOn * MUNDO */
+    worldMatrix = Matrix4::ScalationMatrix(scale.x, scale.y, scale.z) * worldMatrix;
+    worldMatrix = Matrix4::RotationXMatrix(angle.x) * worldMatrix;
+    worldMatrix = Matrix4::RotationYMatrix(angle.y) * worldMatrix;
+    worldMatrix = Matrix4::RotationZMatrix(angle.z) * worldMatrix;
+    worldMatrix = Matrix4::TranslationMatrix(translate.x, translate.y, translate.z) * worldMatrix;
+    return worldMatrix;
+}
+```
+
+Haremos la llamada de la función desde `Triangle` en un nuevo método `WorldVertex`:
+
+```cpp
+void WorldVertex(int vertexIndex, Vector3 scale, Vector3 angle, Vector3 translate)
+{
+    // Use a matrix to world transform the origin vertex
+    Vector4 transformedVertex{vertices[vertexIndex]};
+    transformedVertex = transformedVertex * Matrix4::WorldMatrix(scale, angle, translate);
+    vertices[vertexIndex] = transformedVertex.ToVector3();
+}
+```
+
+Con esto tendremos la matriz de mundo todo en una:
+
+![](./docs/anim-20.gif)
+
+### Reflexión sobre la traslación
+
+Según lo tratado hasta ahora, la traslación es una transformación un tanto especial, recordemos que es la única que requiere la cuarta columna para multiplicar los valores por la cantidad de traslación:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}1&0&0&{\color{Blue}tx}\\0&1&0&{\color{Blue}ty}\\0&0&1&{\color{Blue}tz}\\0&0&0&1\\\end{bmatrix}{\color{Red}*}\begin{bmatrix}x\\y\\z\\1\\\end{bmatrix}" />
+
+La realidad es que **la traslación no es una transformación lineal**, ya que estas deben cumplir:
+
+* Una transformación lineal debe empezar con una línea.
+* El resultado de una transformación lineal es una línea.
+* El origen (centro) de la transformación lineal no puede cambiar.
+
+A diferencia del escalado y la rotación, que se realizan respecto al centro del objeto `(0,0)`, la traslación es una operación que requiere cambiar la posición y por tanto el centro del objeto cambiará.
+
+Para solucionar este problema  lo que hacemos es abstraer el vector a una cuarta dimensión imaginaria (la cuarta columna y fila de la matriz), realizamos los cálculos pertinentes para trasladarlos y una vez lo tenemos transformamos de nuevo al espacio tridimensional 3D.
+
+## Matriz de proyección

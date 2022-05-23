@@ -8,6 +8,7 @@ class Matrix4
 {
 public:
     float m[4][4];
+
     static Matrix4 IdentityMatrix()
     {
         //  |  1  0  0  0 |
@@ -93,6 +94,34 @@ public:
         m.m[1][0] = s;
         m.m[1][1] = c;
         return m;
+    }
+
+    static Matrix4 WorldMatrix(Vector3 scale, Vector3 angle, Vector3 translate)
+    {
+        Matrix4 worldMatrix = Matrix4::IdentityMatrix();
+        /* El orden de la multiplicación importa ROTACIOn * MUNDO */
+        worldMatrix = Matrix4::ScalationMatrix(scale.x, scale.y, scale.z) * worldMatrix;
+        worldMatrix = Matrix4::RotationXMatrix(angle.x) * worldMatrix;
+        worldMatrix = Matrix4::RotationYMatrix(angle.y) * worldMatrix;
+        worldMatrix = Matrix4::RotationZMatrix(angle.z) * worldMatrix;
+        worldMatrix = Matrix4::TranslationMatrix(translate.x, translate.y, translate.z) * worldMatrix;
+        return worldMatrix;
+    }
+
+    Matrix4 operator*(Matrix4 m2) const
+    {
+        Matrix4 result;
+        for (size_t i = 0; i < 4; i++)
+        {
+            for (size_t j = 0; j < 4; j++)
+            {
+                result.m[i][j] = m[i][0] * m2.m[0][j] +
+                                 m[i][1] * m2.m[1][j] +
+                                 m[i][2] * m2.m[2][j] +
+                                 m[i][3] * m2.m[3][j];
+            }
+        }
+        return result;
     }
 };
 
