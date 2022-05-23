@@ -3990,6 +3990,7 @@ class Matrix4
 {
 public:
     float m[4][4];
+
     static Matrix4 IdentityMatrix()
     {
         //  |  1  0  0  0 |
@@ -4003,7 +4004,7 @@ public:
                         {0, 0, 0, 1}}};
     }
 
-    static Matrix4 ScaleMatrix(float x, float y, float z)
+    static Matrix4 ScalationMatrix(float x, float y, float z)
     {
         //  | sx  0  0  0 |
         //  |  0 sy  0  0 |
@@ -4030,45 +4031,39 @@ class Mesh
 public:
     Vector3 scale{1, 1, 1};
     Vector3 rotation{0, 0, 0};
-    Vector3 rotationAmount{0, 0, 0};
     Vector3 translation{0, 0, 0};
 }
 ```
 
-Realizaremos la magia en el método `mesh.Update()`, justo después de recomponer los vértices utilizaremos un nuevo método de `Triangle` llamado `PrepareTransform()`:
+Llamaremos al método de escalado para cada vértice del triángulo en el método `mesh.Update()`: 
 
 ```cpp
-// Loop all triangle faces of the mesh
-for (size_t i = 0; i < triangles.size(); i++)
+/*** Apply transformations for all face vertices ***/
+for (size_t j = 0; j < 3; j++)
 {
-    // Create a new triangle to store data and render it later
-    triangles[i].vertices[0] = vertices[static_cast<int>(faces[i].x) - 1];
-    triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
-    triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
-
-    // preparing matrix transformation
-    triangles[i].PrepareTransform();
-```
-
-En él inicializaremos un arreglo de `Vector4` llamado `transformedVertices` con los valores iniciales de `vertices` pero en formato `Vector3`: 
-
-```cpp
-class Triangle
-{
-public:
-    // 3d matrix transformations
-    Vector4 transformedVertices[3]; 
-
-    void PrepareTransform()
-    {
-        transformedVertices[0] = Vector4(vertices[0]);
-        transformedVertices[1] = Vector4(vertices[1]);
-        transformedVertices[2] = Vector4(vertices[2]);
-    }
+    // ORDER MATTERS, REALLY IMPORTANT
+    // 1. Scale using the matrix
+    triangles[i].ScaleVertex(j, scale);
+    // 2. Rotate using the matrices
+    // triangles[i].RotateVertex(j, rotation);
+    // 3. Translation using the matrix
+    // triangles[i].TranslateVertex(j, translation);
 }
 ```
 
-Este nuevo tipo de dato `Vector4` es esencialmente un `Vector3` con la capacidad de ser multriplicado por una `Matrix4`. Tendrá un constructor base y uno a partir de un `Vector3`, así como métodos para transformarlo a un `Vector3` y las sobrecargas de la multiplicación con `Matrix4`:
+En este método multiplicaremos el vector de escalado por la matriz de escalado, pero necesitamos tenerlo en formato `Vector4` para que sean compatibles. Una vez realizado el cálculo estableceremos el vertice con el nuevo valor transformado:
+
+```cpp
+void ScaleVertex(int vertexIndex, Vector3 scale)
+{
+    // Use a matrix to transform scale the origin vertex
+    Vector4 transformedVertex{vertices[vertexIndex]};
+    transformedVertex *= Matrix4::ScalationMatrix(scale.x, scale.y, scale.z);
+    vertices[vertexIndex] = transformedVertex.ToVector3();
+}
+```
+
+El nuevo tipo de dato `Vector4` es esencialmente un `Vector3` con la capacidad de ser multiplicado por una `Matrix4`. Tiene un constructor base y uno a partir de un `Vector3`, así como métodos para transformarlo a un `Vector3` y las sobrecargas de la multiplicación pasándole una `Matrix4`:
 
 ```cpp
 // Declaración
@@ -4087,7 +4082,7 @@ public:
     Vector3 ToVector3();
 
     Vector4 operator*(Matrix4 m) const;
-    Vector4 &operator*=(const Matrix4 &m);
+    Vector4 &operator*=(Matrix4 m);
 };
 
 // Definición
@@ -4106,34 +4101,20 @@ Vector4 Vector4::operator*(Matrix4 m) const
     return result;
 }
 
-Vector4 &Vector4::operator*=(const Matrix4 &m)
+Vector4 &Vector4::operator*=(Matrix4 m)
 {
-    x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
-    y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
-    z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
-    w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    /* Importante generar los cálculos a parte para no encadenarlos */
+    Vector4 result;
+    result.x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
+    result.y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
+    result.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
+    result.w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    /* Luego asignar los valores a la instancia una vez calculados  */
+    x = result.x;
+    y = result.y;
+    z = result.z;
+    w = result.w;
     return *this;
-}
-```
-
-Siguiendo con las transformaciones en el `mesh.Update()`, recorremos los vértices de los triángulos y aplicamos el nuevo método `Vector3.ScaleVertex()`:
-
-```cpp
-/*** Apply transformations for all face vertices ***/
-for (size_t j = 0; j < 3; j++)
-{
-    // Scale using the scale matrix
-    triangles[i].ScaleVertex(j, scale);
-```
-
-Nuestro nuevo método tomará el índice del vértice, en formato `Vector4` y aplicará la multiplicación usando la matriz de escalado, con un método estático por cierto. Luego estableceremos de nuevo el valor de los vértices en formato `Vector3` para que el programa siga funcionando:
-
-```cpp
-void ScaleVertex(int vertexIndex, Vector3 scale)
-{
-    // Use a matrix to transform scale the origin vertex
-    transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.z);
-    vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
 }
 ```
 
@@ -4157,24 +4138,18 @@ public:
 }
 ```
 
-El código para **ImGui**:
+El código para **ImGui** y debajo para establecer los cambios:
 
 ```cpp
 ImGui::Separator();
-ImGui::Text("Posición del modelo");
-ImGui::SliderFloat3("Position", modelPosition, -2, 2);
 ImGui::Text("Escalado del modelo");
-ImGui::SliderFloat3("Scale", modelScale, 0, 2);
-```
+ImGui::SliderFloat3("Scale", modelScale, 0, 5);
 
-Y justo después estableceremos los nuevos cambios:
-
-```cpp    
 // Update Model Settings
 mesh.SetScale(modelScale);
 ```
 
-De paso modificaremos un poco la rotación ya que realmente no queremos una rotación automatizada, eso es una prueba, sino que podamos establecer la rotación actual:
+De paso modificaremos un poco la rotación ya que realmente no queremos una rotación automatizada, sino que podamos establecer la rotación actual a mano:
 
 ```cpp
 class Window
@@ -4189,18 +4164,13 @@ El widget:
 
 ```cpp
 ImGui::Text("Vector de rotación");
-ImGui::SliderFloat3("Rotation", modelRotation, 0, 5);
-```
+ImGui::SliderFloat3("Rotation", modelRotation, 0, 10);
 
-Y la actualización:
-
-```cpp
 // Update Model Settings
-mesh.SetScale(modelScale);
 mesh.SetRotation(modelRotation);
 ```
 
-Que llamará al nuevo método:
+Éste llamará a nuestro nuevo método:
 
 ```cpp
 void Mesh::SetRotation(float *rotation)
@@ -4209,11 +4179,9 @@ void Mesh::SetRotation(float *rotation)
 }
 ```
 
-Es hora de probar las mieles del éxito, este es el resultado final:
+Por ahora este es el resultado del escalado con matrices:
 
 ![](./docs/anim-17.gif)
-
-En este punto nos falta realizar la traslación y rotación también con matrices de transformación.
 
 ### Matriz de traslación 3D
 
@@ -4232,79 +4200,193 @@ La cuarta columna es la única forma en que podemos representar la traslación e
 La implementación es muy simple:
 
 ```cpp
-class Matrix4
+static Matrix4 TranslationMatrix(float x, float y, float z)
 {
-public:
-    static Matrix4 TranslateMatrix(float x, float y, float z)
-    {
-        //  |  1  0  0  tx  |
-        //  |  0  1  0  ty  |
-        //  |  0  0  1  tz  |
-        //  |  0  0  0   1  |
-        Matrix4 m = Matrix4::IdentityMatrix();
-        m.m[0][3] = x;
-        m.m[1][3] = y;
-        m.m[2][3] = z;
-        return m;
-    }
-};
-```
-
-El nuevo método para trasladar un vértice de `Triangle` con esta matriz quedará:
-
-```cpp
-void TranslateVertex(int vertexIndex, Vector3 translate)
-{
-    // Use a matrix to transform translate the origin vertex
-    transformedVertices[vertexIndex] *= Matrix4::TranslateMatrix(translate.x, translate.y, translate.z);
-    vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
+    //  |  1  0  0  tx  |
+    //  |  0  1  0  ty  |
+    //  |  0  0  1  tz  |
+    //  |  0  0  0   1  |
+    Matrix4 m = Matrix4::IdentityMatrix();
+    m.m[0][3] = x;
+    m.m[1][3] = y;
+    m.m[2][3] = z;
+    return m;
 }
 ```
 
-Lo aplicaremos durante la aplicación de las transformaciones en `mesh.Update()`:
+El nuevo método para trasladar un vértice en `Triangle` es:
+
+```cpp
+void TranslateVertex(int vertexIndex, Vector3 translation)
+{
+    // Use a matrix to transform translate the origin vertex
+    Vector4 transformedVertex{vertices[vertexIndex]};
+    transformedVertex *= Matrix4::TranslationMatrix(translation.x, translation.y, translation.z);
+    vertices[vertexIndex] = transformedVertex.ToVector3();
+}
+```
+
+Lo aplicaremos durante las transformaciones en `mesh.Update()` al final de todo, después del escalado y la rotación:
 
 ```cpp
 /*** Apply transformations for all face vertices ***/
 for (size_t j = 0; j < 3; j++)
 {
-    // Scale using the matrix
+    // ORDER MATTERS, REALLY IMPORTANT
+    // 1. Scale using the matrix
     triangles[i].ScaleVertex(j, scale);
-    // Translation using the matrix
+    // 2. Rotate using the matrices
+    // triangles[i].RotateVertex(j, rotation);
+    // 3. Translation using the matrix
     triangles[i].TranslateVertex(j, translation);
 }
 ```
 
-Para poder modificar la traslación desde la interfaz añadirmeos al `mesh` el método:
+Para modificar la traslación desde la interfaz añadirmeos al `mesh` el método con la rectificación de la posición de la cámara `window.cameraPosition` préviamente establecida en `{0,0,-5}`:
 
 ```cpp
 void Mesh::SetTranslation(float *translation)
 {
-    this->translation = {translation[0], translation[1], translation[2]};
+    // Con rectificación de origen
+    this->translation = {translation[0] - window->cameraPosition[0], translation[1] - window->cameraPosition[1], translation[2] - window->cameraPosition[2]};
 }
 ```
 
-Que estableceremos a partir de:
+Tanto la traslación como la posición de la cámara la podremos modificaf en la interfaz:
 
 ```cpp
 ImGui::Text("Traslación del modelo");
-ImGui::SliderFloat3("Position", modelTranslation, -2, 2);
+ImGui::SliderFloat3("Translation", modelTranslation, -5, 5);
+ImGui::Separator();
+ImGui::Text("Posición cámara (X,Y,Z)");
+ImGui::SliderFloat3("Camera", cameraPosition, -5, 5);
 
+// Update Model Settings
 mesh.SetTranslation(modelTranslation);
 ```
 
-Esta variable `modelTranslation` de `Window` la adaptaremos de `modelPosition` pues el nombre es ahora más acertado:
+Esta variable `window.modelTranslation` la adaptaremos de `modelPosition`, pues el nombre es ahora más acertado:
 
 ```cpp
-float modelTranslation[3] = {-2, 0, -5};
+/* Model settings */
+float modelScale[3] = {1, 1, 1};
+float modelRotation[3] = {0, 0, 0};
+float modelTranslation[3] = {0, 0, 0};
+
+/* Camera settings */
+float cameraPosition[3] = {0, 0, -5};
+int fovFactor = 400;
 ```
 
-Con esto deberíamos cambiar la posición correctamente:
+Con esto deberíamos ser capaces de cambiar la posición del modelo y de la cámara correctamente:
 
 ![](./docs/anim-18.gif)
 
-Los problemas que surgen con el eje `Z` los corregiremos más adelante.
-
 ### Matriz de rotación 3D
+
+La rotación 3D se realiza mediante el bloqueo de un eje, por lo que tendremos 3 variantes de la matriz de rotación dependiendo del eje alrededor del cuál queramos rotar. Por lo demás es aplicar la lógica que vimos para realizar una rotación de un vector en 2D.
+
+La matriz de rotación alrededor del eje `Z`, manteniéndo ese eje intocable (tercera fila y tercera columna) es:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{Blue}&space;cos(\alpha)}&{\color{Blue}&space;-sin(\alpha)}&0&0\\{\color{Blue}&space;sin(\alpha)}&{\color{Blue}&space;cos(\alpha)}&0&0\\0&0&1&0\\0&0&0&1\\\end{bmatrix}{\color{Red}*}\begin{bmatrix}x\\y\\z\\1\\\end{bmatrix}" />
+
+```cpp
+static Matrix4 RotationZMatrix(float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    //  |  c -s  0  0  |
+    //  |  s  c  0  0  |
+    //  |  0  0  1  0  |
+    //  |  0  0  0  1  |
+    Matrix4 m = Matrix4::IdentityMatrix();
+    m.m[0][0] = c;
+    m.m[0][1] = -s;
+    m.m[1][0] = s;
+    m.m[1][1] = c;
+    return m;
+}
+```
+
+La matriz de rotación alrededor del eje `X`, manteniéndo ese eje intocable (primera fila y primera columna) es:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}1&0&0&0\\0&{\color{Blue}&space;cos(\alpha)}&{\color{Blue}&space;-sin(\alpha)}&0\\0&{\color{Blue}&space;sin(\alpha)}&{\color{Blue}&space;cos(\alpha)}&0\\0&0&0&1\\\end{bmatrix}{\color{Red}*}\begin{bmatrix}x\\y\\z\\1\\\end{bmatrix}"/>
+
+```cpp
+static Matrix4 RotationXMatrix(float angle)
+{
+    float c = cos(angle);
+    float s = sin(angle);
+    //  |  1  0  0  0  |
+    //  |  0  c -s  0  |
+    //  |  0  s  c  0  |
+    //  |  0  0  0  1  |
+    Matrix4 m = Matrix4::IdentityMatrix();
+    m.m[1][1] = c;
+    m.m[1][2] = -s;
+    m.m[2][1] = s;
+    m.m[2][2] = c;
+    return m;
+}
+```
+
+La matriz de rotación alrededor del eje `Y`, manteniéndo ese eje intocable (segunda fila y segunda columna) es:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{Blue}&space;cos(\alpha)}&0&{\color{Orange}&space;sin(\alpha)}&0\\0&1&0&0\\{\color{Orange}&space;-sin(\alpha)}&0&{\color{Blue}&space;cos(\alpha)}&0\\0&0&0&1\\\end{bmatrix}{\color{Red}*}\begin{bmatrix}x\\y\\z\\1\\\end{bmatrix}"/>
+
+```cpp
+    static Matrix4 RotationYMatrix(float angle)
+    {
+        float c = cos(angle);
+        float s = sin(angle);
+        //  |  c  0  s  0  |
+        //  |  0  1  0  0  |
+        //  | -s  0  c  0  |
+        //  |  0  0  0  1  |
+        Matrix4 m = Matrix4::IdentityMatrix();
+        m.m[0][0] = c;
+        m.m[0][2] = s;
+        m.m[2][0] = -s;
+        m.m[2][2] = c;
+        return m;
+    }
+```
+
+Es importante notar que **el signo de los senos está cambiado en todas las matrices**. La notación formal es para cuando `Z` crece en sentido horario, en nuestro sistema hemos aplicado lo contrario (crece en sentido antihorario), por tanto los senos estás negados.
+
+En cualquier caso aplicaremos esta rotación en el `mesh.Update`, siempre después del escalado y antes de la traslación. Es muy importante porque sino realizaremos la rotación respecto a la posición trasladada:
+
+```cpp
+/*** Apply transformations for all face vertices ***/
+for (size_t j = 0; j < 3; j++)
+{
+    // ORDER MATTERS, REALLY IMPORTANT
+    // 1. Scale using the matrix
+    triangles[i].ScaleVertex(j, scale);
+    // 2. Rotate using the matrices
+    triangles[i].RotateVertex(j, rotation);
+    // 3. Translation using the matrix
+    triangles[i].TranslateVertex(j, translation);
+}
+```
+
+El método de rotación de `Triangle` hará uso de las tres matrices de rotación:
+
+```cpp
+void RotateVertex(int vertexIndex, Vector3 rotation)
+{
+    // Use a matrix to transform rotate the origin vertex
+    Vector4 transformedVertex{vertices[vertexIndex]};
+    transformedVertex *= Matrix4::RotationXMatrix(rotation.x);
+    transformedVertex *= Matrix4::RotationYMatrix(rotation.y);
+    transformedVertex *= Matrix4::RotationZMatrix(rotation.z);
+    vertices[vertexIndex] = transformedVertex.ToVector3();
+}
+```
+
+En principio podemos reutilizar lo que teníamos de la interfaz y ya tendremos un visualizador de modelos 3D bastante completo:
+
+![](./docs/anim-19.gif)
 
 ### Matriz de mundo 3D
 

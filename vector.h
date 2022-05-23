@@ -66,7 +66,7 @@ public:
     Vector3 ToVector3();
 
     Vector4 operator*(Matrix4 m) const;
-    Vector4 &operator*=(const Matrix4 &m);
+    Vector4 &operator*=(Matrix4 m);
 };
 
 #endif

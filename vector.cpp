@@ -166,11 +166,18 @@ Vector4 Vector4::operator*(Matrix4 m) const
     return result;
 }
 
-Vector4 &Vector4::operator*=(const Matrix4 &m)
+Vector4 &Vector4::operator*=(Matrix4 m)
 {
-    x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
-    y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
-    z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
-    w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    /* Importante generar los cálculos a parte para no encadenarlos */
+    Vector4 result;
+    result.x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z + m.m[0][3] * w;
+    result.y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z + m.m[1][3] * w;
+    result.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z + m.m[2][3] * w;
+    result.w = m.m[3][0] * x + m.m[3][1] * y + m.m[3][2] * z + m.m[3][3] * w;
+    /* Luego asignar los valores a la instancia una vez calculados  */
+    x = result.x;
+    y = result.y;
+    z = result.z;
+    w = result.w;
     return *this;
 }

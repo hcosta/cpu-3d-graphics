@@ -6,9 +6,8 @@
 class Triangle
 {
 public:
-    Vector3 vertices[3];            // 3d  vertices
-    Vector2 projectedVertices[3];   // 2d vertices
-    Vector4 transformedVertices[3]; // 3d matrix transformations
+    Vector3 vertices[3];          // 3d  vertices
+    Vector2 projectedVertices[3]; // 2d vertices
     uint32_t color = 0xFFFFFFFF;
     bool culling = false;
     float averageDepth;
@@ -21,30 +20,30 @@ public:
         return averageDepth < t.averageDepth;
     }
 
-    void PrepareTransform()
-    {
-        transformedVertices[0] = Vector4(vertices[0]);
-        transformedVertices[1] = Vector4(vertices[1]);
-        transformedVertices[2] = Vector4(vertices[2]);
-    }
-
     void ScaleVertex(int vertexIndex, Vector3 scale)
     {
         // Use a matrix to transform scale the origin vertex
-        transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.z);
-        vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
+        Vector4 transformedVertex{vertices[vertexIndex]};
+        transformedVertex *= Matrix4::ScalationMatrix(scale.x, scale.y, scale.z);
+        vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 
     void RotateVertex(int vertexIndex, Vector3 rotation)
     {
-        vertices[vertexIndex].Rotate(rotation);
+        // Use a matrix to transform rotate the origin vertex
+        Vector4 transformedVertex{vertices[vertexIndex]};
+        transformedVertex *= Matrix4::RotationXMatrix(rotation.x);
+        transformedVertex *= Matrix4::RotationYMatrix(rotation.y);
+        transformedVertex *= Matrix4::RotationZMatrix(rotation.z);
+        vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 
     void TranslateVertex(int vertexIndex, Vector3 translation)
     {
         // Use a matrix to transform translate the origin vertex
-        transformedVertices[vertexIndex] *= Matrix4::TranslateMatrix(translation.x, translation.y, translation.z);
-        vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
+        Vector4 transformedVertex{vertices[vertexIndex]};
+        transformedVertex *= Matrix4::TranslationMatrix(translation.x, translation.y, translation.z);
+        vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 
     void ProjectVertex(int vertexIndex, float fovFactor)

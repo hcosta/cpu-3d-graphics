@@ -43,7 +43,10 @@ void Window::Init()
     SDL_GetCurrentDisplayMode(0, &Window_mode);
     // Set the max FPS as the monitor max hz
     screenRefreshRate = Window_mode.refresh_rate;
-    fpsCap = screenRefreshRate;
+    if (!enableCap)
+    {
+        fpsCap = screenRefreshRate;
+    }
 
     // Creamos la ventana SDL
     window = SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 0); // SDL_WINDOW_BORDERLESS
@@ -125,15 +128,15 @@ void Window::Update()
     ImGui::Checkbox("Rellenar triángulos", &this->drawFilledTriangles);
     ImGui::Checkbox("Back-face culling", &this->enableBackfaceCulling);
     ImGui::Separator();
-    ImGui::Text("Traslación del modelo");
-    ImGui::SliderFloat3("Translation", modelTranslation, -2, 2);
     ImGui::Text("Escalado del modelo");
-    ImGui::SliderFloat3("Scale", modelScale, 0, 2);
+    ImGui::SliderFloat3("Scale", modelScale, 0, 5);
+    ImGui::Text("Traslación del modelo");
+    ImGui::SliderFloat3("Translation", modelTranslation, -5, 5);
     ImGui::Text("Vector de rotación");
-    ImGui::SliderFloat3("Rotation", modelRotation, 0, 5);
+    ImGui::SliderFloat3("Rotation", modelRotation, 0, 10);
     ImGui::Separator();
-    // ImGui::Text("Posición cámara (X,Y,Z)");
-    // ImGui::SliderFloat3("-5, 5", cameraPosition, -5, 5);
+    ImGui::Text("Posición cámara (X,Y,Z)");
+    ImGui::SliderFloat3("Camera", cameraPosition, -5, 5);
     ImGui::Text("Campo de visión");
     ImGui::SliderInt("Fov", &this->fovFactor, 75, 1000);
     ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
@@ -220,7 +223,8 @@ void Window::DrawGrid(unsigned int color)
     {
         for (size_t x = 0; x < windowWidth; x += 10)
         {
-            colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
+            DrawPixel(x, y, color);
+            // colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
         }
     }
 }
@@ -239,7 +243,8 @@ void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
     {
         for (size_t x = sx; (x < sx + width) && (x < windowWidth); x++)
         {
-            colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
+            DrawPixel(x, y, color);
+            // colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
         }
     }
 }

@@ -23,11 +23,11 @@ public:
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {-2, 0, -5};
+    float modelTranslation[3] = {0, 0, 0};
     float modelRotation[3] = {0, 0, 0};
 
     /* Camera settings */
-    float cameraPosition[3] = {0, 0, 0};
+    float cameraPosition[3] = {0, 0, -5};
     int fovFactor = 400;
 
 private:
@@ -40,7 +40,7 @@ private:
     /* Fps */
     int fpsCap = 60;
     int screenRefreshRate = fpsCap;
-    bool enableCap = false;
+    bool enableCap = true;
     int screenTicksPerFrame = 1000 / fpsCap;
     /* Timers */
     Timer capTimer;

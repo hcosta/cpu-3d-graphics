@@ -74,14 +74,12 @@ void Mesh::SetRotation(float *rotation)
 
 void Mesh::SetTranslation(float *translation)
 {
-    this->translation = {translation[0], translation[1], translation[2]};
+    // Con rectificación de origen
+    this->translation = {translation[0] - window->cameraPosition[0], translation[1] - window->cameraPosition[1], translation[2] - window->cameraPosition[2]};
 }
 
 void Mesh::Update()
 {
-    // Set new scalation, rotation and translation amounts
-    rotation += rotationAmount;
-
     // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
     {
@@ -90,17 +88,15 @@ void Mesh::Update()
         triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
         triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
 
-        // preparing matrix transformation
-        triangles[i].PrepareTransform();
-
         /*** Apply transformations for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
-            // Scale using the matrix
+            // ORDER MATTERS
+            // 1. Scale using the matrix
             triangles[i].ScaleVertex(j, scale);
-            // Rotation
+            // 2. Rotate using the matrices
             triangles[i].RotateVertex(j, rotation);
-            // Translation using the matrix
+            // 3. Translation using the matrix
             triangles[i].TranslateVertex(j, translation);
         }
 
