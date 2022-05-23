@@ -125,8 +125,8 @@ void Window::Update()
     ImGui::Checkbox("Rellenar triángulos", &this->drawFilledTriangles);
     ImGui::Checkbox("Back-face culling", &this->enableBackfaceCulling);
     ImGui::Separator();
-    ImGui::Text("Posición del modelo");
-    ImGui::SliderFloat3("Position", modelPosition, -2, 2);
+    ImGui::Text("Traslación del modelo");
+    ImGui::SliderFloat3("Translation", modelTranslation, -2, 2);
     ImGui::Text("Escalado del modelo");
     ImGui::SliderFloat3("Scale", modelScale, 0, 2);
     ImGui::Text("Vector de rotación");
@@ -144,6 +144,7 @@ void Window::Update()
     // Update Model Settings
     mesh.SetScale(modelScale);
     mesh.SetRotation(modelRotation);
+    mesh.SetTranslation(modelTranslation);
 
     // Update Screen Ticks si han sido mofificados
     screenTicksPerFrame = 1000 / this->fpsCap;

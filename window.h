@@ -23,7 +23,7 @@ public:
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelPosition[3] = {-2, 0, -5};
+    float modelTranslation[3] = {-2, 0, -5};
     float modelRotation[3] = {0, 0, 0};
 
     /* Camera settings */

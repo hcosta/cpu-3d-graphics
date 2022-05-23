@@ -72,6 +72,11 @@ void Mesh::SetRotation(float *rotation)
     this->rotation = {rotation[0], rotation[1], rotation[2]};
 }
 
+void Mesh::SetTranslation(float *translation)
+{
+    this->translation = {translation[0], translation[1], translation[2]};
+}
+
 void Mesh::Update()
 {
     // Set new scalation, rotation and translation amounts
@@ -95,8 +100,8 @@ void Mesh::Update()
             triangles[i].ScaleVertex(j, scale);
             // Rotation
             triangles[i].RotateVertex(j, rotation);
-            // Translation (away from camera)
-            triangles[i].TranslateVertex(j, window->modelPosition);
+            // Translation using the matrix
+            triangles[i].TranslateVertex(j, translation);
         }
 
         /*** Back Face Culling Algorithm ***/

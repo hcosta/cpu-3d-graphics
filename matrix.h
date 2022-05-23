@@ -32,6 +32,19 @@ public:
         m.m[2][2] = z;
         return m;
     }
+
+    static Matrix4 TranslateMatrix(float x, float y, float z)
+    {
+        //  |  1  0  0  tx  |
+        //  |  0  1  0  ty  |
+        //  |  0  0  1  tz  |
+        //  |  0  0  0   1  |
+        Matrix4 m = Matrix4::IdentityMatrix();
+        m.m[0][3] = x;
+        m.m[1][3] = y;
+        m.m[2][3] = z;
+        return m;
+    }
 };
 
 #endif

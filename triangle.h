@@ -31,7 +31,7 @@ public:
     void ScaleVertex(int vertexIndex, Vector3 scale)
     {
         // Use a matrix to transform scale the origin vertex
-        transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.y);
+        transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.z);
         vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
     }
 
@@ -40,11 +40,11 @@ public:
         vertices[vertexIndex].Rotate(rotation);
     }
 
-    void TranslateVertex(int vertexIndex, float *distance)
+    void TranslateVertex(int vertexIndex, Vector3 translation)
     {
-        vertices[vertexIndex].x -= distance[0];
-        vertices[vertexIndex].y -= distance[1];
-        vertices[vertexIndex].z -= distance[2];
+        // Use a matrix to transform translate the origin vertex
+        transformedVertices[vertexIndex] *= Matrix4::TranslateMatrix(translation.x, translation.y, translation.z);
+        vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
     }
 
     void ProjectVertex(int vertexIndex, float fovFactor)

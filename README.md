@@ -3976,7 +3976,9 @@ El resultado de aplicarla será el siguiente:
 
 <img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}({\color{Blue}&space;sx}&space;*&space;x)&plus;&space;0&space;&plus;&space;0&space;&plus;&space;0&space;\\0&space;&plus;&space;&space;({\color{Blue}&space;sy}&space;*&space;y)&plus;&space;0&space;&plus;&space;0&space;\\0&space;&plus;&space;0&space;&plus;&space;({\color{Blue}&space;sz}&space;*&space;z)&space;&plus;&space;0&space;\\0&space;&plus;&space;0&space;&plus;&space;0&space;&plus;&space;(1&space;*1)&space;\\\end{bmatrix}=\begin{bmatrix}{\color{Blue}&space;sx}&space;*&space;x&space;\\{\color{Blue}&space;sy}&space;*&space;y&space;\\{\color{Blue}&space;sz}&space;*&space;z&space;\\1&space;\\\end{bmatrix}&space;"/>
 
-Para poder aplicar esta funcionalidad necesitamos modificar el código, ya que en él no estamos utilizando matrices sino que estamos aplicando las fórmulas trigonométricas manualmente. Así que lo primero será definir nuestro nuevo tipo `Matrix4`:
+Para poder aplicar esta funcionalidad necesitamos modificar el código, ya que en él no estamos utilizando matrices sino que estamos aplicando las fórmulas trigonométricas manualmente. 
+
+Así que lo primero será definir nuestro nuevo tipo `Matrix4`:
 
 ```cpp
 #ifndef MATRIX_H
@@ -4130,7 +4132,7 @@ Nuestro nuevo método tomará el índice del vértice, en formato `Vector4` y ap
 void ScaleVertex(int vertexIndex, Vector3 scale)
 {
     // Use a matrix to transform scale the origin vertex
-    transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.y);
+    transformedVertices[vertexIndex] *= Matrix4::ScaleMatrix(scale.x, scale.y, scale.z);
     vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
 }
 ```
@@ -4162,10 +4164,15 @@ ImGui::Separator();
 ImGui::Text("Posición del modelo");
 ImGui::SliderFloat3("Position", modelPosition, -2, 2);
 ImGui::Text("Escalado del modelo");
-ImGui::SliderFloat3("Scale", modelScale, -2, 2);
+ImGui::SliderFloat3("Scale", modelScale, 0, 2);
 ```
 
 Y justo después estableceremos los nuevos cambios:
+
+```cpp    
+// Update Model Settings
+mesh.SetScale(modelScale);
+```
 
 De paso modificaremos un poco la rotación ya que realmente no queremos una rotación automatizada, eso es una prueba, sino que podamos establecer la rotación actual:
 
@@ -4182,12 +4189,14 @@ El widget:
 
 ```cpp
 ImGui::Text("Vector de rotación");
-ImGui::SliderFloat3("Rotation", modelRotation, 0, 1);
+ImGui::SliderFloat3("Rotation", modelRotation, 0, 5);
 ```
 
 Y la actualización:
 
 ```cpp
+// Update Model Settings
+mesh.SetScale(modelScale);
 mesh.SetRotation(modelRotation);
 ```
 
@@ -4207,6 +4216,93 @@ Es hora de probar las mieles del éxito, este es el resultado final:
 En este punto nos falta realizar la traslación y rotación también con matrices de transformación.
 
 ### Matriz de traslación 3D
+
+La matriz que aplicaremos para realizar una traslación, modificar la posición en el espacio de la malla, es la siguiente:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}1&0&0&{\color{Blue}tx}\\0&1&0&{\color{Blue}ty}\\0&0&1&{\color{Blue}tz}\\0&0&0&1\\\end{bmatrix}{\color{Red}*}\begin{bmatrix}x\\y\\z\\1\\\end{bmatrix}" />
+
+En esta matriz, la última columna extra, almacena la cantidad de traslación en cada componente `tx`, `ty` y `tz`.
+
+El resultado de aplicarla será el siguiente:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}x&plus;0&plus;0&plus;{\color{Blue}&space;tx}\\0&plus;y&plus;0&plus;{\color{Blue}&space;ty}\\0&plus;0&plus;z&plus;{\color{Blue}&space;tz}\\0&plus;0&plus;0&plus;1\\\end{bmatrix}=\begin{bmatrix}{x&plus;\color{Blue}tx}\\y&plus;{\color{Blue}ty}\\z&plus;{\color{Blue}tz}\\1\\\end{bmatrix}"/>
+
+La cuarta columna es la única forma en que podemos representar la traslación en una matriz `4x4`.
+
+La implementación es muy simple:
+
+```cpp
+class Matrix4
+{
+public:
+    static Matrix4 TranslateMatrix(float x, float y, float z)
+    {
+        //  |  1  0  0  tx  |
+        //  |  0  1  0  ty  |
+        //  |  0  0  1  tz  |
+        //  |  0  0  0   1  |
+        Matrix4 m = Matrix4::IdentityMatrix();
+        m.m[0][3] = x;
+        m.m[1][3] = y;
+        m.m[2][3] = z;
+        return m;
+    }
+};
+```
+
+El nuevo método para trasladar un vértice de `Triangle` con esta matriz quedará:
+
+```cpp
+void TranslateVertex(int vertexIndex, Vector3 translate)
+{
+    // Use a matrix to transform translate the origin vertex
+    transformedVertices[vertexIndex] *= Matrix4::TranslateMatrix(translate.x, translate.y, translate.z);
+    vertices[vertexIndex] = transformedVertices[vertexIndex].ToVector3();
+}
+```
+
+Lo aplicaremos durante la aplicación de las transformaciones en `mesh.Update()`:
+
+```cpp
+/*** Apply transformations for all face vertices ***/
+for (size_t j = 0; j < 3; j++)
+{
+    // Scale using the matrix
+    triangles[i].ScaleVertex(j, scale);
+    // Translation using the matrix
+    triangles[i].TranslateVertex(j, translation);
+}
+```
+
+Para poder modificar la traslación desde la interfaz añadirmeos al `mesh` el método:
+
+```cpp
+void Mesh::SetTranslation(float *translation)
+{
+    this->translation = {translation[0], translation[1], translation[2]};
+}
+```
+
+Que estableceremos a partir de:
+
+```cpp
+ImGui::Text("Traslación del modelo");
+ImGui::SliderFloat3("Position", modelTranslation, -2, 2);
+
+mesh.SetTranslation(modelTranslation);
+```
+
+Esta variable `modelTranslation` de `Window` la adaptaremos de `modelPosition` pues el nombre es ahora más acertado:
+
+```cpp
+float modelTranslation[3] = {-2, 0, -5};
+```
+
+Con esto deberíamos cambiar la posición correctamente:
+
+![](./docs/anim-18.gif)
+
+Los problemas que surgen con el eje `Z` los corregiremos más adelante.
 
 ### Matriz de rotación 3D
 
