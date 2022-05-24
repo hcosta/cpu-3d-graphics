@@ -109,10 +109,14 @@ void Mesh::Update()
         /*** Apply projections for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
-            triangles[i].ProjectVertex(j, window->fovFactor);
-            // Translate the projected vertex to the middle screen
-            triangles[i].projectedVertices[j].x += (window->windowWidth / 2);
-            triangles[i].projectedVertices[j].y += (window->windowHeight / 2);
+            // Project the current vertex using matrices
+            triangles[i].ProjectWorldVertex(j, window->projectionMatrix);
+            // First scale the projected vertex by screen sizes
+            triangles[i].projectedVertices[j].x *= (window->windowWidth / 2.0);
+            triangles[i].projectedVertices[j].y *= (window->windowHeight / 2.0);
+            // Then translate the projected vertex to the middle screen
+            triangles[i].projectedVertices[j].x += (window->windowWidth / 2.0);
+            triangles[i].projectedVertices[j].y += (window->windowHeight / 2.0);
         }
     }
 }

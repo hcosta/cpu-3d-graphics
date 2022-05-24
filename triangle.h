@@ -7,8 +7,9 @@
 class Triangle
 {
 public:
-    Vector3 vertices[3];          // 3d  vertices
-    Vector2 projectedVertices[3]; // 2d vertices
+    Vector3 vertices[3]; // 3d  vertices
+    // Vector2 projectedVertices[3];   // 2d vertices
+    Vector4 projectedVertices[3]; // 2d vertices
     uint32_t color = 0xFFFFFFFF;
     bool culling = false;
     float averageDepth;
@@ -23,7 +24,7 @@ public:
 
     void ScaleVertex(int vertexIndex, Vector3 scale)
     {
-        // Use a matrix to transform scale the origin vertex
+        // Use a matrix to transform scale the original vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
         transformedVertex = transformedVertex * Matrix4::ScalationMatrix(scale.x, scale.y, scale.z);
         vertices[vertexIndex] = transformedVertex.ToVector3();
@@ -31,7 +32,7 @@ public:
 
     void RotateVertex(int vertexIndex, Vector3 rotation)
     {
-        // Use a matrix to transform rotate the origin vertex
+        // Use a matrix to transform rotate the original vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
         transformedVertex = transformedVertex * Matrix4::RotationXMatrix(rotation.x);
         transformedVertex = transformedVertex * Matrix4::RotationYMatrix(rotation.y);
@@ -41,7 +42,7 @@ public:
 
     void TranslateVertex(int vertexIndex, Vector3 translation)
     {
-        // Use a matrix to transform translate the origin vertex
+        // Use a matrix to transform translate the original vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
         transformedVertex = transformedVertex * Matrix4::TranslationMatrix(translation.x, translation.y, translation.z);
         vertices[vertexIndex] = transformedVertex.ToVector3();
@@ -49,15 +50,23 @@ public:
 
     void WorldVertex(int vertexIndex, Vector3 scale, Vector3 angle, Vector3 translate)
     {
-        // Use a matrix to world transform the origin vertex
+        // Use a matrix to world transform the original vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
         transformedVertex = transformedVertex * Matrix4::WorldMatrix(scale, angle, translate);
         vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 
-    void ProjectVertex(int vertexIndex, float fovFactor)
+    // void ProjectVertex(int vertexIndex, float fovFactor)
+    // {
+    //     // Project the original vertex
+    //     projectedVertices[vertexIndex] = vertices[vertexIndex].PerspectiveProjection(fovFactor);
+    // };
+
+    void ProjectWorldVertex(int vertexIndex, Matrix4 projectionMatrix)
     {
-        projectedVertices[vertexIndex] = vertices[vertexIndex].PerspectiveProjection(fovFactor);
+        // Use a matrix to world project the original vertex
+        Vector4 transformedVertex{vertices[vertexIndex]};
+        projectedVertices[vertexIndex] = Matrix4::ProjectMatrix(projectionMatrix, transformedVertex);
     };
 
     void ApplyCulling(float *cameraPosition)

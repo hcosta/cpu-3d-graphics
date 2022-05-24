@@ -108,6 +108,36 @@ public:
         return worldMatrix;
     }
 
+    static Matrix4 PerspectiveMatrix(float fov, float aspect, float znear, float zfar)
+    {
+        // | (h/w)*1/tan(fov/2)                0             0                   0 |
+        // |                  0     1/tan(fov/2)             0                   0 |
+        // |                  0                0    zf/(zf/zn)    (-zf*zn)/(zf-zn) |
+        // |                  0                0             1                   0 |
+        Matrix4 m = {{{0}}};
+        m.m[0][0] = aspect * (1 / tan(fov / 2));
+        m.m[1][1] = 1 / tan(fov / 2);
+        m.m[2][2] = zfar / (zfar - znear);
+        m.m[2][3] = (-zfar * znear) / (zfar - znear);
+        m.m[3][2] = 1.0;
+        return m;
+    }
+
+    static Vector4 ProjectMatrix(Matrix4 perspectiveMatrix, Vector4 originalVector)
+    {
+        // Multiplicar la matriz de proyección por el vector original
+        Vector4 result = originalVector * perspectiveMatrix;
+
+        // Realizar la brecha de perspectiva con el valor original de z guardado en w
+        if (result.w != 0.0)
+        {
+            result.x /= result.w;
+            result.y /= result.w;
+            result.z /= result.w;
+        }
+        return result;
+    }
+
     Matrix4 operator*(Matrix4 m2) const
     {
         Matrix4 result;

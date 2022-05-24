@@ -4457,3 +4457,243 @@ A diferencia del escalado y la rotación, que se realizan respecto al centro del
 Para solucionar este problema  lo que hacemos es abstraer el vector a una cuarta dimensión imaginaria (la cuarta columna y fila de la matriz), realizamos los cálculos pertinentes para trasladarlos y una vez lo tenemos transformamos de nuevo al espacio tridimensional 3D.
 
 ## Matriz de proyección
+
+Otro aspecto que podemos realizar mediante matrices es la proyección del espacio 3D al espacio 2D, algo que no se limita a una proyección perspectiva, ya que con la matriz adecuada conseguiremos distintos efectos.
+
+Hasta ahora para realizar una proyección utilizábamos la brecha de perspectiva, dividiendo las distancias entre la profundidad para conseguir la representación bidimensional. Esta proyección se considera "débil", ya que solo tiene en cuenta la propia brecha.
+
+Lo que haremos será definir una **matriz de proyección** mucho más sofisticada sobre la que aplicar la brecha de perspectiva:
+
+* Implementará la **relación de aspecto** para los valores `x` e `y` en función del ancho y alto de la pantalla.
+* Implementará la **campo de visión** para los valores `x` e `y` en función del ángulo *FOV*.
+* Implementará la **normalización** para los valores `x`, `y`, `z` entre `-1` y `1`.
+
+Al tener en cuenta todos estos parámetros, conseguiremos un cubo de valores normalizados, una **imagen del espacio** (*image space*) o **NDC** (*Normalized Device Coordinates*):
+
+![](./docs/image-67.png)
+
+Empecemos por el principio, la **relación de aspecto** `a` es la relación entre la altura `h` (*height*) y anchura `w` (*width*) de la pantalla.
+
+Para conseguir la conversión del espacio de mundo (*world space*) a espacio de pantalla (*screen space*) adaptaremos el ancho `x` multiplicándolo por la relación de aspecto:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Red}&space;a}&space;=&space;\frac{h}{w}&space;\to&space;\begin{bmatrix}{\color{Red}&space;a}x&space;\\y\\z\end{bmatrix}&space;"/>
+
+En cuanto al **campo de visión** nos requerirá encontrar un factor de escalado. Este lo podemos encontrar mediante la relación entre el cateto opuesto y el adjunto, es decir, la mitad de la tangente (el cateto opuesto mide la mitad):
+
+![](./docs/image-68.png)
+
+Sin embargo encontramos una contradicción y es que cuanto mayor es el ángulo, más elementos vemos pero también serán más pequeños en la pantalla. Por contra, cuanto menor es el ángulo, menos elementos veremos pero serán más grandes en la pantalla. Por esa razón la función que buscamos es opuesta a la tangente de la mitad del ángulo:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Green}&space;f}&space;=&space;\frac{1}{tan({\color{Orange}&space;\theta}&space;/2)}&space;\to&space;\begin{bmatrix}{\color{Green}&space;f}x&space;\\{\color{Green}&space;f}y\\z\end{bmatrix}"/>
+
+Lo último que necesitamos aplicar es la **normalización** del espacio visualizado, para ello buscaremos otro factor de escalado. Delimitaremos la profundidad del **frustrum** entre la `Z` más alejada `zfar` y la `Z` más cercana `znear`. 
+
+![](./docs/image-69.png)
+
+Podemos llamar al factor de escalado simplemente `λ`, será la distancia máxima `zfar` entre la diferencia entre `zfar` y `znear`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Blue}&space;\lambda}&space;=&space;(\frac{zfar}{zfar-znear})"/>
+
+Sin embargo debemos tener en cuenta el *offset* de `znear`, pues ésta no parte de cero:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Blue}&space;\lambda}&space;=&space;{\color{DarkRed}&space;scaling}&space;-&space;{\color{DarkOrange}&space;offset}"/>
+
+Sustraemos esa distancia inicial, la cuál conseguiremos multiplicando el factor de escalado y `znear`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\&space;{\color{Blue}&space;\lambda}&space;=&space;(\frac{zfar}{zfar-znear})&space;-&space;(\frac{zfar}{zfar-znear}&space;*&space;znear)&space;\\\\&space;{\color{Blue}&space;\lambda}&space;=&space;\frac{zfar}{zfar-znear}&space;-&space;\frac{zfar*{\color{Orchid}&space;znear}}{zfar-znear}&space;&space;"/>
+
+Con esto ya tenemos los factores de la **relación de aspecto**, el **campo de visión** y la **normalización de la profundidad**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{Red}&space;a&space;}{\color{Green}&space;f}x&space;\\{\color{Green}&space;f}y&space;\\{\color{Blue}&space;\lambda}&space;z&space;-&space;{\color{Blue}&space;\lambda}&space;znear\end{bmatrix}" />
+
+Si los aplicamos antes de la brecha de perspectiva (`x/z`, `y/z`, `z/z`) obtendremos la **imagen del espacio** normalizado:
+
+![](./docs/image-70.png)
+
+Si trasladamos todos los factores a nuestra matriz de referencia `4x4` conseguiremos la **matriz de proyección**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{Red}&space;a&space;}{\color{Green}&space;f}&space;&&space;0&space;&&space;0&space;&&space;0&space;\\0&space;&&space;{\color{Green}&space;f}&space;&&space;0&space;&&space;0&space;\\0&space;&&space;0&space;&&space;{\color{Blue}&space;\lambda}&space;&&space;{\color{Blue}&space;\lambda}-znear&space;\\0&space;&&space;0&space;&&space;{\color{Orchid}&space;1}&space;&&space;0&space;\\\end{bmatrix}&space;"/>
+
+Esta es la **matriz de proyección** pero **sin tener en cuenta la brecha de perspectiva**.
+
+Por cierto, veremos un número `1` en la cuarta fila y tercera columna. Al aplicar la multiplicación de matrices nos permitirá guardar el valor original de `Z` en `Z`, es decir un *backup* del valor `Z` sin normalizar. Necesitaremos este valor para aplicar la brecha de perspectiva y también nos hará falta en el futuro para  realizar diferentes operaciones.
+
+En cualquier caso necesitaremos implementar dos métodos en `Matrix4`, uno para definir la **matriz de perspectiva**:
+
+```cpp
+static Matrix4 PerspectiveMatrix(float fov, float aspect, float znear, float zfar)
+{
+    // | (h/w)*1/tan(fov/2)                0             0                   0 |
+    // |                  0     1/tan(fov/2)             0                   0 |
+    // |                  0                0    zf/(zf/zn)    (-zf*zn)/(zf-zn) |
+    // |                  0                0             1                   0 |
+    Matrix4 m = {{{0}}};
+    m.m[0][0] = aspect * (1 / tan(fov / 2));
+    m.m[1][1] = 1 / tan(fov / 2);
+    m.m[2][2] = zfar / (zfar - znear);
+    m.m[2][3] = (-zfar * znear) / (zfar - znear);
+    m.m[3][2] = 1.0;
+    return m;
+}
+```
+
+Y otro para aplicarle la **brecha de perspectiva**:
+
+```cpp
+static Vector4 ProjectMatrix(Matrix4 perspectiveMatrix, Vector4 originalVector)
+{
+    // Multiplicar la matriz de proyección por el vector original
+    Vector4 result = originalVector * perspectiveMatrix;
+
+    // Realizar la brecha de perspectiva con el valor original de z guardado en w
+    if (result.w != 0.0)
+    {
+        result.x /= result.w;
+        result.y /= result.w;
+        result.z /= result.w;
+    }
+    return result;
+}
+```
+
+Para hacer uso de esta nueva funcionalidad tendremos que sustituir el código de proyección anterior, empezando por definir la configuración de la matriz de perspectiva. Podemos definirla inicialmente en `window.h`:
+
+```cpp
+/* Projection settings */
+float fovFactor = M_PI / 3.0; // 60º in radians
+float aspectRatio = windowHeight / static_cast<float>(windowWidth);
+float zNear = 0.1, zFar = 100.0;
+Matrix4 projectionMatrix = Matrix4::PerspectiveMatrix(
+    fovFactor, aspectRatio, zNear, zFar);
+```
+
+Ahora realizaremos la proyección utilizando matrices, para ello utilizaremos un nuevo método `triangle.ProjectWorldVertex`:
+
+```cpp
+/*** Apply projections for all face vertices ***/
+for (size_t j = 0; j < 3; j++)
+{
+    // Project the current vertex using matrices
+    triangles[i].ProjectWorldVertex(j, window->projectionMatrix);
+    // Translate the projected vertex to the middle screen
+    triangles[i].projectedVertices[j].x += (window->windowWidth / 2);
+    triangles[i].projectedVertices[j].y += (window->windowHeight / 2);
+}
+```
+
+Este método cambiará algunas cosas internas respecto al antiguo, empezando por el hecho de que ahora los vértices proyectados serán un `Vector4` en lugar de un `Vector4`:
+
+```cpp
+Vector4 projectedVertices[3]; // 2d vertices
+
+void ProjectWorldVertex(int vertexIndex, Matrix4 projectionMatrix)
+{
+    // Use a matrix to world project the original vertex
+    Vector4 transformedVertex{vertices[vertexIndex]};
+    projectedVertices[vertexIndex] = Matrix4::ProjectMatrix(projectionMatrix, transformedVertex);
+};
+```
+
+Si ejecutamos el programa veremos solo un punto en el centro:
+
+![](./docs/image-71.png)
+
+El problema está relacionado con el normalizado del espacio proyectado **NDC** (*Normalized Device Coordinates*). 
+
+Como todo está en el rango `(-1, 1)` debemos escalar los vértices proyectados por la mitad del ancho y alto de la pantalla, importante hacerlo antes de la traslación (recordar el orden):
+
+```cpp
+/*** Apply projections for all face vertices ***/
+for (size_t j = 0; j < 3; j++)
+{
+    // Project the current vertex using matrices
+    triangles[i].ProjectWorldVertex(j, window->projectionMatrix);
+    // First scale the projected vertex by screen sizes
+    triangles[i].projectedVertices[j].x *= (window->windowWidth / 2.0);
+    triangles[i].projectedVertices[j].y *= (window->windowHeight / 2.0);
+    // Then translate the projected vertex to the middle screen
+    triangles[i].projectedVertices[j].x += (window->windowWidth / 2.0);
+    triangles[i].projectedVertices[j].y += (window->windowHeight / 2.0);
+}
+```
+
+El resultado será el mismo de antes, pero al haber incorporado la relación de aspecto, el punto de vista y la normalización nos dará mucho juego:
+
+![](./docs/anim-21.gif)
+
+Por lo pronto deberíamos hacer que si se modifica el `POV` cambie, además de poder establecerlo en grados:
+
+```cpp
+float fovFactor = M_PI / 3.0;                         // 60º in radians
+float fovFactorInGrades = (180.0 / M_PI) * fovFactor; // 60º en grados
+```
+
+```cpp
+ImGui::Text("Campo de visión");
+ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
+
+// Update Projection Matrix
+projectionMatrix = Matrix4::PerspectiveMatrix(
+    (this->fovFactorInGrades / 180.0) * M_PI, aspectRatio, zNear, zFar);
+```
+
+![](./docs/anim-22.gif)
+
+### Proyección de valores negativos
+
+Ahora que estamos pensando en clave de **NDC** (*Normalized Device Coordinates*), podemos cuestionarnos a fondo la cuestión sobre qué ocurrirá cuando un vector se encuentre proyectado por detrás de la cámara, es decir, que no podamos verlo. ¿Qué tipo de resultado obtendremos?
+
+Lo que ocurrirá es que al aplicar la brecha de perspectiva:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}x/{\color{Blue}&space;w}&space;\\&space;y/{\color{Blue}&space;w}&space;\\&space;z/{\color{Blue}&space;w}&space;\\&space;z\end{bmatrix}"/>
+
+Al tener en `W` un componente `Z` no transformado y potencialmente negativo, el resultado que obtendremos al proyectarlo será una proyeción volteada del objeto como consecuencia de dividir los componentes `x`, `y`, `z` entre un número negativo.
+
+El caso es que antes de que esto ocurra, cuando el objeto se encuentre por detrás de la cámara, el programa se bloqueará y finalizará abruptamente:
+
+![](./docs/anim-23.gif)
+
+Esto ocurre porque no hemos implementado ningún tipo de protección al intentar dividir los valores entre cero, como sería el *clipping*, basado en descartar los objetos fuera del `frustum` para no renderizarlos:
+
+![](./docs/image-72.png)
+
+Este proceso tiene lugar normalmente entre la proyección de la matriz y la brecha de perspectiva, por eso es buena idea dividir esas dos operaciones.
+
+En cualquier caso implementaré el *clipping* más adelante, una vez tenga el terreno preparado.
+
+### Orden de fila-columna superior
+
+Antes de continuar, un breve apunte sobre la representación de vectores. Tenemos dos formas de representarlos.
+
+Por **orden mayor de columna**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}x&space;\\&space;y&space;\\&space;z&space;\\&space;w\end{bmatrix}" />
+
+O por **orden mayor de fila**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}x&space;&&space;y&space;&&space;z&space;&&space;w&space;\\\end{bmatrix}&space;" />
+
+Es importante porque este cambio en la representación no es solo estético, pues hablando de dimensiones no es lo mismo `4x1` que `4x1`, algo que afecta directamente a operaciones como la multiplicación de matrices:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{175}\bg{white}\begin{bmatrix}...\end{bmatrix}_{{\color{Red}&space;N}x{\color{Blue}&space;M}}*\begin{bmatrix}...\end{bmatrix}_{{\color{Blue}&space;M}x{\color{Magenta}&space;P}}=\begin{bmatrix}...\end{bmatrix}_{{\color{Red}&space;N}x{\color{Magenta}&space;P}}" />
+
+Pues no cumplen la propiedad conmutativa:
+
+<img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}A&space;{\color{Red}&space;*}&space;B&space;{\color{Blue}&space;\neq}&space;B&space;{\color{Red}&space;*}&space;A"/>
+
+Hay que tenerlo en cuenta pues no es lo mismo trabajar con **OpenGL** que utiliza orden superior de columna, que con **DirectX** o programas como **Maya** que utilizan orden superior de fila.
+
+Con **orden superior de columna** el vector se opera después de la matriz:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}m_{11}&space;&&space;m_{12}&space;&&space;m_{13}&space;&&space;m_{14}&space;\\m_{21}&space;&&space;m_{22}&space;&&space;m_{23}&space;&&space;m_{24}&space;\\m_{31}&space;&&space;m_{32}&space;&&space;m_{33}&space;&&space;m_{34}&space;\\m_{41}&space;&&space;m_{42}&space;&&space;m_{43}&space;&&space;m_{44}&space;\\\end{bmatrix}{\color{Red}&space;*}\begin{bmatrix}{\color{DarkOrange}&space;x}&space;\\&space;{\color{DarkOrange}y}&space;\\&space;{\color{DarkOrange}z}&space;\\&space;{\color{DarkOrange}w}&space;\\\end{bmatrix}&space;=&space;\begin{bmatrix}{\color{Blue}&space;x'}&space;\\&space;{\color{Blue}&space;y'}&space;\\&space;{\color{Blue}&space;z'}&space;\\&space;{\color{Blue}&space;w'}&space;\\\end{bmatrix}&space;" />
+
+Con **orden superior de fila** el vector se opera antes de la matriz:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{DarkOrange}&space;x}&space;&&space;{\color{DarkOrange}y}&space;&&space;{\color{DarkOrange}z}&space;&&space;{\color{DarkOrange}w}&space;\\\end{bmatrix}&space;{\color{Red}&space;*}\begin{bmatrix}m_{11}&space;&&space;m_{12}&space;&&space;m_{13}&space;&&space;m_{14}&space;\\m_{21}&space;&&space;m_{22}&space;&&space;m_{23}&space;&&space;m_{24}&space;\\m_{31}&space;&&space;m_{32}&space;&&space;m_{33}&space;&&space;m_{34}&space;\\m_{41}&space;&&space;m_{42}&space;&&space;m_{43}&space;&&space;m_{44}&space;\\\end{bmatrix}=&space;\begin{bmatrix}{\color{Blue}&space;x'}&space;&&space;{\color{Blue}&space;y'}&space;&&space;{\color{Blue}&space;z'}&space;&&space;{\color{Blue}&space;w'}&space;\\\end{bmatrix}&space;" />
+
+Esto afecta directamente a la configuración de las matrices de transformación y el orden:
+
+* **Orden superior de fila**: `P' = P * Ry * Rz * T`
+* **Orden superior de columna**: `P' = T * Rz * Ry * P`
+
+Distintas formas de interpretar el mundo, distintas formas de trabajar en él, no lo olvidemos.

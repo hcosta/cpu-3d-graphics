@@ -131,14 +131,14 @@ void Window::Update()
     ImGui::Text("Escalado del modelo");
     ImGui::SliderFloat3("Scale", modelScale, 0, 5);
     ImGui::Text("Traslación del modelo");
-    ImGui::SliderFloat2("Translation", modelTranslation, -5, 5);
+    ImGui::SliderFloat2("Translate", modelTranslation, -5, 5);
     ImGui::Text("Vector de rotación");
-    ImGui::SliderFloat3("Rotation", modelRotation, 0, 10);
+    ImGui::SliderFloat3("Rotate", modelRotation, 0, 10);
     ImGui::Separator();
     ImGui::Text("Posición cámara (X,Y,Z)");
     ImGui::SliderFloat2("Camera", cameraPosition, -5, 5);
     ImGui::Text("Campo de visión");
-    ImGui::SliderInt("Fov", &this->fovFactor, 75, 1000);
+    ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
     ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
     ImGui::Separator();
     ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -148,6 +148,10 @@ void Window::Update()
     mesh.SetScale(modelScale);
     mesh.SetRotation(modelRotation);
     mesh.SetTranslation(modelTranslation);
+
+    // Update Projection Matrix
+    projectionMatrix = Matrix4::PerspectiveMatrix(
+        (this->fovFactorInGrades / 180.0) * M_PI, aspectRatio, zNear, zFar);
 
     // Update Screen Ticks si han sido mofificados
     screenTicksPerFrame = 1000 / this->fpsCap;

@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "vector.h"
 #include "mesh.h"
+#include "matrix.h"
 
 class Window
 {
@@ -28,7 +29,13 @@ public:
 
     /* Camera settings */
     float cameraPosition[3] = {0, 0, -5};
-    int fovFactor = 400;
+
+    /* Projection settings */
+    float fovFactor = M_PI / 3.0;                         // 60º in radians
+    float fovFactorInGrades = (180.0 / M_PI) * fovFactor; // 60º en grados
+    float aspectRatio = windowHeight / static_cast<float>(windowWidth);
+    float zNear = 0.1, zFar = 100.0;
+    Matrix4 projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
 
 private:
     /* Window */
