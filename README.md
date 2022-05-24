@@ -57,6 +57,9 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Matriz de mundo 3D](#matriz-de-mundo-3d)
     * [Reflexión sobre la traslación](#reflexión-sobre-la-traslación)
 * [Matriz de proyección](#matriz-de-proyección)
+    * [Proyección de valores negativos](#proyección-de-valores-negativos)
+    * [Orden mayor de fila-columna](#orden-mayor-de-fila-columna)
+
 
 ## Configuración previa
 
@@ -4661,7 +4664,7 @@ Este proceso tiene lugar normalmente entre la proyección de la matriz y la brec
 
 En cualquier caso implementaré el *clipping* más adelante, una vez tenga el terreno preparado.
 
-### Orden de fila-columna superior
+### Orden mayor de fila-columna 
 
 Antes de continuar, un breve apunte sobre la representación de vectores. Tenemos dos formas de representarlos.
 
@@ -4681,19 +4684,19 @@ Pues no cumplen la propiedad conmutativa:
 
 <img src="https://latex.codecogs.com/png.image?\large&space;\dpi{150}\bg{white}A&space;{\color{Red}&space;*}&space;B&space;{\color{Blue}&space;\neq}&space;B&space;{\color{Red}&space;*}&space;A"/>
 
-Hay que tenerlo en cuenta pues no es lo mismo trabajar con **OpenGL** que utiliza orden superior de columna, que con **DirectX** o programas como **Maya** que utilizan orden superior de fila.
+Hay que tenerlo en cuenta pues no es lo mismo trabajar con **OpenGL** que utiliza orden mayor de columna, que con **DirectX** o programas como **Maya** que utilizan orden mayor de fila.
 
-Con **orden superior de columna** el vector se opera después de la matriz:
+Con **orden mayor de columna** el vector se opera después de la matriz:
 
 <img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}m_{11}&space;&&space;m_{12}&space;&&space;m_{13}&space;&&space;m_{14}&space;\\m_{21}&space;&&space;m_{22}&space;&&space;m_{23}&space;&&space;m_{24}&space;\\m_{31}&space;&&space;m_{32}&space;&&space;m_{33}&space;&&space;m_{34}&space;\\m_{41}&space;&&space;m_{42}&space;&&space;m_{43}&space;&&space;m_{44}&space;\\\end{bmatrix}{\color{Red}&space;*}\begin{bmatrix}{\color{DarkOrange}&space;x}&space;\\&space;{\color{DarkOrange}y}&space;\\&space;{\color{DarkOrange}z}&space;\\&space;{\color{DarkOrange}w}&space;\\\end{bmatrix}&space;=&space;\begin{bmatrix}{\color{Blue}&space;x'}&space;\\&space;{\color{Blue}&space;y'}&space;\\&space;{\color{Blue}&space;z'}&space;\\&space;{\color{Blue}&space;w'}&space;\\\end{bmatrix}&space;" />
 
-Con **orden superior de fila** el vector se opera antes de la matriz:
+Con **orden mayor de fila** el vector se opera antes de la matriz:
 
 <img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\begin{bmatrix}{\color{DarkOrange}&space;x}&space;&&space;{\color{DarkOrange}y}&space;&&space;{\color{DarkOrange}z}&space;&&space;{\color{DarkOrange}w}&space;\\\end{bmatrix}&space;{\color{Red}&space;*}\begin{bmatrix}m_{11}&space;&&space;m_{12}&space;&&space;m_{13}&space;&&space;m_{14}&space;\\m_{21}&space;&&space;m_{22}&space;&&space;m_{23}&space;&&space;m_{24}&space;\\m_{31}&space;&&space;m_{32}&space;&&space;m_{33}&space;&&space;m_{34}&space;\\m_{41}&space;&&space;m_{42}&space;&&space;m_{43}&space;&&space;m_{44}&space;\\\end{bmatrix}=&space;\begin{bmatrix}{\color{Blue}&space;x'}&space;&&space;{\color{Blue}&space;y'}&space;&&space;{\color{Blue}&space;z'}&space;&&space;{\color{Blue}&space;w'}&space;\\\end{bmatrix}&space;" />
 
 Esto afecta directamente a la configuración de las matrices de transformación y el orden:
 
-* **Orden superior de fila**: `P' = P * Ry * Rz * T`
-* **Orden superior de columna**: `P' = T * Rz * Ry * P`
+* **Orden mayor de fila**: `P' = P * Ry * Rz * T`
+* **Orden mayor de columna**: `P' = T * Rz * Ry * P`
 
 Distintas formas de interpretar el mundo, distintas formas de trabajar en él, no lo olvidemos.
