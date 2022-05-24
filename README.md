@@ -4584,7 +4584,7 @@ for (size_t j = 0; j < 3; j++)
 }
 ```
 
-Este método cambiará algunas cosas internas respecto al antiguo, empezando por el hecho de que ahora los vértices proyectados serán un `Vector4` en lugar de un `Vector4`:
+Este método cambiará algunas cosas internas respecto al antiguo, empezando por el hecho de que ahora los vértices proyectados serán un `Vector4` en lugar de un `Vector2`:
 
 ```cpp
 Vector4 projectedVertices[3]; // 2d vertices
