@@ -74,7 +74,10 @@ void Mesh::SetRotation(float *rotation)
 void Mesh::SetTranslation(float *translation)
 {
     // Con rectificación de origen
-    this->translation = {translation[0] - window->cameraPosition[0], translation[1] - window->cameraPosition[1], translation[2] - window->cameraPosition[2]};
+    this->translation = {
+        translation[0] - window->cameraPosition[0],
+        translation[1] - window->cameraPosition[1],
+        translation[2] - window->cameraPosition[2]};
 }
 
 void Mesh::Update()

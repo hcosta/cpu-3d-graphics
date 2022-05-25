@@ -4946,4 +4946,27 @@ Esta era también la razón por la que la luz superior del cubo no funcionaba bi
 
 ## Mapeado de texturas
 
+El mapeado de texturas corresponde a la parte que se encarga de aplicar texturas en los modelo. 
+
+Los colores de la textura se organizan en **texels**, la unidad mínima de una textura aplicada a una superficie. Comunmente se almacenan en una imagen para luego aplicarla sobre el modelo:
+
+![](./docs/image-81.png)
+
+Esto nos lleva a pensar en cómo cargar esos **texels** en la memoria,  *mapearlos* para hacerlos coincidir con los triángulos del modelo y escalarlos, pues no siempre coincidirá el número de *texels* con los *pixels*.
+
+Para mapear las texturas sobre los triángulos debemos otorgar a los vértices la responsabilidad de encuentrar sus coordenadas respecto a las de la textura.
+
+El sistema de coordenadas de la textura recibe el nombre de **coordenadas UV** y funciona en un rango normalizado de valores entre `0` y `1`:
+
+![](./docs/image-82.png)
+
+El **mapa UV** de una textura contiene la información que necesita el vértice del modelo, apuntando exactamente al lugar que tiene que aplicar sobre la superficie del triángulo:
+
+![](./docs/image-83.png)
+
+Será nuestra tarea interpolar los valores de la textura entre los vértices del **mapa UV** para cambiar los píxeles del **color buffer** acordemente:
+
+![](./docs/image-84.png)
+
+### Texturas en la memoria
 

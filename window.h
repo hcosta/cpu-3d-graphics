@@ -49,7 +49,7 @@ private:
     uint32_t *colorBuffer;
     SDL_Texture *colorBufferTexture;
     /* Fps */
-    int fpsCap = 60;
+    int fpsCap = 30;
     int screenRefreshRate = fpsCap;
     bool enableCap = true;
     int screenTicksPerFrame = 1000 / fpsCap;
