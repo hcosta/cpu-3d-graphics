@@ -93,6 +93,9 @@ void Mesh::Update()
             triangles[i].WorldVertex(j, scale, rotation, translation);
         }
 
+        /*** Calculate the notmal ***/
+        triangles[i].CalculateNormal();
+
         /*** Back Face Culling Algorithm ***/
         if (window->enableBackfaceCulling)
         {
@@ -106,7 +109,7 @@ void Mesh::Update()
         /*Before project calculate depth*/
         triangles[i].CalculateAverageDepth();
 
-        /*** Apply projections for all face vertices ***/
+        /*** Apply projections and lighting for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
             // Project the current vertex using matrices
@@ -114,10 +117,15 @@ void Mesh::Update()
             // First scale the projected vertex by screen sizes
             triangles[i].projectedVertices[j].x *= (window->windowWidth / 2.0);
             triangles[i].projectedVertices[j].y *= (window->windowHeight / 2.0);
+            // Invert the y values to account the flipped screen y coord
+            triangles[i].projectedVertices[j].y *= 1;
             // Then translate the projected vertex to the middle screen
             triangles[i].projectedVertices[j].x += (window->windowWidth / 2.0);
             triangles[i].projectedVertices[j].y += (window->windowHeight / 2.0);
         }
+
+        /** Apply flat shading ***/
+        triangles[i].ApplyFlatShading(window->light);
     }
 }
 

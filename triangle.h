@@ -3,19 +3,22 @@
 
 #include "vector.h"
 #include "matrix.h"
+#include "light.h"
 
 class Triangle
 {
 public:
+    Vector3 normal;
     Vector3 vertices[3]; // 3d  vertices
     // Vector2 projectedVertices[3];   // 2d vertices
     Vector4 projectedVertices[3]; // 2d vertices
     uint32_t color = 0xFFFFFFFF;
+    uint32_t originalColor = color;
     bool culling = false;
     float averageDepth;
 
     Triangle() = default;
-    Triangle(uint32_t color) : color(color){};
+    Triangle(uint32_t color) : color(color), originalColor(color){};
 
     bool operator<(const Triangle &t) const
     {
@@ -71,16 +74,6 @@ public:
 
     void ApplyCulling(float *cameraPosition)
     {
-        // Get the vector substracion B-A and C - A and normalize 'em
-        Vector3 vectorAB = this->vertices[1] - this->vertices[0];
-        Vector3 vectorAC = this->vertices[2] - this->vertices[0];
-        vectorAB.Normalize();
-        vectorAC.Normalize();
-        // Compute the face normal (corss product) and normalize it
-        // Using our left-handed system (z grows inside the monitor)
-        // So we apply have to appky the order: AB x AC
-        Vector3 normal = vectorAB.CrossProduct(vectorAC);
-        normal.Normalize();
         // Find the vector betweenn a triangle point and camera origin
         Vector3 cameraRay = Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]) - this->vertices[0];
         // Calculate how aligned the camera ray is with the face normal
@@ -89,9 +82,31 @@ public:
         this->culling = (dotNormalCamera < 0);
     }
 
+    void CalculateNormal()
+    {
+        // Get the vector substracion B-A and C - A and normalize 'em
+        Vector3 vectorAB = this->vertices[1] - this->vertices[0];
+        Vector3 vectorAC = this->vertices[2] - this->vertices[0];
+        vectorAB.Normalize();
+        vectorAC.Normalize();
+        // Compute the face normal (corss product) and normalize it
+        // Using our left-handed system (z grows inside the monitor)
+        // So we apply have to appky the order: AB x AC
+        normal = vectorAB.CrossProduct(vectorAC);
+        normal.Normalize();
+    }
+
     void CalculateAverageDepth()
     {
         averageDepth = (vertices[0].z + vertices[1].z + vertices[2].z) / 3;
+    }
+
+    void ApplyFlatShading(Light light)
+    {
+        // Calculate shading intensity based in how aligned is
+        // the normal vector and the inverse vector of the light ray
+        float lightIntensityFactor = -normal.DotProduct(light.direction);
+        color = Light::ApplyIntensity(originalColor, lightIntensityFactor);
     }
 };
 

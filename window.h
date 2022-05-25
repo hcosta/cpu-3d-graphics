@@ -7,6 +7,7 @@
 #include "vector.h"
 #include "mesh.h"
 #include "matrix.h"
+#include "light.h"
 
 class Window
 {
@@ -16,26 +17,29 @@ public:
     int windowHeight;
 
     /* Configurable options */
-    bool drawGrid = true;
-    bool drawWireframe = true;
-    bool drawWireframeDots = true;
+    bool drawGrid = false;
+    bool drawWireframe = false;
+    bool drawWireframeDots = false;
     bool drawFilledTriangles = true;
     bool enableBackfaceCulling = true;
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {0, 0, 0};
+    float modelTranslation[3] = {1, 0, 0};
     float modelRotation[3] = {0, 0, 0};
 
     /* Camera settings */
     float cameraPosition[3] = {0, 0, -5};
 
     /* Projection settings */
-    float fovFactor = M_PI / 3.0;                         // 60º in radians
-    float fovFactorInGrades = (180.0 / M_PI) * fovFactor; // 60º en grados
+    float fovFactor = M_PI / 3.0; // 60º in radians
+    float fovFactorInGrades = 70;
     float aspectRatio = windowHeight / static_cast<float>(windowWidth);
     float zNear = 0.1, zFar = 100.0;
     Matrix4 projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
+
+    /* Light settings */
+    Light light{.direction{0, 0, 1}};
 
 private:
     /* Window */

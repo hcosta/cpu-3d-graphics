@@ -82,11 +82,12 @@ void Window::Setup()
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
     // Custom objects
-    Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
-    Vector3 meshFaces[]{{2, 1, 3}, {2, 3, 4}, {5, 6, 8}, {5, 8, 7}, {2, 8, 6}, {2, 4, 8}, {5, 3, 1}, {5, 7, 3}, {3, 8, 4}, {3, 7, 8}, {2, 6, 5}, {2, 5, 1}};
-    uint32_t meshColors[]{0xFFFF0000, 0xFFFF0000, 0xFF00FF00, 0xFF00FF00, 0xFF0000FF, 0xFF0000FF, 0xFFFFA500, 0xFFFFA500, 0xFFFFFF00, 0xFFFFFF00, 0xFF00FFFF, 0xFF00FFFF};
-    mesh = Mesh(this, meshVertices, 8, meshFaces, 12, meshColors);
-    // mesh = Mesh(this, "assets/cube.obj");
+    // Vector3 meshVertices[]{{-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {1, 1, -1}, {-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
+    // Vector3 meshFaces[]{{2, 1, 3}, {2, 3, 4}, {5, 6, 8}, {5, 8, 7}, {2, 8, 6}, {2, 4, 8}, {5, 3, 1}, {5, 7, 3}, {3, 8, 4}, {3, 7, 8}, {2, 6, 5}, {2, 5, 1}};
+    // uint32_t meshColors[]{0xFFFF0000, 0xFFFF0000, 0xFF00FF00, 0xFF00FF00, 0xFF0000FF, 0xFF0000FF, 0xFFFFA500, 0xFFFFA500, 0xFFFFFF00, 0xFFFFFF00, 0xFF00FFFF, 0xFF00FFFF};
+    // uint32_t meshColors[]{0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
+    // mesh = Mesh(this, meshVertices, 8, meshFaces, 12, meshColors);
+    mesh = Mesh(this, "assets/cube.obj");
 }
 
 void Window::ProcessInput()
@@ -139,6 +140,9 @@ void Window::Update()
     ImGui::SliderFloat2("Camera", cameraPosition, -5, 5);
     ImGui::Text("Campo de visión");
     ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
+    ImGui::Separator();
+    // ImGui::Text("Luz global");
+    // ImGui::SliderFloat3("Posición de la luz (X,Y,Z)", lightPosition, -1, 1);
     ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
     ImGui::Separator();
     ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -155,6 +159,9 @@ void Window::Update()
 
     // Update Screen Ticks si han sido mofificados
     screenTicksPerFrame = 1000 / this->fpsCap;
+
+    // Update the light position
+    // light.direction = Vector3(lightPosition[0], lightPosition[1], lightPosition[2]);
 
     // Custom objects update
     mesh.Update();
