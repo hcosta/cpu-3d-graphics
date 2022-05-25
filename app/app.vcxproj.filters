@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Archivos de origen">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Archivos de encabezado">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Archivos de origen\imgui">
+      <UniqueIdentifier>{dcf6faad-df15-4ec3-94a1-81e6dde58009}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Archivos de encabezado\imgui">
+      <UniqueIdentifier>{d344a15c-3a9f-43d0-853a-c8c6c7b03de7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\light.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\matrix.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mesh.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\timer.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\triangle.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vector.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\window.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imstb_truetype.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imconfig.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui_impl_sdl.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui_impl_sdlrenderer.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui_internal.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imstb_rectpack.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imstb_textedit.h">
+      <Filter>Archivos de encabezado\imgui</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\timer.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vector.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\window.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_widgets.cpp">
+      <Filter>Archivos de origen\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui.cpp">
+      <Filter>Archivos de origen\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_draw.cpp">
+      <Filter>Archivos de origen\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_impl_sdl.cpp">
+      <Filter>Archivos de origen\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_impl_sdlrenderer.cpp">
+      <Filter>Archivos de origen\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_tables.cpp">
+      <Filter>Archivos de origen\imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
+  </ItemGroup>
+</Project>
