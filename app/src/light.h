@@ -11,10 +11,8 @@ public:
     static uint32_t ApplyIntensity(uint32_t color, float percentageFactor)
     {
         // Clamp percentageFactor between 0 and 1
-        if (percentageFactor < 0)
-            percentageFactor = 0;
-        if (percentageFactor > 1)
-            percentageFactor = 1;
+        if (percentageFactor < 0) percentageFactor = 0;
+        if (percentageFactor > 1) percentageFactor = 1;
 
         uint32_t a = (color & 0xFF000000);
         uint32_t r = (color & 0x00FF0000) * percentageFactor;

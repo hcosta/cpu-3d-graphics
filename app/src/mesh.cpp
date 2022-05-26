@@ -47,7 +47,7 @@ Mesh::Mesh(Window *window, std::string fileName)
     }
 }
 
-Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength, uint32_t *colors)
+Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength, uint32_t *colors, Texture2 * textureUVs)
 {
     this->window = window;
     // Initialize the dinamic vertices
@@ -59,7 +59,8 @@ Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces
     for (size_t i = 0; i < facesLength; i++)
     {
         this->faces.push_back(faces[i]);
-        this->triangles.push_back(Triangle(colors[i])); // con color
+        Texture2 triangleTextureUVs[]{ textureUVs[i * 3], textureUVs[i * 3 + 1], textureUVs[i * 3 + 2] };
+        this->triangles.push_back(Triangle(colors[i], triangleTextureUVs)); // con color y texturas
     }
 };
 
@@ -148,13 +149,23 @@ void Mesh::Render()
             continue;
 
         // Triángulos
-        if (window->drawFilledTriangles)
+        if (window->drawFilledTriangles && !window->drawTexturedTriangles)
         {
             window->DrawFilledTriangle(
                 sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y,
                 sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y,
                 sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y,
                 sortedTriangles[i].color);
+        }
+
+        // Triángulos texturizados
+        if (window->drawTexturedTriangles)
+        {
+            window->DrawTexturedTriangle(
+                sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y, sortedTriangles[i].textureUVCoords[0],
+                sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y, sortedTriangles[i].textureUVCoords[1],
+                sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y, sortedTriangles[i].textureUVCoords[2],
+                window->meshTexture);
         }
 
         // Wireframe

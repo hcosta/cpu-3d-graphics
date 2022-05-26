@@ -66,6 +66,8 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
 * [Migrando a Visual Studio](#migrando-a-visual-studio)
 * [Mapeado de texturas](#mapeado-de-texturas)
     * [Texturas en la memoria](#texturas-en-la-memoria)
+    * [Triángulos texturizados](#triángulos-texturizados)
+    * [Coordenadas baricéntricas y pesos](#coordenadas-baricéntricas-y-pesos)
 
 ## Configuración previa
 
@@ -4952,7 +4954,7 @@ Desde que estoy utilizando **Dear ImGui** notado que el proceso de compilación 
 
 Era mi primera vez utilizando este IDE y ha sido un poco confuso por la forma de disponer los ficheros, pero cuando aprendes como funciona es de hecho bastante simple.
 
-He decidido reorganizar el código del proyecto en la carpeta `src` y los recursos en la carpeta `res`:
+He decidido reorganizar el código del proyecto en la carpeta `src` y los recursos en la carpeta `res`. Luego simplemente los arrastras a los filtros de explorador y ya lo tienes preparados:
 
 ![](./docs/image-85.png)
 
@@ -5001,4 +5003,239 @@ Será nuestra tarea interpolar los valores de la textura entre los vértices del
 ![](./docs/image-84.png)
 
 ### Texturas en la memoria
+
+Vamos a ponernos manos a la obra implementando el texturizador `texture.h`:
+
+```cpp
+#ifndef TEXTURE_H
+#define TEXTURE_H
+
+class Texture2
+{
+    float u;
+    float v;
+};
+
+#endif
+```
+
+Por ahora vamos a trabajar con una *mock texture* hardcodeada hasta que la pueda importar de una imagen, así que en `window.h` crearé su configuración:
+
+```cpp
+/* Raw texture settings */
+int textureWidth;
+int textureHeight;
+uint32_t* meshTexture{nullptr};  // 32bits for colors
+uint8_t* REDBRICK_TEXTURE{ nullptr };  // 8bits for raw mock texture
+```
+
+Los datos harcodeados los inicializaré en el `window.Setup` como memoria dinámica:
+
+```cpp
+/* Texture loading */
+REDBRICK_TEXTURE = new (std::nothrow) uint8_t[16400] {};
+meshTexture = (uint32_t *)REDBRICK_TEXTURE;
+```
+
+El contenido de la textura lo adjunto en [este enlace](./docs/REDBRICK_TEXTURE.txt).
+
+Al ser memoria dinámica la vaciaré en el destructor `~Window`:
+
+```cpp
+delete[] REDBRICK_TEXTURE;
+```
+
+En este punto vamos a añadir a la cara del triángulo las coordenadas UV para cada vértice:
+
+```cpp
+#include "texture.h"
+
+class Triangle
+{
+public:
+    Texture2 textureCoords[3]{};
+};
+```
+
+Antes de continuar añadiré a la interfaz la opción de dibujar o no las texturas:
+
+```cpp
+/* Configurable options */
+bool drawTexturedTriangles = true;
+
+ImGui::Checkbox("Dibujar texturas", &this->drawTexturedTriangles);
+```
+
+En el `mesh.Render` comprobaremos la opción y llamaremos a la nueva `DrawTexturedTriangle`:
+
+```cpp
+// Triángulos texturizados
+if (window->drawTexturedTriangles) {}
+```
+
+Antes de ponernos con la implementación de esta función, vamos a volver a activar nuestro `mock cube` porque vamos a añadirle la información de las coordenadas UV:
+
+```cpp
+textureWidth = 64;
+textureHeight = 64;
+Texture2 meshTextureUVs[]{ {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0} };
+mesh = Mesh(this, meshVertices, 8, meshFaces, 12, meshColors, meshTextureUVs);
+```
+
+El constructor de `mesh` recibirá las texturas y las utilizará para crear los triángulos:
+```cpp
+Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength, uint32_t *colors, Texture2 *textureUVs)
+{
+    // Initialize the dinamic faces and empty triangles (same number)
+    for (size_t i = 0; i < facesLength; i++)
+    {
+        this->faces.push_back(faces[i]);
+        Texture2 triangleTextureUVs[] { textureUVs[i*3], textureUVs[i*3+1], textureUVs[i*3+2] };
+        this->triangles.push_back(Triangle(colors[i], triangleTextureUVs)); // con color y texturas
+    }
+};
+```
+
+El nuevo constructor de triángulo recibirá este array de texturas y las inicializará:
+
+```cpp
+Triangle(uint32_t color, Texture2 *textureUVs) : color(color), originalColor(color) {
+    textureUVCoords[0] = textureUVs[0];
+    textureUVCoords[1] = textureUVs[1];
+    textureUVCoords[2] = textureUVs[2];
+};
+```
+
+Enviaremos las `textureUVCoords` al método de renderizado `DrawTexturedTriangle`:
+
+```cpp
+// Triángulos texturizados
+if (window->drawTexturedTriangles)
+{
+    window->DrawTexturedTriangle(
+        sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y, sortedTriangles[i].textureUVCoords[0],
+        sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y, sortedTriangles[i].textureUVCoords[1],
+        sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y, sortedTriangles[i].textureUVCoords[2],
+        window->meshTexture);
+}
+```
+
+En este punto vamos a crear la nueva función `DrawTexturedTriangle` que recibe los vértices, las coordenadas UV y la textura:
+
+```cpp
+void Window::DrawTexturedTriangle(int x0, int y0, Texture2 t0, int x1, int y1, Texture2 t1, int x2, int y2, Texture2 t2, uint32_t *texture)
+{
+    // Iterar todos los píxeles del triángulo para renderizarlos en función del color de la textura
+}
+```
+
+### Triángulos texturizados
+
+El proceso de dibujar el triángulo se basará en la misma idea de dividir el triángulo en uno con la parte inferior plana y otro con la parte superior plana. Sin embargo ahora, en lugar de dibujar el *scanline* con una línea de un color sólido, tendremos que dibujar individualmente cada píxel. Esta es nuestra primera tarea, una vez la tengamos podremos pensar cómo calcular el color de la textura para aplicarlo.
+
+Así que vamos a empezar renderizando nuestro triángulo texturizado píxel a píxel con un color sólido.
+
+Primero el triángulo superior, teniendo en cuenta que también debemos intercambiar las coordenadas UV:
+
+```cpp
+void Window::SwapTextures(Texture2 *a, Texture2 *b)
+{
+    Texture2 tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void Window::DrawTexturedTriangle(int x0, int y0, Texture2 t0, int x1, int y1, Texture2 t1, int x2, int y2, Texture2 t2, uint32_t* texture)
+{
+    // Iterar todos los píxeles del triángulo para renderizarlos en función del color de la textura
+
+    // Reordenamiento de los vértices y las UV coords: y0 < y1 < y2
+    if (y0 > y1) // Primer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+        SwapTextures(&t0, &t1);
+    }
+    if (y1 > y2) // Segundo intercambio
+    {
+        SwapIntegers(&y1, &y2);
+        SwapIntegers(&x1, &x2);
+        SwapTextures(&t1, &t2);
+    }
+    if (y0 > y1) // Tercer intercambio
+    {
+        SwapIntegers(&y0, &y1);
+        SwapIntegers(&x0, &x1);
+        SwapTextures(&t0, &t1);
+    }
+
+    /*** Render the upper part of the triangle (flat bottom) ***/
+    {
+        float m1 = 0;
+        float m2 = 0;
+        // Checks to avoid infinite divisions
+        if (y1 - y0 != 0) m1 = -((y1 - y0) / static_cast<float>((x0 - x1)));
+        if (y2 - y0 != 0) m2 = (y2 - y0) / static_cast<float>((x2 - x0));
+        if (y1 - y0 != 0) {
+            for (size_t i = 0; i < (y1 - y0); i++)
+            {
+                int xStart = x0 + (i / m1);
+                int xEnd = x0 + (i / m2);
+                int y = y0 + i;
+
+                // Sometimes we have to draw the triangle from right to left
+                // so we have to swap the xStart and the xEnd
+                if (xEnd < xStart) SwapIntegers(&xEnd, &xStart);
+
+                for (int x = xStart; x < xEnd; x++)
+                {
+                    DrawPixel(x, y, (x % 2 == 0) ? 0xFFFFF00FF : 0xFF000000);
+                }
+            }
+        }
+    }
+}
+```
+
+Si todo está correcto deberíamos dibujar por ahora los triángulos con parte inferior plana:
+
+![](./docs/anim-28.gif)
+
+Haremos lo propio con el triángulo con la parte superior plana:
+
+```cpp
+/*** Render the lower part of the triangle (flat top) ***/
+{
+    float m1 = 0;
+    float m2 = 0;
+    // Checks to avoid infinite divisions
+    if (y2 - y1 != 0) m1 = -((y2 - y1) / static_cast<float>((x2 - x1))); 
+    if (y2 - y0 != 0) m2 = -((y2 - y0) / static_cast<float>((x2 - x0)));
+    if (y2 - y1 != 0){
+        for (size_t i = 0; i <= (y2 - y1); i++)
+        {
+            int xStart = x2 + (i / m1);
+            int xEnd = x2 + (i / m2);
+            int y = y2 - i;
+
+            // Sometimes we have to draw the triangle from right to left
+            // so we have to swap the xStart and the xEnd
+            if (xEnd < xStart) SwapIntegers(&xEnd, &xStart);
+
+            for (int x = xStart; x < xEnd; x++)
+            {
+                DrawPixel(x, y, (x%2 ==0) ? 0xFFFFF00FF : 0xFF000000);
+            }
+        }
+    }
+}
+```
+
+Y ya tendremos los triángulos renderizados pixel a pixel:
+
+![](./docs/anim-29.gif)
+
+En este punto estamos listos para el siguiente paso, aprender cómo aplicar los texels sobre los píxeles mediante sus coordenadas UV.
+
+### Coordenadas baricéntricas y pesos
 

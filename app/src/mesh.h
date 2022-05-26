@@ -27,7 +27,7 @@ private:
 public:
     Mesh() = default;
     Mesh(Window *window, std::string fileName);
-    Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength, uint32_t *colors);
+    Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength, uint32_t *colors, Texture2 *textures);
     void SetScale(float *scale);
     void SetRotation(float *rotation);
     void SetTranslation(float *translation);

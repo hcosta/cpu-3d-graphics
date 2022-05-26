@@ -21,6 +21,7 @@ public:
     bool drawWireframe = false;
     bool drawWireframeDots = false;
     bool drawFilledTriangles = true;
+    bool drawTexturedTriangles = true;
     bool enableBackfaceCulling = true;
 
     /* Model settings */
@@ -32,7 +33,7 @@ public:
     float cameraPosition[3] = {0, 0, -5};
 
     /* Projection settings */
-    float fovFactor = M_PI / 3.0; // 60º in radians
+    float fovFactor = M_PI / (180/70.0f); // 70º in radians
     float fovFactorInGrades = 70;
     float aspectRatio = windowHeight / static_cast<float>(windowWidth);
     float zNear = 0.1, zFar = 100.0;
@@ -40,6 +41,12 @@ public:
 
     /* Light settings */
     Light light = Light{{0, 0, 1} };
+
+    /* Raw texture settings */
+    int textureWidth;
+    int textureHeight;
+    uint32_t* meshTexture{ nullptr };  // 32bits for colors
+    uint8_t* REDBRICK_TEXTURE{ nullptr };  // 8bits for raw mock texture
 
 private:
     /* Window */
@@ -59,6 +66,7 @@ private:
     Mesh mesh;
     /* Event Handling */
     SDL_Event event{};
+
 
 public:
     Window(int w, int h) : windowWidth(w), windowHeight(h){};
@@ -81,7 +89,9 @@ public:
     void DrawLine(int x0, int y0, int x1, int y1, uint32_t color);
     void DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
     void DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
+    void DrawTexturedTriangle(int x0, int y0, Texture2 uv0, int x1, int y1, Texture2 uv1, int x2, int y2, Texture2 uv2, uint32_t* texture);
     void SwapIntegers(int *a, int *b);
+    void SwapTextures(Texture2* a, Texture2* b);
     void FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
     void FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
 };

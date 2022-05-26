@@ -62,6 +62,9 @@
     <ClInclude Include="src\vendor\imgui\imstb_textedit.h">
       <Filter>Archivos de encabezado\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="src\texture.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

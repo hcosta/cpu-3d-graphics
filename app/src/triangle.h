@@ -4,12 +4,14 @@
 #include "vector.h"
 #include "matrix.h"
 #include "light.h"
+#include "texture.h"
 
 class Triangle
 {
 public:
     Vector3 normal{ 0,0,0 };
     Vector3 vertices[3]{}; // 3d  vertices
+    Texture2 textureUVCoords[3]{};
     // Vector2 projectedVertices[3];   // 2d vertices
     Vector4 projectedVertices[3]{}; // 2d vertices
     uint32_t color{ 0xFFFFFFFF };
@@ -18,7 +20,12 @@ public:
     float averageDepth{ 0 };
 
     Triangle() = default;
-    Triangle(uint32_t color) : color(color), originalColor(color){};
+    Triangle(uint32_t color) : color(color), originalColor(color) {};
+    Triangle(uint32_t color, Texture2 *textures) : color(color), originalColor(color) {
+        textureUVCoords[0] = textures[0];
+        textureUVCoords[1] = textures[1];
+        textureUVCoords[2] = textures[2];
+    };
 
     bool operator<(const Triangle &t) const
     {
