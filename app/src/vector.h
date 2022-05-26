@@ -52,6 +52,31 @@ public:
 
     Vector2 OrtoraphicProjection(float fovFactor);
     Vector2 PerspectiveProjection(float fovFactor);
+
+    static Vector3 BarycentricWeights(Vector2 a, Vector2 b, Vector2 c, Vector2 p)
+    {
+        // Find vectores between the vertices ABC and point P
+        Vector2 ab = b - a;
+        Vector2 bc = c - b;
+        Vector2 ac = c - a;
+        Vector2 ap = p - a;
+        Vector2 bp = p - b;
+
+        // Calculate the full triangle ABC area using cross product (area of paralelogram)
+        float areaTriangleAbc = (ab.x * ac.y - ab.y * ac.x);
+
+        // Weight alpha is area of subtriangle BCP divided by area of full triangle ABC
+        float alpha = (bc.x * bp.y - bp.x * bc.y) / areaTriangleAbc;
+
+        // Weight beta is area of subtriangle ACP divided by area of full triangle ABC
+        float beta = (ap.x * ac.y - ac.x * ap.y) / areaTriangleAbc;
+
+        // Wieght gamma is found really easy
+        float gamma = 1 - alpha - beta;
+
+        Vector3 weights = { alpha, beta, gamma };
+        return weights;
+    }
 };
 
 class Vector4

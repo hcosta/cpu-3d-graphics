@@ -88,7 +88,7 @@ void Window::Setup()
     Vector3 meshFaces[]{{2, 1, 3}, {2, 3, 4}, {5, 6, 8}, {5, 8, 7}, {2, 8, 6}, {2, 4, 8}, {5, 3, 1}, {5, 7, 3}, {3, 8, 4}, {3, 7, 8}, {2, 6, 5}, {2, 5, 1}};
     //uint32_t meshColors[]{0xFFFF0000, 0xFFFF0000, 0xFF00FF00, 0xFF00FF00, 0xFF0000FF, 0xFF0000FF, 0xFFFFA500, 0xFFFFA500, 0xFFFFFF00, 0xFFFFFF00, 0xFF00FFFF, 0xFF00FFFF};
     uint32_t meshColors[]{0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
-    Texture2 meshTextureUVs[]{ {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0} };
+    Texture2 meshTextureUVs[]{ {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0},  {0,0},{1,1},{1,0},{0,0},{0,1},{1,1},  {0,0},{1,1},{1,0},{0,0},{0,1},{1,1},  {0,0},{1,1},{1,0},{0,0},{0,1},{1,1},  {0,0},{0,1},{1,1},{0,0},{1,1},{1,0} };
     mesh = Mesh(this, meshVertices, 8, meshFaces, 12, meshColors, meshTextureUVs);
     
     /* Mesh loading */
@@ -322,6 +322,28 @@ void Window::DrawPixel(int x, int y, unsigned int color)
     }
 }
 
+void Window::DrawTexel(int x, int y, Vector2 a, Vector2 b, Vector2 c, Texture2 t0, Texture2 t1, Texture2 t2, uint32_t *texture, Window *window)
+{
+    // Create p vector with current pixel location
+    Vector2 p{ static_cast<double>(x),static_cast<double>(y) };
+    // Calculate the weights using the vectors A,B,C and P
+    Vector3 weights = Vector3::BarycentricWeights(a, b, c, p);
+    float alpha = weights.x;
+    float beta = weights.y;
+    float gamma = weights.z;
+
+    // Calculate the interpolations multipling every UV coord per its weight factor
+    float interpolatedU = t0.u * alpha + t1.u * beta + t2.u * gamma;
+    float interpolatedV = t0.v * alpha + t1.v * beta + t2.v * gamma;;
+
+    // Calculate the texelX and texelY based on the interpolated UV and the texture sizes
+    int texelX = abs(static_cast<int>(interpolatedU * window->textureWidth));
+    int texelY = abs(static_cast<int>(interpolatedV * window->textureHeight));
+
+    // Finally draw the pixel with the color stored in our texture harcoded array
+    DrawPixel(x, y, texture[(window->textureWidth * texelY) + texelX]);
+}
+
 void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
 {
     for (size_t y = sy; (y < sy + static_cast<__int64>(height)) && (y < windowHeight); y++)
@@ -395,14 +417,21 @@ void Window::DrawTexturedTriangle(int x0, int y0, Texture2 t0, int x1, int y1, T
         SwapTextures(&t0, &t1);
     }
 
+    // Create vector points for texturing after sorting the vertices
+    Vector2 pA{ static_cast<double>(x0), static_cast<double>(y0) };
+    Vector2 pB{ static_cast<double>(x1), static_cast<double>(y1) };
+    Vector2 pC{ static_cast<double>(x2), static_cast<double>(y2) };
+
     /*** Render the upper part of the triangle (flat bottom) ***/
     {
         float m1 = 0;
         float m2 = 0;
+
         // Checks to avoid infinite divisions
         if (y1 - y0 != 0) m1 = -((y1 - y0) / static_cast<float>((x0 - x1))); // m1 izquierda -
         if (y2 - y0 != 0) m2 = (y2 - y0) / static_cast<float>((x2 - x0));    // m2 derecha +
-        if (y1 - y0 != 0) {
+        if (y1 - y0 != 0)
+        {
             for (size_t i = 0; i < (y1 - y0); i++)
             {
                 int xStart = x0 + (i / m1);
@@ -415,7 +444,8 @@ void Window::DrawTexturedTriangle(int x0, int y0, Texture2 t0, int x1, int y1, T
 
                 for (int x = xStart; x < xEnd; x++)
                 {
-                    DrawPixel(x, y, (x % 2 == 0) ? 0xFFFFF00FF : 0xFF000000);
+                    //DrawPixel(x, y, (x % 2 == 0) ? 0xFFFFF00FF : 0xFF000000);
+                    DrawTexel(x, y, pA, pB, pC, t0, t1, t2, texture, this);
                 }
             }
         }
@@ -428,7 +458,8 @@ void Window::DrawTexturedTriangle(int x0, int y0, Texture2 t0, int x1, int y1, T
         // Checks to avoid infinite divisions
         if (y2 - y1 != 0) m1 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m1 izquierda -
         if (y2 - y0 != 0) m2 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m2 izquierda -
-        if (y2 - y1 != 0){
+        if (y2 - y1 != 0)
+        {
             for (size_t i = 0; i <= (y2 - y1); i++)
             {
                 int xStart = x2 + (i / m1);
@@ -441,7 +472,8 @@ void Window::DrawTexturedTriangle(int x0, int y0, Texture2 t0, int x1, int y1, T
 
                 for (int x = xStart; x < xEnd; x++)
                 {
-                    DrawPixel(x, y, (x%2 ==0) ? 0xFFFFF00FF : 0xFF000000);
+                    //DrawPixel(x, y, (x%2 ==0) ? 0xFFFFF00FF : 0xFF000000);
+                    DrawTexel(x, y, pA, pB, pC, t0, t1, t2, texture, this);
                 }
             }
         }
