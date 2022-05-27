@@ -152,6 +152,11 @@ Vector2 Vector3::PerspectiveProjection(float fovFactor)
     return Vector2{(fovFactor * x) / z, (fovFactor * y) / z};
 }
 
+Vector2 Vector4::ToVector2()
+{
+    return Vector2(x, y);
+}
+
 Vector3 Vector4::ToVector3()
 {
     return Vector3(x, y, z);

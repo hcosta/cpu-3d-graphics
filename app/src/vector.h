@@ -88,8 +88,10 @@ public:
     double w{0};
 
     Vector4() = default;
+    Vector4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {};
     Vector4(Vector3 v) : x(v.x), y(v.y), z(v.z), w(1){};
     Vector3 ToVector3();
+    Vector2 ToVector2();
 
     Vector4 operator*(Matrix4 m) const;
 };

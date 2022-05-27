@@ -85,13 +85,14 @@ public:
 
     void DrawGrid(unsigned int color);
     void DrawPixel(int sx, int sy, unsigned int color);
-    void DrawTexel(int x, int y, Vector2 a, Vector2 b, Vector2 c, Texture2 t0, Texture2 t1, Texture2 t2, uint32_t* texture, Window* window);
+    void DrawTexel(int x, int y, Vector4 a, Vector4 b, Vector4 c, Texture2 t0, Texture2 t1, Texture2 t2, float* uDivW, float* vDivW, float* oneDivW, uint32_t* texture, Window* window);
     void DrawRect(int sx, int sy, int width, int height, uint32_t color);
     void DrawLine(int x0, int y0, int x1, int y1, uint32_t color);
     void DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
     void DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
-    void DrawTexturedTriangle(int x0, int y0, Texture2 uv0, int x1, int y1, Texture2 uv1, int x2, int y2, Texture2 uv2, uint32_t* texture);
+    void DrawTexturedTriangle(int x0, int y0, float z0, float w0, Texture2 uv0, int x1, int y1, float z1, float w1, Texture2 uv1, int x2, int y2, float z2, float w2, Texture2 uv2, uint32_t* texture);
     void SwapIntegers(int *a, int *b);
+    void SwapFloats(float* a, float* b);
     void SwapTextures(Texture2* a, Texture2* b);
     void FillFlatBottomTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
     void FillFlatTopTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
