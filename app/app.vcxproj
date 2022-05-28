@@ -25,6 +25,7 @@
     <ClInclude Include="src\texture.h" />
     <ClInclude Include="src\timer.h" />
     <ClInclude Include="src\triangle.h" />
+    <ClInclude Include="src\upng.h" />
     <ClInclude Include="src\vector.h" />
     <ClInclude Include="src\vendor\imgui\imconfig.h" />
     <ClInclude Include="src\vendor\imgui\imgui.h" />
@@ -40,6 +41,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mesh.cpp" />
     <ClCompile Include="src\timer.cpp" />
+    <ClCompile Include="src\upng.cpp" />
     <ClCompile Include="src\vector.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui.cpp" />
     <ClCompile Include="src\vendor\imgui\imgui_draw.cpp" />

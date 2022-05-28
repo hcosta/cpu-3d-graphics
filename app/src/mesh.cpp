@@ -5,20 +5,21 @@
 #include <string>
 #include <deque>
 
-Mesh::Mesh(Window *window, std::string fileName)
+Mesh::Mesh(Window* window, std::string modelFileName, std::string textureFileName)
 {
     this->window = window;
 
     // Open the file
-    std::ifstream file(fileName);
-    if (!file.is_open())
+    std::ifstream modelFile(modelFileName);
+    if (!modelFile.is_open())
     {
-        std::cerr << "Error reading the file " << fileName << std::endl;
+        std::cerr << "Error reading the file " << modelFileName << std::endl;
         return;
     }
+
     // If file is loaded in memory read each line
     std::string line;
-    while (std::getline(file, line))
+    while (std::getline(modelFile, line))
     {
         // if starts with v it's a vertex
         if (line.rfind("v ", 0) == 0)
@@ -26,6 +27,13 @@ Mesh::Mesh(Window *window, std::string fileName)
             Vector3 vertex; // %lf -> double (large float)
             sscanf_s(line.c_str(), "v %lf %lf %lf", &vertex.x, &vertex.y, &vertex.z);
             this->vertices.push_back(vertex);
+        }
+        // if starts with vt it's a texture coordinate
+        else if (line.rfind("vt ", 0) == 0)
+        {
+            Texture2 textureCoords;
+            sscanf_s(line.c_str(), "vt %f %f", &textureCoords.u, &textureCoords.v);
+            this->coordinates.push_back(textureCoords);
         }
         // if starts with f it's a face
         else if (line.rfind("f ", 0) == 0)
@@ -42,8 +50,29 @@ Mesh::Mesh(Window *window, std::string fileName)
             face.y = vertexIndices[1];
             face.z = vertexIndices[2];
             this->faces.push_back(face);
-            this->triangles.push_back(Triangle(0xFFFFFFFF));
+            // recover the triangle coords using the textureIndeces
+            Texture2 triangleCoords[]{ 
+                this->coordinates[textureIndices[0] - 1], 
+                this->coordinates[textureIndices[1] - 1], 
+                this->coordinates[textureIndices[2] - 1]};
+            this->triangles.push_back(Triangle(0xFFFFFFFF, triangleCoords));
         }
+    }
+
+    // Load the texture after loading the model
+    pngTexture = upng_new_from_file(textureFileName.c_str());
+    if (pngTexture == nullptr)
+    {
+        std::cerr << "Error reading the file " << textureFileName << std::endl;
+        return;
+    }
+
+    upng_decode(pngTexture);
+    if (upng_get_error(pngTexture) == UPNG_EOK)
+    {
+        meshTexture = (uint32_t*)upng_get_buffer(pngTexture);
+        textureWidth = upng_get_width(pngTexture);
+        textureHeight = upng_get_height(pngTexture);
     }
 }
 
@@ -62,7 +91,12 @@ Mesh::Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces
         Texture2 triangleTextureUVs[]{ textureUVs[i * 3], textureUVs[i * 3 + 1], textureUVs[i * 3 + 2] };
         this->triangles.push_back(Triangle(colors[i], triangleTextureUVs)); // con color y texturas
     }
-};
+}
+
+void Mesh::Free()
+{
+    upng_free(pngTexture);
+}
 
 void Mesh::SetScale(float *scale)
 {
@@ -165,7 +199,7 @@ void Mesh::Render()
                 sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y, sortedTriangles[i].projectedVertices[0].z, sortedTriangles[i].projectedVertices[0].w, sortedTriangles[i].textureUVCoords[0],
                 sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y, sortedTriangles[i].projectedVertices[1].z, sortedTriangles[i].projectedVertices[1].w, sortedTriangles[i].textureUVCoords[1],
                 sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y, sortedTriangles[i].projectedVertices[2].z, sortedTriangles[i].projectedVertices[2].w, sortedTriangles[i].textureUVCoords[2],
-                window->meshTexture);
+                meshTexture, textureWidth, textureHeight);
         }
 
         // Wireframe

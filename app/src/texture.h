@@ -10,6 +10,4 @@ public:
     Texture2() = default;
 };
 
-
-
 #endif

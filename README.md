@@ -73,7 +73,7 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Optimizar divisiones comunes](#optimizar-divisiones-comunes)
     * [Coordenadas UV incorrectas](#coordenadas-uv-incorrectas)
 * [Decodificación de ficheros PNG](#decodificación-de-ficheros-png)
-
+* [Profundidad con Z-Buffer](#profundidad-con-z-buffer)
 
 ## Configuración previa
 
@@ -5517,7 +5517,7 @@ if (window->drawTexturedTriangles)
 }
 ```
 
-En este punto tenemos los preparativos realizados, ahora tenemos que implementar el algoritmo de corrección de la perspectiva.
+Ya tenemos los preparativos realizados, ahora hay que implementar el algoritmo de corrección de la perspectiva.
 
 Primero vamos a prepararnos para realizar la interpolación de `U`, `V` y la recíproca de `w` (que es lineal):
 
@@ -5606,7 +5606,7 @@ Con esto nos ahorremos bastantes divisiones y el código quedará mucho más opt
 
 ### Coordenadas UV incorrectas
 
-Para finalizar el tema, un pequeño experimento que podemos realizar es cambiar los primeros texels de la textura por un colo sólido, por ejemplo blanco:
+Para finalizar el tema, un pequeño experimento que podemos realizar es cambiar los primeros texels de la textura por un color sólido, por ejemplo blanco:
 
 ```cpp
 REDBRICK_TEXTURE = new (std::nothrow) uint8_t[16400]{
@@ -5618,7 +5618,7 @@ Si comprobamos donde se han modificado estos colores es posible que nos encontre
 
 ![](./docs/image-99.png)
 
-En lugar de lo que presumiblemente era esperable, en lugar de aparecer en la esquina superior izquierda, aparecen en otro sitio.
+En lugar de lo que presumiblemente era esperable y aparecer en la esquina superior izquierda, quizá aparecen en otro sitio.
 
 La verdad es que he codificado manualmente las coordenadas UV de las caras sin prestar mucha atención a la disposición y por eso no aparece correctamente. 
 
@@ -5633,3 +5633,322 @@ Texture2 meshTextureUVs[]{ {1,0},{0,0},{0,1},{1,0},{0,1},{1,1}, //...
 Evidentemente este problema no lo tendremos con modelos generados en programas como **Blender** porque las coordenadas UV deberían ser siempre las correctas.
 
 ## Decodificación de ficheros PNG
+
+El siguiente paso es cargar las texturas desde imágenes, para ello utilizaremos una biblioteca ya existente llamada [upng](https://github.com/elanthis/upng).
+
+Simplemente copiamos `upng.h` y `upng.c` al directorio `src`, le cambiamos el nombre a `upng.cpp` para compilarlo y los agregamos al proyecto.
+
+Si intentamos compilar en **Visual Studio** nos pedirá cambiar la función `fopen` por `fopen_s`, la versión segura, básicamente es cambiar esta línea de `upng.cpp`:
+
+```cpp
+fopen_s(&file, filename, "rb");
+``` 
+
+Tengo esta textura en un png llamado `cube.png` guardado en el directorio `res`:
+
+![](./docs/image-101.png)
+
+Lo que haré es inicializar el mesh `cube.obj` pasándole también la ruta de la textura, todo lo demás referente a la textura actual puedo borrarlo de la ventana:
+
+```cpp
+/* Mesh loading */
+mesh = Mesh(this, "res/cube.obj", "res/cube.png");
+```
+
+La nueva firma quedará:
+
+```cpp
+Mesh(Window *window, std::string modelFileName, std::string textureFileName);
+```
+
+A partir de ahora nuestro `mesh` también almacenará la textura y su información:
+
+```cpp
+class Mesh
+{
+
+private:
+    int textureWidth{ 0 };
+    int textureHeight{ 0 };
+    upng_t *pngTexture{ nullptr };
+    uint32_t* meshTexture{ nullptr };
+};
+```
+
+Para cargar la textura en el constructor, después de cargar el modelo haremos:
+
+```cpp
+Mesh::Mesh(Window* window, std::string modelFileName, std::string textureFileName)
+{
+    // Load the texture after loading the model
+    pngTexture = upng_new_from_file(textureFileName.c_str());
+    if (pngTexture == NULL)
+    {
+        std::cerr << "Error reading the file " << textureFileName << std::endl;
+        return;
+    }
+
+    upng_decode(pngTexture);
+    if (upng_get_error(pngTexture) == UPNG_EOK)
+    {
+        meshTexture = (uint32_t*)upng_get_buffer(pngTexture);
+        textureWidth = upng_get_width(pngTexture);
+        textureHeight = upng_get_height(pngTexture);
+        std::cout << "Texture loaded: " << textureFileName << " " << textureWidth << "x" << textureHeight << std::endl;
+    }
+}
+```
+
+Tendremos que enviar la textura y su tamaño al dibujar el texel:
+
+```cpp
+window->DrawTexturedTriangle(
+    sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y, sortedTriangles[i].projectedVertices[0].z, sortedTriangles[i].projectedVertices[0].w, sortedTriangles[i].textureUVCoords[0],
+    sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y, sortedTriangles[i].projectedVertices[1].z, sortedTriangles[i].projectedVertices[1].w, sortedTriangles[i].textureUVCoords[1],
+    sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y, sortedTriangles[i].projectedVertices[2].z, sortedTriangles[i].projectedVertices[2].w, sortedTriangles[i].textureUVCoords[2],
+    meshTexture, textureWidth, textureHeight);
+```
+
+Esta información la recibiremos en el método y la pasaremos a las dos llamadas de `DrawTexel`:
+
+```cpp
+void Window::DrawTexturedTriangle(int x0, int y0, float z0, float w0, Texture2 uv0, int x1, int y1, float z1, float w1, Texture2 uv1, int x2, int y2, float z2, float w2, Texture2 uv2, uint32_t* texture, int textureWidth, int textureHeight)
+{
+    // ...
+    DrawTexel(x, y, pA, pB, pC, uv0, uv1, uv2, uDivW, vDivW, oneDivW, texture, textureWidth, textureHeight);
+}
+```
+
+Y las utilizaremos en lugar de recibirlas desde el puntero `window` como hasta ahora:
+
+```cpp
+void Window::DrawTexel(int x, int y, Vector4 a, Vector4 b, Vector4 c, Texture2 t0, Texture2 t1, Texture2 t2, float *uDivW, float* vDivW, float* oneDivW, uint32_t *texture, int textureWidth, int textureHeight)
+{
+    // ...
+    // Calculate the texelX and texelY based on the interpolated UV and the texture sizes
+    int texelX = abs(static_cast<int>(interpolatedU * textureWidth));
+    int texelY = abs(static_cast<int>(interpolatedV * textureHeight));
+
+    // Finally draw the pixel with the color stored in our texture harcoded array
+    DrawPixel(x, y, texture[(textureWidth * texelY) + texelX]);
+}
+```
+
+Solo nos falta añadir un método para liberar la textura de la memoria:
+
+```cpp
+void Mesh::Free()
+{
+    upng_free(pngTexture);
+}
+```
+
+Y lo llamamos en el destructor de la `window`:
+
+```cpp
+Window::~Window()
+{
+    // Liberamos la textura del mesh
+    mesh.Free();
+}
+```
+
+Si ejecutamos el programa notaremos algo extraño:
+
+![](./docs/image-102.png)
+
+La verdad es que nos falta configurar las coordenadas UV y por eso se rellena todo el cubo con el color del primer píxel.
+
+En la próxima sección voy a implementar la lectura de las coordenadas UV desde ficheros obj, pero antes fijémonos en el color del primer píxel, no concuerda con el de la textura:
+
+![](./docs/image-103.png)
+
+Esto es debido a que la biblioteca `upng` únicamente soporta colores RGB, RGBA. escala de grises y escala de grises con transparencia alpha. Sin embargo nuestro buffer de color está configurado sobre una textura SDL con formato de píxel `SDL_PIXELFORMAT_RGBA8888`. 
+
+Según la [wiki de SDL](https://wiki.libsdl.org/SDL_PixelFormatEnum) un formato compatible con el que lee `upng` sería `SDL_PIXELFORMAT_RGBA32`, así que vamos a cambiarlo:
+
+```cpp
+void Window::Setup()
+{
+    // Crear la textura SDL utilizada para mostrar el color buffer
+    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
+}
+```
+
+Con esto ya deberíamos dibujar el color correcto del primer píxel:
+
+![](./docs/image-104.png)
+
+## Ficheros OBJ con texturas
+
+Tenemos nuestro cubo y la textura cargada pero nos falta las coordenadas UV. 
+
+Según la [wikipedia](https://en.wikipedia.org/wiki/Wavefront_.obj_file) en el fichero **obj** encontramos las coordenadas de texturas con el siguiente formato:
+
+```python
+# List of texture coordinates, in (u, [v, w]) coordinates, 
+# these will vary between 0 and 1. v, w are optional and default to 0.
+vt 0.500 1 [0]
+vt ...
+```
+
+Si una cara tiene las coordenadas de texturas se reciben en la segunda posición separadas con una barra (`vt1, vt2, vt3`):
+
+```python
+f v1/vt1 v2/vt2 v3/vt3 ...
+```
+
+Los índices de las coordenadas para cada triángulo ya las estamos guardando:
+
+```cpp
+int textureIndices[3];
+```
+
+Lo que no tenemos todavía es la lista con la información de esas coordenadas, así que vamos a guardarlas en una nueva cola en la `mesh`:
+
+```cpp
+class Mesh
+{
+private:
+    std::deque<Texture2> coordinates;
+};
+```
+
+Las vamos añadiendo a la cola a medida que las encontremos:
+
+```cpp
+// if starts with vt it's a texture coordinate
+else if (line.rfind("vt ", 0) == 0)
+{
+    Texture2 textureCoords;
+    sscanf_s(line.c_str(), "vt %f %f", &textureCoords.u, &textureCoords.v);
+    this->coordinates.push_back(textureCoords);
+}
+```
+
+El constructor del triángulo tiene previsto que le enviemos las coordenadas de las texturas, las podemos recuperar y enviárselas:
+
+```cpp
+// recover the triangle coords using the textureIndeces
+Texture2 triangleCoords[]{ 
+    this->coordinates[textureIndices[0]], 
+    this->coordinates[textureIndices[1]], 
+    this->coordinates[textureIndices[2]]};
+this->triangles.push_back(Triangle(0xFFFFFFFF, triangleCoords));
+```
+
+Si ponemos en marcha el programa para probar si funciona...
+
+![](./docs/image-105.png)
+
+Nos dice que estamos intentando acceder a un luar de la cola fuera del rango, eso es porque en el fichero **obj** los índices empiezan con `1` y no con `0`, debemos restarles `1`:
+
+```cpp
+Texture2 triangleCoords[]{ 
+    this->coordinates[textureIndices[0] - 1], 
+    this->coordinates[textureIndices[1] - 1], 
+    this->coordinates[textureIndices[2] - 1]};
+```
+
+Si probamos ahora...
+
+![](./docs/image-106.png)
+
+¡Parece que nos estamos acercando! El problema es que las coordenadas y la textura no concuerdan. Podemos abrir **Blender** y aplicar nuestra textura a un nuevo cubo.
+
+Soy un completo novato con Blender pero he encontrado un tutorial donde explican como hacerlo rápido.
+
+Primero cambiamos al modo `Viewport Shading`:
+
+![](./docs/image-107.png)
+
+A continuación seleccionamos el cubo, vamos a `Material Properties` y cambiamos el `Base Color` por una `Image Texture` y buscamos la que queremos aplicar:
+
+![](./docs/image-108.png)
+
+Al hacerlo veremos que efectivamente las coordenadas UV por defecto del cubo no pintan nuestra textura como nosotros queremos, tenemos que cambiarlas manualmente.
+
+Abriremos el modo `UV Editor`:
+
+![](./docs/image-109.png)
+
+Y cambiaremos a la imagen de nuestro cubo:
+
+![](./docs/image-110.png)
+
+Si arrastramos desde la esquina superior derecha del editor (aparece una cruz en el puntero) podemos activar dos vistas, nos será útil:
+
+![](./docs/image-111.png)
+
+Si activamos el modo de selección de caras y seleccionamos una veremos qué parte de la textura se está aplicando:
+
+![](./docs/image-112.png)
+
+Como se puede apreciar está mal mapeado, nosotros queremos que el cuadrado sea la cara completa.
+
+Buscaremos la opción `UV > Smart UV Project` y le daremos a OK:
+
+![](./docs/image-113.png)
+
+Automáticamente el tamaño de la cara se establecerá al completo, esto debería corregir las coordenadas UV de esa cara:
+
+![](./docs/image-114.png)
+
+Seguramente hay alguna opción para repetir esto en todos las caras, pero no tengo ni idea(algún día seguro que lo aprenderé), así que repetiré el proceso para cada cara:
+
+![](./docs/image-115.png)
+
+Una vez las tenga todas corregidas exportaré el cubo en `obj` con `Y` creciente hacia abajo, caras triangulares y las nuevas coordenadas UV:
+
+![](./docs/image-116.png)
+
+El programa debería renderizarlo correctamente:
+
+![](./docs/image-118.png)
+
+Efectivamente, ya se renderiza, pero todavía tenemos un último problema pendiente... ¿Lo hace de forma volteada?
+
+El caso es que Blender nos da los valores de las coordenadas V invertidas, deberemos voltearlas. Es muy fácil, simplemente hacemos lo siguiente justo después de ordenar los vértices en el `DrawTexturedTriangle`:
+
+```cpp
+// Flip the V component to account for inverted UV-coordinates
+uv0.v = 1 - uv0.v;
+uv1.v = 1 - uv1.v;
+uv2.v = 1 - uv2.v;
+```
+
+Por fin tendremos nuestra recompensa, un cubo modelado y texturizado en **Blender** cargado perfectamente en nuestro visualizador 3D:
+
+![](./docs/anim-35.gif)
+
+### Prevenir overflow del buffer de textura
+
+Tenemos que tener en cuenta algo importante a la hora de renderizar los pixels relativos al texel.
+
+Si por casualidad el cálculo de `alpha`, `beta` o `gamma` es muy pequeño, por ejemplo `0.00001`, acabaremos con un número negativo muy pequeño implicando que el punto está fuera del triángulo.
+
+Las coordenadas baricéntricas son puras matemáticas para definir un punto en un triángulo, pero en la realidad tenemos una pantalla con un número limitado de píxels y esa "proyección" que hacemos no concuerda con la realidad, saliéndose del espacio de dibujado y causando potenciales fallos:
+
+![](./docs/image-117.png)
+
+Esto nos lleva a la conocida como *fill convention*, la convención de relleno para determinar si un píxel se encuentra dentro o fuera del triángulo para realizar un redondeo al alza (*ceil*) o a la baja (*floor*).
+
+Este tema llevó de calle a los ingenieros del paso pero en mi caso no voy a complicarme demasiado. Pemitiré que un valor se encuentre fuera del triángulo, pero si eso sucede simplemente truncaremos el valor haciendo el módulo del `textureWidth` y el `textureHeight` para que el valor no se salga de los límites:
+
+```cpp
+// Calculate the texelX and texelY based on the interpolated UV and the texture sizes
+int texelX = abs(static_cast<int>(interpolatedU * textureWidth)) % textureWidth;
+int texelY = abs(static_cast<int>(interpolatedV * textureHeight)) % textureHeight;
+```
+
+Este pequeño *hack* debería prevenir que ocurra un overflow.
+
+Así queda este modelo de un [cangrejo](https://sketchfab.com/3d-models/dancing-crab-uca-mjoebergi-280863886fee409ab3c8168f07caa89f):
+
+![](./docs/anim-36.gif)
+
+Aquí se puede observar cómo todavía tenemos un problema al renderizar la profundidad de los vértices, dibujándose la pinza del cangrejo por detrás del cuerpo.
+
+En la próxima sección vamos a arreglarlo.
+
+## Profundidad con Z-Buffer
