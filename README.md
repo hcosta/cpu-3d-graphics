@@ -5952,3 +5952,137 @@ Aquí se puede observar cómo todavía tenemos un problema al renderizar la prof
 En la próxima sección vamos a arreglarlo.
 
 ## Profundidad con Z-Buffer
+
+En estos momentos estamos controlando la profundidad realizando una media entre los vértices de un triángulo. 
+
+En lugar de aplicar la profunidad a nivel de triángulo debemos calcularla para cada píxel que se va a renderizar y para ello haremos uso de la técnica del **Z-Buffer**, también llamado *buffer* de profundidad.
+
+Como su nombre indica se basa en crear una array del tamaño de píxeles de la pantalla y almacenar en él la profundidad para cada uno de ellos.
+
+![](./docs/image-119.png)
+
+Mediante un *zbuffer* podemos dibujar correctamente situaciones que el algoritmo del pintor no es capaz de manejar:
+
+![](./docs/image-65.png)
+
+A menudo se representa con valores en escala de grises. Los colores brillantes y oscuros son opuestos en cercanía y lejanía o viceversa, dependiendo de lo que se decida:
+
+![](./docs/image-120.png)
+
+El caso es que como los valores interpolados de `Z` no son lineales en el triángulo no los podemos utilizar para almacenar la profundidad. ¿Qué utilizaremos entonces? Pues el recíproco de la profundidad `1/W` que tenemos guardado. De hecho podríamos llamarlo **W-Buffer**.
+
+En cualquier caso para implementar este buffer vamos a crearlo a la par que el `colorBuffer` pero público para tener acceso en otras clases:
+
+```cpp
+public:
+    /* Depth buffer  */
+    float* depthBuffer{ nullptr };
+```
+
+Reservamos la memoria en el `Window::Setup`:
+
+```cpp
+// Reservar la memoria para el depth buffer
+depthBuffer = static_cast<float*>(malloc(sizeof(float) * windowWidth * windowHeight));
+```
+
+Liberamos la memoria en el destructor `Window::~Window`:
+
+```cpp
+// Liberar la memoria dinámica
+free(depthBuffer);
+```
+
+Luego, lo que haremos es limpiar el buffer casi al final del renderizado, justo antes de `SDL_RenderPresent`:
+
+```cpp
+// Clear depth buffer before rendeer present
+ClearDepthBuffer();
+```
+
+Así que vamos a crear el método `ClearDepthBuffer`:
+
+```cpp
+void Window::ClearDepthBuffer()
+{
+    for (size_t y = 0; y < windowHeight; y++)
+    {
+        for (size_t x = 0; x < windowWidth; x++)
+        {
+            depthBuffer[(windowWidth * y) + x] = 1.0;
+        }
+    }
+}
+```
+
+La profundidad inicial de cada píxel será `1.0` porque actualizaremos el valor al detectar otro píxel con un valor menor que el actual, y que al estar normalizado siempre será un valor entre 0 y 1. 
+
+Esto es por el hecho de que en nuestro sistema la `Z` crece hacia dentro de la pantalla y cuanto menor sea más cerca estará (está basado en la regla de la mano izquierda):
+
+![](./docs/image-121.png)
+
+Una vez dibujamos un píxel de la textura en `DrawTexel`, justo al final de todo, actualizaremos la profundidad de ese píxel en el `depthBuffer`:
+
+```cpp
+void Window::DrawTexel(Window *window, //...
+{
+    // And update the depth for the pixel in the depthBuffer
+    this->depthBuffer[(this->windowWidth * y) + x] = interpolatedReciprocalW;
+}
+```
+
+La verdadera magia viene en este momento, solo dibujaremos el pixel si su profundidad es menor que la que tenemos almacenada ya en el `depthBuffer`:
+
+```cpp
+// Only draw the pixel if the depth value is less than the one previously stored in the depth buffer
+if (interpolatedReciprocalW < this->depthBuffer[(this->windowWidth * y) + x])
+{
+    // Finally draw the pixel with the color stored in our texture harcoded array
+    DrawPixel(x, y, texture[(textureWidth * texelY) + texelX]);
+
+    // And update the depth for the pixel in the depthBuffer
+    this->depthBuffer[(this->windowWidth * y) + x] = interpolatedReciprocalW;
+}
+```
+
+Solo nos falta un pequeño ajuste y es que debemos tener en cuenta que según nuestros cálculos cuanto más lejos de la cámara se encuentra un punto más pequeña es su profundidad recíproca `1/W`, debemos recordar que se encuentra invertida. 
+
+Sin embargo nuestra lógica es actualizar el *buffer* cuando la profundidad esté más cerca (siendo 1.0 el valor inicial), así que debemos ajustar el valor para que sea la distancia contraria, por ejemplo en lugar de `0.1` sea `0.9`, justo antes de la condición:
+
+```cpp
+// Adjust the reciprocal 1/w to the contrary distance 
+interpolatedReciprocalW = 1 - interpolatedReciprocalW;
+
+if (interpolatedReciprocalW < this->depthBuffer[(this->windowWidth * y) + x]) // ...
+```
+
+Con esto tendremos el buffer de profundidad funcionando perfectamente y las pinzas del cangrejo ya no se verán por delante:
+
+![](./docs/anim-37.gif)
+
+Y ya lo tenemos, aunque personalmente todavía añadiría una pequeña comprobación para no dibujar fuera del tamaño de los buffers:
+
+```cpp
+// Security check to not draw outside the buffers size
+int bufferPosition = this->windowWidth * y + x;
+if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+    // Only draw the pixel if the depth value is less than the one previously stored in the depth buffer
+    if (interpolatedReciprocalW < this->depthBuffer[(this->windowWidth * y) + x])
+    {
+        // Finally draw the pixel with the color stored in our texture harcoded array
+        DrawPixel(x, y, texture[(textureWidth * texelY) + texelX]);
+
+        // And update the depth for the pixel in the depthBuffer
+        this->depthBuffer[(this->windowWidth * y) + x] = interpolatedReciprocalW;
+    }
+}
+```
+
+Esto es un pequeño parche, lo interesante de verdad es la implementación del *culling* para descartar el dibujado de los triángulos fuera del frustum.
+
+### Buffer de produndidad con triángulos
+
+
+
+TODO: FUnción de dibujado de una línea 3d, opción dibujar face normals
+https://s3.amazonaws.com/thinkific/file_uploads/167815/attachments/eb1/6b5/064/draw_line3d.txt

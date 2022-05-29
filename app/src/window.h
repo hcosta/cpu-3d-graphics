@@ -16,8 +16,11 @@ public:
     int windowWidth;
     int windowHeight;
 
+    /* Depth buffer  */
+    float* depthBuffer{ nullptr };
+
     /* Configurable options */
-    bool drawGrid = false;
+    bool drawGrid = true;
     bool drawWireframe = false;
     bool drawWireframeDots = false;
     bool drawFilledTriangles = true;
@@ -76,6 +79,7 @@ public:
 
     void ClearColorBuffer(uint32_t color);
     void RenderColorBuffer();
+    void ClearDepthBuffer();
 
     void DrawGrid(unsigned int color);
     void DrawPixel(int sx, int sy, unsigned int color);

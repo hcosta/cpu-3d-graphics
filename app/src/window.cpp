@@ -14,6 +14,7 @@ Window::~Window()
 
     // Liberar la memoria dinámica
     free(colorBuffer);
+    free(depthBuffer);
 
     // Liberamos la textura del mesh
     mesh.Free();
@@ -82,10 +83,12 @@ void Window::Setup()
 {
     // Reservar la memoria requerida en bytes para mantener el color buffer
     colorBuffer = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * windowWidth * windowHeight));
+    // Reservar la memoria para el depth buffer
+    depthBuffer = static_cast<float*>(malloc(sizeof(float) * windowWidth * windowHeight));
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
     /* Mesh loading */
-    mesh = Mesh(this, "res/cube.obj", "res/cube.png");
+    mesh = Mesh(this, "res/crab.obj", "res/crab.png");
 }
 
 void Window::ProcessInput()
@@ -166,8 +169,9 @@ void Window::Update()
 
 void Window::Render()
 {
+
     // Clear color buffer
-    ClearColorBuffer(static_cast<uint32_t>(0xFF0000000));
+    ClearColorBuffer(static_cast<uint32_t>(0xFF404040));
 
     // Render the background grid
     if (this->drawGrid) DrawGrid(0xFF616161);
@@ -184,11 +188,15 @@ void Window::Render()
 
 void Window::PostRender()
 {
+
     // Renderizar el color buffer
     RenderColorBuffer();
 
     // Antes de presentar llamamos al SDL Renderer de ImGUI
     ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
+
+    // Clear depth buffer rendeer present
+    ClearDepthBuffer();
 
     // Finalmente actualizar la pantalla
     SDL_RenderPresent(renderer);
@@ -216,6 +224,17 @@ void Window::ClearColorBuffer(uint32_t color)
     }
 }
 
+void Window::ClearDepthBuffer()
+{
+    for (size_t y = 0; y < windowHeight; y++)
+    {
+        for (size_t x = 0; x < windowWidth; x++)
+        {
+            depthBuffer[(windowWidth * y) + x] = 1.0;
+        }
+    }
+}
+
 void Window::RenderColorBuffer()
 {
     // Copiar el color buffer y su contenido a la textura
@@ -226,19 +245,16 @@ void Window::RenderColorBuffer()
 
 void Window::DrawGrid(unsigned int color)
 {
-    for (size_t y = 0; y < windowHeight; y += 10)
-    {
-        for (size_t x = 0; x < windowWidth; x += 10)
-        {
-            DrawPixel(x, y, color);
-            // colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
-        }
-    }
+    for (size_t x = 72; x < windowWidth; x += 100)
+        DrawLine(x, 0, x, windowWidth, color);
+
+    for (size_t y = 72; y < windowHeight; y+= 100)
+        DrawLine(0, y, windowWidth, y, color);
 }
 
 void Window::DrawPixel(int x, int y, unsigned int color)
 {
-    if (x >= 0 && x <= windowWidth && y >= 0 && y <= windowHeight && color <= 0xFFFFFFFF)
+    if (x >= 0 && x < windowWidth && y >= 0 && y < windowHeight && color <= 0xFFFFFFFF)
     {
         colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
     }
@@ -274,8 +290,22 @@ void Window::DrawTexel(int x, int y, Vector4 a, Vector4 b, Vector4 c, Texture2 t
     int texelX = abs(static_cast<int>(interpolatedU * textureWidth)) % textureWidth;
     int texelY = abs(static_cast<int>(interpolatedV * textureHeight)) % textureHeight;
 
-    // Finally draw the pixel with the color stored in our texture harcoded array
-    DrawPixel(x, y, texture[(textureWidth * texelY) + texelX]);
+    // Adjust the reciprocal 1/w to the contrary distance. E.g. 0.1 -> 0.9
+    interpolatedReciprocalW = 1 - interpolatedReciprocalW;
+
+    // Security check to not draw outside the buffers size
+    int bufferPosition = this->windowWidth * y + x;
+    if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+        // Only draw the pixel if the depth value is less than the one previously stored in the depth buffer
+        if (interpolatedReciprocalW < this->depthBuffer[(this->windowWidth * y) + x])
+        {
+            // Finally draw the pixel with the color stored in our texture harcoded array
+            DrawPixel(x, y, texture[(textureWidth * texelY) + texelX]);
+
+            // And update the depth for the pixel in the depthBuffer
+            this->depthBuffer[(this->windowWidth * y) + x] = interpolatedReciprocalW;
+        }
+    }
 }
 
 void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
