@@ -10,6 +10,7 @@ class Triangle
 {
 public:
     Vector3 normal{ 0,0,0 };
+    Vector4 projectedNormal[2]{};
     Vector3 vertices[3]{}; // 3d  vertices
     Texture2 textureUVCoords[3]{};
     // Vector2 projectedVertices[3];   // 2d vertices
@@ -21,7 +22,8 @@ public:
 
     Triangle() = default;
     Triangle(uint32_t color) : color(color), originalColor(color) {};
-    Triangle(uint32_t color, Texture2 *textures) : color(color), originalColor(color) {
+    Triangle(uint32_t color, Texture2 *textures) : color(color), originalColor(color) 
+    {
         textureUVCoords[0] = textures[0];
         textureUVCoords[1] = textures[1];
         textureUVCoords[2] = textures[2];
@@ -61,10 +63,10 @@ public:
     void WorldVertex(int vertexIndex, Vector3 scale, Vector3 angle, Vector3 translate)
     {
         // Use a matrix to world transform the original vertex
-        Vector4 transformedVertex{vertices[vertexIndex]};
+        Vector4 transformedVertex{ vertices[vertexIndex] };
         transformedVertex = transformedVertex * Matrix4::WorldMatrix(scale, angle, translate);
         vertices[vertexIndex] = transformedVertex.ToVector3();
-    }
+    };
 
     // void ProjectVertex(int vertexIndex, float fovFactor)
     // {
@@ -77,6 +79,20 @@ public:
         // Use a matrix to world project the original vertex
         Vector4 transformedVertex{vertices[vertexIndex]};
         projectedVertices[vertexIndex] = Matrix4::ProjectMatrix(projectionMatrix, transformedVertex);
+    };
+
+    void ProjectWorldNormal(Matrix4 projectionMatrix)
+    {
+        // Find the middle point of the triangle face to project the normal
+        Vector3 midPoint{
+            vertices[0].x * 0.3333 + vertices[1].x * 0.3333 + vertices[2].x * 0.3333,
+            vertices[0].y * 0.3333 + vertices[1].y * 0.3333 + vertices[2].y * 0.3333,
+            vertices[0].z * 0.3333 + vertices[1].z * 0.3333 + vertices[2].z * 0.3333 };
+        // Use a matrix to world project the normal vertices
+        Vector4 transformedNormalVertex1{ midPoint };
+        Vector4 transformedNormalVertex2{ midPoint + normal*0.05 };
+        projectedNormal[0] = Matrix4::ProjectMatrix(projectionMatrix, transformedNormalVertex1);
+        projectedNormal[1] = Matrix4::ProjectMatrix(projectionMatrix, transformedNormalVertex2);
     };
 
     void ApplyCulling(float *cameraPosition)

@@ -147,7 +147,8 @@ void Mesh::Update()
         }
 
         /*Before project calculate depth*/
-        triangles[i].CalculateAverageDepth();
+        // No longer needed since we use z buffer
+        // triangles[i].CalculateAverageDepth();
 
         /*** Apply projections and lighting for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
@@ -158,10 +159,28 @@ void Mesh::Update()
             triangles[i].projectedVertices[j].x *= (window->windowWidth / 2.0);
             triangles[i].projectedVertices[j].y *= (window->windowHeight / 2.0);
             // Invert the y values to account the flipped screen y coord
-            triangles[i].projectedVertices[j].y *= 1;
+            triangles[i].projectedVertices[j].y *= -1;
             // Then translate the projected vertex to the middle screen
             triangles[i].projectedVertices[j].x += (window->windowWidth / 2.0);
             triangles[i].projectedVertices[j].y += (window->windowHeight / 2.0);
+        }
+
+        // Project the normal vectors if we want to draw it
+        if (window->drawTriangleNormals)
+        {
+            // Project the current normal to create an origin and a destiny vectors
+            triangles[i].ProjectWorldNormal(window->projectionMatrix);
+            for (size_t j = 0; j < 2; j++)
+            {
+                // First scale the projected vertex by screen sizes
+                triangles[i].projectedNormal[j].x *= (window->windowWidth / 2.0);
+                triangles[i].projectedNormal[j].y *= (window->windowHeight / 2.0);
+                // Invert the y values to account the flipped screen y coord
+                triangles[i].projectedNormal[j].y *= -1;
+                // Then translate the projected vertex to the middle screen
+                triangles[i].projectedNormal[j].x += (window->windowWidth / 2.0);
+                triangles[i].projectedNormal[j].y += (window->windowHeight / 2.0);
+            }
         }
 
         /** Apply flat shading ***/
@@ -172,52 +191,62 @@ void Mesh::Update()
 void Mesh::Render()
 {
     // Antes de renderizar triángulos ordenarlos por media de profundidad
-    std::deque<Triangle> sortedTriangles(triangles);
-    std::sort(sortedTriangles.begin(), sortedTriangles.end());
+    // Esto ya no es necesario al estar utilizando un zbuffer
+    // std::deque<Triangle> sortedTriangles(triangles);
+    // std::sort(sortedTriangles.begin(), sortedTriangles.end());
 
-    // Loop projected triangles array and render them
-    for (size_t i = 0; i < sortedTriangles.size(); i++)
+    // RENDERING: Loop projected triangles array and render them
+    for (size_t i = 0; i < triangles.size(); i++)
     {
         // If culling is true and enabled globally bypass the current triangle
-        if (window->enableBackfaceCulling && sortedTriangles[i].culling)
+        if (window->enableBackfaceCulling && triangles[i].culling)
             continue;
 
         // Triángulos
         if (window->drawFilledTriangles && !window->drawTexturedTriangles)
         {
             window->DrawFilledTriangle(
-                sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y,
-                sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y,
-                sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y,
-                sortedTriangles[i].color);
+                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y, triangles[i].projectedVertices[0].z, triangles[i].projectedVertices[0].w,
+                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y, triangles[i].projectedVertices[1].z, triangles[i].projectedVertices[1].w,
+                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y, triangles[i].projectedVertices[2].z, triangles[i].projectedVertices[2].w,
+                triangles[i].color);
         }
 
         // Triángulos texturizados
         if (window->drawTexturedTriangles)
         {
             window->DrawTexturedTriangle(
-                sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y, sortedTriangles[i].projectedVertices[0].z, sortedTriangles[i].projectedVertices[0].w, sortedTriangles[i].textureUVCoords[0],
-                sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y, sortedTriangles[i].projectedVertices[1].z, sortedTriangles[i].projectedVertices[1].w, sortedTriangles[i].textureUVCoords[1],
-                sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y, sortedTriangles[i].projectedVertices[2].z, sortedTriangles[i].projectedVertices[2].w, sortedTriangles[i].textureUVCoords[2],
+                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y, triangles[i].projectedVertices[0].z, triangles[i].projectedVertices[0].w, triangles[i].textureUVCoords[0],
+                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y, triangles[i].projectedVertices[1].z, triangles[i].projectedVertices[1].w, triangles[i].textureUVCoords[1],
+                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y, triangles[i].projectedVertices[2].z, triangles[i].projectedVertices[2].w, triangles[i].textureUVCoords[2],
                 meshTexture, textureWidth, textureHeight);
         }
 
         // Wireframe
         if (window->drawWireframe)
         {
-            window->DrawTriangle(
-                sortedTriangles[i].projectedVertices[0].x, sortedTriangles[i].projectedVertices[0].y,
-                sortedTriangles[i].projectedVertices[1].x, sortedTriangles[i].projectedVertices[1].y,
-                sortedTriangles[i].projectedVertices[2].x, sortedTriangles[i].projectedVertices[2].y,
+            window->DrawTriangle3D(
+                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y, triangles[i].projectedVertices[0].w,
+                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y, triangles[i].projectedVertices[1].w,
+                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y, triangles[i].projectedVertices[2].w,
                 0xFF000000);
+        }
+
+        // Triangle normals
+        if (window->drawTriangleNormals)
+        {
+            window->DrawLine3D(
+                triangles[i].projectedNormal[0].x, triangles[i].projectedNormal[0].y, triangles[i].projectedNormal[0].w,
+                triangles[i].projectedNormal[1].x, triangles[i].projectedNormal[1].y, triangles[i].projectedNormal[1].w,
+                0xFF07EB07);
         }
 
         // Vértices
         if (window->drawWireframeDots)
         {
-            window->DrawRect(sortedTriangles[i].projectedVertices[0].x - 1, sortedTriangles[i].projectedVertices[0].y - 1, 5, 5, 0xFFFFFF00);
-            window->DrawRect(sortedTriangles[i].projectedVertices[1].x - 1, sortedTriangles[i].projectedVertices[1].y - 1, 5, 5, 0xFFFFFF00);
-            window->DrawRect(sortedTriangles[i].projectedVertices[2].x - 1, sortedTriangles[i].projectedVertices[2].y - 1, 5, 5, 0xFFFFFF00);
+            window->DrawRect(triangles[i].projectedVertices[0].x - 1, triangles[i].projectedVertices[0].y - 1, 3, 3, 0xFF00FFFF);
+            window->DrawRect(triangles[i].projectedVertices[1].x - 1, triangles[i].projectedVertices[1].y - 1, 3, 3, 0xFF00FFFF);
+            window->DrawRect(triangles[i].projectedVertices[2].x - 1, triangles[i].projectedVertices[2].y - 1, 3, 3, 0xFF00FFFF);
         }
     }
 }

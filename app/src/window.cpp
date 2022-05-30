@@ -88,7 +88,9 @@ void Window::Setup()
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
     /* Mesh loading */
-    mesh = Mesh(this, "res/crab.obj", "res/crab.png");
+    mesh = Mesh(this, "res/f117.obj", "res/f117.png");
+    // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
+    // mesh2 = Mesh(this, "res/cube.obj", "res/cube.png");
 }
 
 void Window::ProcessInput()
@@ -123,25 +125,30 @@ void Window::Update()
     ImGui::Begin("CPU 3D Rendering");
     ImGui::Checkbox("Limitar FPS", &this->enableCap);
     ImGui::SliderInt(" ", &this->fpsCap, 5, this->screenRefreshRate);
-    ImGui::Checkbox("Dibujar cuadrícula", &this->drawGrid);
-    ImGui::Checkbox("Dibujar vértices", &this->drawWireframeDots);
-    ImGui::Checkbox("Dibujar wireframe", &this->drawWireframe);
+    ImGui::Separator();
+    ImGui::Text("Rasterizado");
     ImGui::Checkbox("Dibujar triángulos", &this->drawFilledTriangles);
     ImGui::Checkbox("Dibujar texturas", &this->drawTexturedTriangles);
     ImGui::Checkbox("Back-face culling", &this->enableBackfaceCulling);
     ImGui::Separator();
+    ImGui::Text("Debugging");
+    ImGui::Checkbox("Dibujar cuadrícula", &this->drawGrid);
+    ImGui::Checkbox("Dibujar vértices", &this->drawWireframeDots);
+    ImGui::Checkbox("Dibujar wireframe", &this->drawWireframe);
+    ImGui::Checkbox("Dibujar normales", &this->drawTriangleNormals);
+    ImGui::Separator();
     ImGui::Text("Escalado del modelo");
     ImGui::SliderFloat3("Scale", modelScale, 0, 5);
     ImGui::Text("Traslación del modelo");
-    ImGui::SliderFloat2("Translate", modelTranslation, -5, 5);
+    ImGui::SliderFloat3("Translate", modelTranslation, -5, 5);
     ImGui::Text("Vector de rotación");
     ImGui::SliderFloat3("Rotate", modelRotation, 0, 10);
     ImGui::Separator();
     ImGui::Text("Posición cámara (X,Y,Z)");
     ImGui::SliderFloat2("Camera", cameraPosition, -5, 5);
+    ImGui::Separator();
     ImGui::Text("Campo de visión");
     ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
-    ImGui::Separator();
     // ImGui::Text("Luz global");
     // ImGui::SliderFloat3("Posición de la luz (X,Y,Z)", lightPosition, -1, 1);
     ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
@@ -246,15 +253,23 @@ void Window::RenderColorBuffer()
 void Window::DrawGrid(unsigned int color)
 {
     for (size_t x = 72; x < windowWidth; x += 100)
-        DrawLine(x, 0, x, windowWidth, color);
+    {
+        for (size_t y = 0; y < windowHeight; y++) {
+            DrawPixel(x, y, color);
+        }
+    }
 
     for (size_t y = 72; y < windowHeight; y+= 100)
-        DrawLine(0, y, windowWidth, y, color);
+    {
+        for (size_t x = 0; x < windowWidth; x++) {
+            DrawPixel(x, y, color);
+        }
+    }
 }
 
 void Window::DrawPixel(int x, int y, unsigned int color)
 {
-    if (x >= 0 && x < windowWidth && y >= 0 && y < windowHeight && color <= 0xFFFFFFFF)
+    if (x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
     {
         colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
     }
@@ -308,6 +323,40 @@ void Window::DrawTexel(int x, int y, Vector4 a, Vector4 b, Vector4 c, Texture2 t
     }
 }
 
+void Window::DrawTrianglePixel(int x, int y, Vector4 a, Vector4 b, Vector4 c, float* oneDivW, uint32_t color)
+{
+    // Create p vector with current pixel location
+    Vector2 p{ static_cast<double>(x),static_cast<double>(y) };
+    // Calculate the weights using the vectors A,B,C and P
+    Vector3 weights = Vector3::BarycentricWeights(a.ToVector2(), b.ToVector2(), c.ToVector2(), p);
+    float alpha = weights.x;
+    float beta = weights.y;
+    float gamma = weights.z;
+
+    // Variables to store the interpolated values of U, V and also the reciprocal 1/w for the current pixel
+    float interpolatedReciprocalW;
+
+    // Find the interpolate value of 1/w for the current pixel
+    interpolatedReciprocalW = oneDivW[0] * alpha + oneDivW[1] * beta + oneDivW[2] * gamma;
+
+    // Adjust the reciprocal 1/w to the contrary distance. E.g. 0.1 -> 0.9
+    interpolatedReciprocalW = 1 - interpolatedReciprocalW;
+
+    // Security check to not draw outside the buffers size
+    int bufferPosition = (windowWidth * y) + x;
+    if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+        // Only draw the pixel if the depth value is less than the one previously stored in the depth buffer
+        if (interpolatedReciprocalW < this->depthBuffer[bufferPosition])
+        {
+            // Finally draw the pixel with the solid color
+            DrawPixel(x, y, color);
+
+            // And update the depth for the pixel in the depthBuffer
+            this->depthBuffer[bufferPosition] = interpolatedReciprocalW;
+        }
+    }
+}
+
 void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
 {
     for (size_t y = sy; (y < sy + static_cast<__int64>(height)) && (y < windowHeight); y++)
@@ -315,7 +364,6 @@ void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
         for (size_t x = sx; (x < sx + static_cast<__int64>(width)) && (x < windowWidth); x++)
         {
             DrawPixel(x, y, color);
-            // colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
         }
     }
 }
@@ -325,13 +373,14 @@ void Window::DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
     // Calculamos la pendiente m = Δy/Δx
     float dX = x1 - x0;
     float dY = y1 - y0;
+    if (abs(dX) == 0 && abs(dY) == 0) return;
 
     // Definimos la longitud con el mayor lado
     // Si pendiente < 1 tomamos dX (más ancho que alto)
     // Si pendiente >= 1 tomamos dY (más alto que ancho)
     // Nota: Como (float / 0.0) es inf no dará error,
     // incluso siendo la línea completamente vertical
-    int longestSideLength = abs(dY / dX) < 1 ? abs(dX) : abs(dY);
+    int longestSideLength = abs(dX / dY) > 1 ? abs(dX) : abs(dY);
 
     // Buscamos cuanto debemos ir incrementando x e y
     // Uno de ellos siempre será 1 y el otro menor que 1
@@ -343,10 +392,125 @@ void Window::DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
     {
         // Desde el inicio (x0, y0) dibujamos todos los píxeles
         // y vamos redondeando al alza o baja hasta el final
-        DrawPixel(
-            round(x0 + (xInc * i)),
-            round(y0 + (yInc * i)),
-            color);
+        DrawPixel(round(x0 + (xInc * i)), round(y0 + (yInc * i)), color);
+    }
+}
+
+/*void Window::DrawLine3D(int x0, int y0, float w0, int x1, int y1, float w1, uint32_t color)
+{
+    float deltaX = x1 - x0;
+    float deltaY = y1 - y0;
+    int deltaReciprocalW = 1.f / w1 - 1.f / w0;
+    if (abs(deltaX) == 0 && abs(deltaY) == 0) return;
+
+    int longestSideLength = abs(deltaX / deltaY) > 1 ? abs(deltaX) : abs(deltaY);
+    float xInc = deltaX / longestSideLength;
+    float yInc = deltaY / longestSideLength;
+    float wInc = deltaReciprocalW / static_cast<float>(longestSideLength);
+
+    float currentX = x0;
+    float currentY = y0;
+    float currentW = 1.f / w0;
+
+    // Dibujamos todos los puntos para el lado más largo
+    for (size_t i = 0; i <= longestSideLength; i++)
+    {
+        int x = roundf(currentX);
+        int y = roundf(currentY);
+        float oneOverW = currentW;
+        float zInterpolated = 1.0f - oneOverW;
+
+        // Security check
+        int bufferPosition = windowWidth * y + x;
+        if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+            if (zInterpolated < depthBuffer[(y * windowHeight) + x])
+            {
+                DrawPixel(x, y, color);
+                depthBuffer[(y * windowHeight) + x] = zInterpolated;
+            }
+        }
+
+        currentX += xInc;
+        currentY += yInc;
+        currentW += wInc;
+    }
+}
+
+void Window::DrawLine3D(int x0, int y0, float w0, int x1, int y1, float w1, uint32_t color)
+{
+    float deltaX = x1 - x0;
+    float deltaY = y1 - y0;
+    int deltaReciprocalW = 1 / w1 - 1 / w0;
+    if (abs(deltaX) == 0 && abs(deltaY) == 0) return;
+
+    int longestSideLength = abs(deltaX) > abs(deltaY) ? abs(deltaX) : abs(deltaY);
+    float xInc = deltaX / static_cast<float>(longestSideLength);
+    float yInc = deltaY / static_cast<float>(longestSideLength);
+    float wInc = deltaReciprocalW / static_cast<float>(longestSideLength);
+
+    float currentX = x0;
+    float currentY = y0;
+    float currentW = 1.f / w0;
+
+    // Dibujamos todos los puntos para el lado más largo
+    for (size_t i = 0; i <= longestSideLength; i++)
+    {
+        int x = round(currentX);
+        int y = round(currentY);
+        float oneOverW = currentW;
+        float zInterpolated = 1.f - oneOverW;
+
+        // Security check
+        int bufferPosition = (windowWidth * y) + x;
+        if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+            if (zInterpolated < depthBuffer[bufferPosition])
+            {
+                DrawPixel(x, y, color);
+                depthBuffer[bufferPosition] = zInterpolated;
+            }
+        }
+        currentX += xInc;
+        currentY += yInc;
+        currentW += wInc;
+    }
+}*/
+
+void Window::DrawLine3D(int x0, int y0, float w0, int x1, int y1, float w1, uint32_t color)
+{
+    // Calculamos la distancia entre X, Y y la recíproca de W
+    float deltaX = x1 - x0;
+    float deltaY = y1 - y0;
+    int deltaReciprocalW = 1.f / w1 - 1.f / w0;
+
+    // Si no hay distancia no hace falta dibujar nada
+    if (abs(deltaX) == 0 && abs(deltaY) == 0) return;
+
+    // Buscamos que lado es mayor, el ancho o el alto
+    int longestSideLength = abs(deltaX / deltaY) > 1 ? abs(deltaX) : abs(deltaY);
+
+    // Calculamos el incremento por píxel para X, Y y la recíproca de W
+    float xInc = deltaX / longestSideLength;
+    float yInc = deltaY / longestSideLength;
+    float wInc = deltaReciprocalW / static_cast<float>(longestSideLength);
+
+    // Dibujamos todos los puntos para el lado más largo
+    for (size_t i = 0; i <= longestSideLength; i++)
+    {
+        int x = roundf(x0 + (xInc * i));
+        int y = roundf(y0 + (yInc * i));
+        float oneOverW = 1.0 / (w0 + (wInc * i));
+        float zInterpolated = 1.0f - oneOverW;
+
+        // Security check
+        int bufferPosition = (windowWidth * y) + x;
+        if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+            // Si el valor en Z es menor que el del bufer es que está más cerca
+            if (zInterpolated < depthBuffer[bufferPosition])
+            {
+                DrawPixel(x, y, color);
+                depthBuffer[bufferPosition] = zInterpolated;
+            }
+        }
     }
 }
 
@@ -355,6 +519,34 @@ void Window::DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32
     DrawLine(x0, y0, x1, y1, color);
     DrawLine(x1, y1, x2, y2, color);
     DrawLine(x2, y2, x0, y0, color);
+}
+
+void Window::DrawTriangle3D(int x0, int y0, float w0, int x1, int y1, float w1, int x2, int y2, float w2, uint32_t color)
+{
+    DrawLine3D(x0, y0, w0, x1, y1, w1, color);
+    DrawLine3D(x1, y1, w1, x2, y2, w2, color);
+    DrawLine3D(x2, y2, w2, x0, y0, w0, color);
+}
+
+void Window::SwapIntegers(int* a, int* b)
+{
+    int tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void Window::SwapFloats(float* a, float* b)
+{
+    float tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void Window::SwapTextures(Texture2* a, Texture2* b)
+{
+    Texture2 tmp = *a;
+    *a = *b;
+    *b = tmp;
 }
 
 void Window::DrawTexturedTriangle(int x0, int y0, float z0, float w0, Texture2 uv0, int x1, int y1, float z1, float w1, Texture2 uv1, int x2, int y2, float z2, float w2, Texture2 uv2, uint32_t* texture, int textureWidth, int textureHeight)
@@ -412,7 +604,6 @@ void Window::DrawTexturedTriangle(int x0, int y0, float z0, float w0, Texture2 u
         if (y2 - y0 != 0) m2 = (y2 - y0) / static_cast<float>((x2 - x0));    // m2 derecha +
         if (y1 - y0 != 0)
         {
-
             for (size_t i = 0; i < (y1 - y0); i++)
             {
                 int xStart = x0 + (i / m1);
@@ -461,66 +652,97 @@ void Window::DrawTexturedTriangle(int x0, int y0, float z0, float w0, Texture2 u
     }
 }
 
-void Window::SwapIntegers(int *a, int *b)
+void Window::DrawFilledTriangle(int x0, int y0, float z0, float w0, int x1, int y1, float z1, float w1, int x2, int y2, float z2, float w2, uint32_t color)
 {
-    int tmp = *a;
-    *a = *b;
-    *b = tmp;
-}
-
-void Window::SwapFloats(float* a, float* b)
-{
-    float tmp = *a;
-    *a = *b;
-    *b = tmp;
-}
-
-void Window::SwapTextures(Texture2 *a, Texture2 *b)
-{
-    Texture2 tmp = *a;
-    *a = *b;
-    *b = tmp;
-}
-
-void Window::DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color)
-{
-    // Reordenamiento de los vértices y0 < y1 < y2
+    // Iterar todos los píxeles del triángulo para renderizarlos en función del color de la textura
     if (y0 > y1) // Primer intercambio
     {
         SwapIntegers(&y0, &y1);
         SwapIntegers(&x0, &x1);
+        SwapFloats(&z0, &z1);
+        SwapFloats(&w0, &w1);
     }
     if (y1 > y2) // Segundo intercambio
     {
         SwapIntegers(&y1, &y2);
         SwapIntegers(&x1, &x2);
+        SwapFloats(&z1, &z2);
+        SwapFloats(&w1, &w2);
     }
     if (y0 > y1) // Tercer intercambio
     {
         SwapIntegers(&y0, &y1);
         SwapIntegers(&x0, &x1);
+        SwapFloats(&z0, &z1);
+        SwapFloats(&w0, &w1);
     }
 
-    // Si la cara es plana por abajo bypaseamos el triángulo inferior
-    if (y1 == y2)
-    {
-        FillFlatBottomTriangle(x0, y0, x1, y1, x2, y2, color);
-    }
-    // Si la cara es plana por abajo bypaseamos el triángulo inferior
-    else if (y0 == y1)
-    {
-        FillFlatTopTriangle(x0, y0, x1, y1, x2, y2, color);
-    }
-    else
-    {
-        // Calcular el vértice (Mx, My) usando similitudes
-        int Mx = (((x2 - x0) * (y1 - y0)) / static_cast<float>((y2 - y0))) + x0;
-        int My = y1;
+    // Create vector points for texturing after sorting the vertices
+    Vector4 pA{ (double)x0, (double)y0, (double)z0, (double)w0 };
+    Vector4 pB{ (double)x1, (double)y1, (double)z1, (double)w1 };
+    Vector4 pC{ (double)x2, (double)y2, (double)z2, (double)w2 };
 
-        // Dibujar triángulo con lado inferior plano
-        FillFlatBottomTriangle(x0, y0, x1, y1, Mx, My, color);
-        // Dibujar triángulo con lado superior plano
-        FillFlatTopTriangle(x1, y1, Mx, My, x2, y2, color);
+    // Common divisions for depth calculations
+    float oneDivW[3] = { 1 / pA.w , 1 / pB.w, 1 / pC.w };
+
+    /*** Render the upper part of the triangle (flat bottom) ***/
+    {
+        float m1 = 0;
+        float m2 = 0;
+
+        // Checks to avoid infinite divisions
+        if (y1 - y0 != 0) m1 = -((y1 - y0) / static_cast<float>((x0 - x1))); // m1 izquierda -
+        if (y2 - y0 != 0) m2 = (y2 - y0) / static_cast<float>((x2 - x0));    // m2 derecha +
+        if (y1 - y0 != 0)
+        {
+
+            for (size_t i = 0; i < (y1 - y0); i++)
+            {
+                int xStart = x0 + (i / m1);
+                int xEnd = x0 + (i / m2);
+                int y = y0 + i;
+                
+                // Sometimes we have to draw the triangle from right to left
+                // so we have to swap the xStart and the xEnd
+                if (xEnd < xStart) SwapIntegers(&xEnd, &xStart);
+
+                for (int x = xStart; x < xEnd; x++)
+                {
+                    uint32_t newColor = color;
+                    //if (xStart == 0) newColor = 0xFF000000;
+                    DrawTrianglePixel(x, y, pA, pB, pC, oneDivW, newColor);
+                }
+            }
+        }
+    }
+
+    /*** Render the lower part of the triangle (flat top) ***/
+    {
+        float m1 = 0;
+        float m2 = 0;
+        // Checks to avoid infinite divisions
+        if (y2 - y1 != 0) m1 = -((y2 - y1) / static_cast<float>((x2 - x1))); // m1 izquierda -
+        if (y2 - y0 != 0) m2 = -((y2 - y0) / static_cast<float>((x2 - x0))); // m2 izquierda -
+        if (y2 - y1 != 0)
+        {
+            for (size_t i = 0; i <= (y2 - y1); i++)
+            {
+                int xStart = x2 + (i / m1);
+                int xEnd = x2 + (i / m2);
+                int y = y2 - i;
+
+                // Sometimes we have to draw the triangle from right to left
+                // so we have to swap the xStart and the xEnd
+                if (xEnd < xStart) SwapIntegers(&xEnd, &xStart);
+
+                for (int x = xStart; x < xEnd; x++)
+                {
+                    uint32_t newColor = color;
+                    // if (xStart == 0) newColor = 0xFF000000;
+                    DrawTrianglePixel(x, y, pA, pB, pC, oneDivW, newColor);
+                }
+            }
+        }
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <deque>
+#include <deque>
 #include "vector.h"
 #include "triangle.h"
 #include "upng.h"

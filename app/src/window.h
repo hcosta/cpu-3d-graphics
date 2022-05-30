@@ -21,23 +21,24 @@ public:
 
     /* Configurable options */
     bool drawGrid = true;
-    bool drawWireframe = false;
+    bool drawWireframe = true;
     bool drawWireframeDots = false;
+    bool drawTriangleNormals = true;
     bool drawFilledTriangles = true;
-    bool drawTexturedTriangles = true;
+    bool drawTexturedTriangles = false;
     bool enableBackfaceCulling = true;
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {1, 0, 0};
-    float modelRotation[3] = {0, 0, 0};
+    float modelTranslation[3] = {0.385, 0, 0};
+    float modelRotation[3] = {5.25, 0.875, 0};
 
     /* Camera settings */
     float cameraPosition[3] = {0, 0, -5};
 
     /* Projection settings */
     float fovFactor = M_PI / (180/70.0f); // 70º in radians
-    float fovFactorInGrades = 70;
+    float fovFactorInGrades = 45;
     float aspectRatio = windowHeight / static_cast<float>(windowWidth);
     float zNear = 0.1, zFar = 100.0;
     Matrix4 projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
@@ -61,6 +62,7 @@ private:
     Timer capTimer;
     /* Custom objects */
     Mesh mesh;
+    Mesh mesh2;
     /* Event Handling */
     SDL_Event event{};
 
@@ -83,11 +85,14 @@ public:
 
     void DrawGrid(unsigned int color);
     void DrawPixel(int sx, int sy, unsigned int color);
+    void DrawTrianglePixel(int x, int y, Vector4 a, Vector4 b, Vector4 c, float* oneDivW, uint32_t color);
     void DrawTexel(int x, int y, Vector4 a, Vector4 b, Vector4 c, Texture2 t0, Texture2 t1, Texture2 t2, float* uDivW, float* vDivW, float* oneDivW, uint32_t* texture, int textureWidth, int textureHeight);
     void DrawRect(int sx, int sy, int width, int height, uint32_t color);
     void DrawLine(int x0, int y0, int x1, int y1, uint32_t color);
+    void DrawLine3D(int x0, int y0, float w0, int x1, int y1, float w1, uint32_t color);
     void DrawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
-    void DrawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, uint32_t color);
+    void DrawTriangle3D(int x0, int y0, float w0, int x1, int y1, float w1, int x2, int y2, float w2, uint32_t color);
+    void DrawFilledTriangle(int x0, int y0, float z0, float w0, int x1, int y1, float z1, float w1, int x2, int y2, float z2, float w2, uint32_t color);
     void DrawTexturedTriangle(int x0, int y0, float z0, float w0, Texture2 uv0, int x1, int y1, float z1, float w1, Texture2 uv1, int x2, int y2, float z2, float w2, Texture2 uv2, uint32_t* texture, int textureWidth, int textureHeight);
     void SwapIntegers(int *a, int *b);
     void SwapFloats(float* a, float* b);
