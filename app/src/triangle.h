@@ -5,6 +5,7 @@
 #include "matrix.h"
 #include "light.h"
 #include "texture.h"
+#include "camera.h"
 
 class Triangle
 {
@@ -60,13 +61,21 @@ public:
         vertices[vertexIndex] = transformedVertex.ToVector3();
     }
 
-    void WorldVertex(int vertexIndex, Vector3 scale, Vector3 angle, Vector3 translate)
+    void WorldVertexTransform(int vertexIndex, Vector3 scale, Vector3 angle, Vector3 translate)
     {
         // Use a matrix to world transform the original vertex
         Vector4 transformedVertex{ vertices[vertexIndex] };
         transformedVertex = transformedVertex * Matrix4::WorldMatrix(scale, angle, translate);
         vertices[vertexIndex] = transformedVertex.ToVector3();
     };
+
+    void ViewVertexTransform(int vertexIndex, Matrix4 viewMatrix)
+    {
+        // Multiply the view matrix by the original vector to transform the scene to camera space
+        Vector4 transformedVertex{ vertices[vertexIndex] };
+        transformedVertex = transformedVertex * viewMatrix;
+        vertices[vertexIndex] = transformedVertex.ToVector3();
+    }
 
     // void ProjectVertex(int vertexIndex, float fovFactor)
     // {
@@ -95,10 +104,12 @@ public:
         projectedNormal[1] = Matrix4::ProjectMatrix(projectionMatrix, transformedNormalVertex2);
     };
 
-    void ApplyCulling(float *cameraPosition)
+    void ApplyCulling(Camera *camera)
     {
-        // Find the vector betweenn a triangle point and camera origin
-        Vector3 cameraRay = Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]) - this->vertices[0];
+        // Setup up the origin 0,0,0 to calculate the initial cameraRay
+        Vector3 origin = {0,0,0};
+        // Find the vector between a triangle point and camera origin
+        Vector3 cameraRay = Vector3(origin - this->vertices[0]);
         // Calculate how aligned the camera ray is with the face normal
         float dotNormalCamera = normal.DotProduct(cameraRay);
         // Test the dotNormalCamera and render the triangle if is >0

@@ -75,7 +75,10 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
 * [Decodificación de ficheros PNG](#decodificación-de-ficheros-png)
 * [Profundidad con Z-Buffer](#profundidad-con-z-buffer)
     * [Rasterizado de líneas 3D](#rasterizado-de-líneas-3d)
-    * [Rasterizado de las normales](#rasterización-de-normales)
+    * [Rasterizado de las normales](#rasterizado-de-las-normales)
+* [Matriz de vista y cámaras](#matriz-de-vista-y-cámaras)
+    * [Cámara Look-at](#cámara-look-at)
+    * [Cámara FPS](#cámara-fps)
 
 ## Configuración previa
 
@@ -1174,7 +1177,7 @@ La proyección en perspectiva consiste en simular la forma en cómo los humanos 
 
 Esto introduce la idea de que necesitamos una especie de espectador u ojo como origen de la vista tridimensional con un ángulo de visión que definirá el campo visible, llamado `AOV` (angle of view).
 
-En un videojuego o simulación tridimensional, el origen de la vista es la cámara que nos permite percibir el mundo, abarcando el espacio entre el plano más cercano y el plano más alejado, denominado `View Frustrum`:
+En un videojuego o simulación tridimensional, el origen de la vista es la cámara que nos permite percibir el mundo, abarcando el espacio entre el plano más cercano y el plano más alejado, denominado `View Frustum`:
 
 ![](./docs/image-10.png)
 
@@ -4505,7 +4508,7 @@ Sin embargo encontramos una contradicción y es que cuanto mayor es el ángulo, 
 
 <img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Green}&space;f}&space;=&space;\frac{1}{tan({\color{Orange}&space;\theta}&space;/2)}&space;\to&space;\begin{bmatrix}{\color{Green}&space;f}x&space;\\{\color{Green}&space;f}y\\z\end{bmatrix}"/>
 
-Lo último que necesitamos aplicar es la **normalización** del espacio visualizado, para ello buscaremos otro factor de escalado. Delimitaremos la profundidad del **frustrum** entre la `Z` más alejada `zfar` y la `Z` más cercana `znear`. 
+Lo último que necesitamos aplicar es la **normalización** del espacio visualizado, para ello buscaremos otro factor de escalado. Delimitaremos la profundidad del **Frustum** entre la `Z` más alejada `zfar` y la `Z` más cercana `znear`. 
 
 ![](./docs/image-69.png)
 
@@ -6246,7 +6249,7 @@ El problema que tenemos actualmente es que las líneas no tienen en cuenta la pr
 
 ![](./docs/image-123.png)
 
-¿Qué tal si también creamos un método que permita dibujar líneas con profundidad? O lo que es lo mismo, líneas 3D. Podemos crear una nueva versión `DrawTriangle3D:
+¿Qué tal si también creamos un método que permita dibujar líneas con profundidad? O lo que es lo mismo, líneas 3D. Podemos crear una nueva versión `DrawTriangle3D`:
 
 ```cpp
 void Window::DrawTriangle3D(int x0, int y0, float w0, int x1, int y1, float w1, int x2, int y2, float w2, uint32_t color)
@@ -6405,3 +6408,314 @@ El resultado es genial, como las líneas 3D están transformadas y proyectadas s
 
 ![](./docs/image-125.png)
 
+## Matriz de vista y cámaras
+
+Este proyecto está prácticamente acabado a falta de implementar una cámara en condiciones para navegar por la escena y la implementación del *clipping*.
+
+Actualmente estamos manejando dos transformaciones muy importantes mediante dos matrices, una de mundo y otra de proyección. La primera sitúa un objeto en el mundo tridimensional y la segunda transforma ese espacio 3D a uno 2D para visualizarlo en la pantalla. Sin embargo, nuestra idea actual de una cámara, el lugar desde el que estamos observando, es el origen del mundo 3D `(0,0,0)` y lo que hacemos es llevarnos el `mesh` al fondo para visualizarlo.
+
+Evidentemente esto no es lo que realmente nos interesa, lo ideal es contar con una cámara de verdad que pueda moverse por la escena y visualizar el conjunto del mundo desde su posición: 
+
+![](./docs/image-128.png)
+
+Para conseguir este propósito introduciremos lo que se denomina una **matriz de vista** (*view matrix*), una transformación que ejecutaremos para establecer el punto de vista desde un lugar concreto. El resultado ya no será el espacio del mundo (*world space*) sino el espacio de la vista (*view space*).
+
+En conjunto si repasamos el ciclo de transformaciones tendremos diferentes espacios:
+
+1. En primer lugar los vértices se encuentran en el **espacio del modelo**, también llamado sistema de coordenadas local y vienen dadas por el propio modelo al crearlo:
+
+    ![](./docs/image-129.png)
+
+2. A continuación realizamos la transformación de los vértices al **espacio del mundo** multiplicando el espacio del modelo por la matriz de mundo:
+
+    ![](./docs/image-130.png)
+
+3. El siguiente paso será aplicar la transformación de los vértices al **espacio de la vista** multiplicando el espacio del mundo por la matriz de vista:
+
+    ![](./docs/image-127.png)
+
+4. Finalmente aplicaremos la transformación de proyección al **espacio de la  pantalla** (*screen space*) multiplicando el espacio de vista por la matriz de proyección:
+
+    ![](./docs/image-131.png)
+
+Dependiendo del tipo de cámara que vayamos a implementar aplicaremos una matriz de vista distinta. Por ejemplo, una ***Look-at Camera*** es la que mira hacia un lugar concreto, mientras que una cámara de tipo ***FPS Camera*** incorpora libertad de movimiento en el espacio.
+
+Empecemos por la cámara hacia un lugar concreto.
+
+### Cámara Look-at
+
+Una de las formas de implementar  una `view matrix` es mediante una función `lookAt` que retornará una matriz `4x4` utilizada para multiplicar los vértices y convertirlos al `view space`.
+
+Para establecer la posición y orientación de la cámara en el espacio, se necesita dos puntos:
+
+* El de la posición de la cámara en el espacio (`eye point` o punto del ojo).
+* El de la posición hacia donde está mirando la cámara (`target point` o punto objetivo).
+
+La transformación `lookAt` es la responsable de devolver la matriz de la vista (`MatrixView`) y consta consta de dos transformaciones:
+
+1. Primero la **traslación** de toda la escena de forma inversa desde la posición del ojo de la cámara hacia el origen (`MatrixTranslation`).
+2. Luego la **rotación** de la escena con la orientación revertida (`MatrixRotation`), de manera que la cámara esté posicionada en el origen y mirando al eje `Z` positivo (por utilizar un sistema basado en la regla de la mano izquierda).
+
+La **matriz de la vista** será por tanto la combinación de la **matriz de rotación** y la **matriz de traslación**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Orange}&space;View}}&space;=&space;M_{R}&space;*&space;M_{T}" />
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Orange}&space;View}}&space;=&space;\begin{bmatrix}r_{11}&space;&&space;r_{12}&space;&&space;r_{13}&space;&&space;0&space;\\r_{21}&space;&&space;r_{22}&space;&&space;r_{23}&space;&&space;0&space;\\r_{31}&space;&&space;r_{32}&space;&&space;r_{33}&space;&&space;0&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}*\begin{bmatrix}1&space;&&space;0&space;&&space;0&space;&&space;t_{x}&space;\\0&space;&&space;1&space;&&space;0&space;&&space;t_{y}&space;\\0&space;&&space;0&space;&&space;1&space;&&space;t_{z}&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}&space;" />
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Orange}&space;View}}&space;=&space;\begin{bmatrix}r_{11}&space;&&space;r_{12}&space;&&space;r_{13}&space;&&space;(r_{11}t_{x}&space;&plus;&space;r_{12}t_{y}&space;&plus;&space;r_{13}t_{z})&space;\\r_{21}&space;&&space;r_{22}&space;&&space;r_{23}&space;&&space;(r_{21}t_{x}&space;&plus;&space;r_{22}t_{y}&space;&plus;&space;r_{23}t_{z})&space;\\r_{31}&space;&&space;r_{32}&space;&&space;r_{33}&space;&&space;(r_{31}t_{x}&space;&plus;&space;r_{32}t_{y}&space;&plus;&space;r_{33}t_{z})&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}" />
+
+Ahora debemos determinar cuáles son los elementos a aplicar en ambas matrices, así que vamos a diseccionar las dos transformaciones.
+
+La **matriz de traslación** es sencilla, solo tenemos que mover la posición de la cámara al origen:
+
+![](./docs/image-132.png)
+
+Substituiremos la cuarta columna la matriz de traslación `MT` por la posición del ojo negado (el sistema está basado en la regla de la mano izquierda):
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{DarkGreen}&space;T}}&space;=&space;\begin{bmatrix}1&space;&&space;0&space;&&space;0&space;&&space;{\color{Blue}&space;-&space;eye}_{x}&space;\\0&space;&&space;1&space;&&space;0&space;&&space;{\color{Blue}&space;-&space;eye}_{y}&space;\\0&space;&&space;0&space;&&space;1&space;&&space;{\color{Blue}&space;-&space;eye}_{z}&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}&space;"/>
+
+La **matriz de rotación** es algo más compleja, debemos empezar computando los vectores `(Z adelante, X derecha, Y arriba)` de la cámara respecto a donde está mirando:
+
+![](./docs/image-133.png)
+
+Estos tres vectores `(x, y, z)` los utilizaremos para construir la matriz de rotación `MR`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Magenta}&space;R}}&space;=&space;\begin{bmatrix}{\color{Red}&space;x}_{x}&space;&&space;{\color{DarkGreen}&space;y}_{x}&space;&&space;{\color{Cyan}&space;z}_{x}&space;&&space;0&space;\\{\color{Red}&space;x}_{y}&space;&&space;{\color{DarkGreen}&space;y}_{y}&space;&&space;{\color{Cyan}&space;z}_{y}&space;&&space;0&space;\\{\color{Red}&space;x}_{z}&space;&&space;{\color{DarkGreen}&space;y}_{z}&space;&&space;{\color{Cyan}&space;z}_{z}&space;&&space;0&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}" />
+
+Sin emargo esta matriz debe estar invertida. ¿Por qué? Si por ejemplo suponemos que la cámara se encuentra por encima de la escena, toda la escena deberá encontrarse rotada hacia abajo. Si se encuentra a la izquierda de la escena, toda la escena deberá encontrarse rotada hacia la izquierda, lo contrario. Por esa razón debemos computar la matriz inversa:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Magenta}&space;R}}&space;=&space;\begin{bmatrix}{\color{Red}&space;x}_{x}&space;&&space;{\color{DarkGreen}&space;y}_{x}&space;&&space;{\color{Cyan}&space;z}_{x}&space;&&space;0&space;\\{\color{Red}&space;x}_{y}&space;&&space;{\color{DarkGreen}&space;y}_{y}&space;&&space;{\color{Cyan}&space;z}_{y}&space;&&space;0&space;\\{\color{Red}&space;x}_{z}&space;&&space;{\color{DarkGreen}&space;y}_{z}&space;&&space;{\color{Cyan}&space;z}_{z}&space;&&space;0&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}^{-1}" />
+
+El inverso de un número es aquel que multiplicado por el propio número da como resultado `1`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}N&space;*&space;\frac{1}{N}&space;=&space;1"/>
+
+Con una matriz el concepto es el mismo, solo que en lugar de `1`, multiplicar una matriz por su inversa dará como resultado la **matriz de identidad**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M&space;*&space;M^{-1}&space;=&space;I" />
+
+En la programación gráfica, si tenemos una matriz que rota un elemento por un cierto ángulo, hacer la inversa de esa matriz de rotación hará justo lo contrario, rotar de nuevo el elemento a la posición inicial, es decir, deshacer la operación.
+
+Como decía encontrar la inversa de una matriz es algo bastante tedioso, pero por suerte para nosotros hay un caso donde se simplifica y justamente es el que tenemos en la matriz de rotación `MR`.
+
+Cuando una **matriz es ortogonal**, cada fila tiene una longitud de `1` (necesitaremos normalizar los valores) y los valores son mútuamente perpendiculares (podemos invertirlos), para invertirla sólo tenemos que encontrar su **matriz transpuesta**, que consiste en intercambiar los filas y las columnas:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Magenta}&space;R}}&space;=&space;\begin{bmatrix}{\color{Red}&space;x}_{x}&space;&&space;{\color{DarkGreen}&space;y}_{x}&space;&&space;{\color{Cyan}&space;z}_{x}&space;&&space;0&space;\\{\color{Red}&space;x}_{y}&space;&&space;{\color{DarkGreen}&space;y}_{y}&space;&&space;{\color{Cyan}&space;z}_{y}&space;&&space;0&space;\\{\color{Red}&space;x}_{z}&space;&&space;{\color{DarkGreen}&space;y}_{z}&space;&&space;{\color{Cyan}&space;z}_{z}&space;&&space;0&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}^{T}&space;=&space;\begin{bmatrix}{\color{Red}&space;x}_{x}&space;&&space;{\color{Red}&space;x}_{y}&space;&&space;{\color{Red}&space;x}_{z}&space;&&space;0&space;\\{\color{DarkGreen}&space;y}_{x}&space;&&space;{\color{DarkGreen}&space;y}_{y}&space;&&space;{\color{DarkGreen}&space;y}_{z}&space;&&space;0&space;\\{\color{Cyan}&space;z}_{x}&space;&&space;{\color{Cyan}&space;z}_{y}&space;&&space;{\color{Cyan}&space;z}_{z}&space;&&space;0&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}" />
+
+Así pues, al aplicar todos los valores la **matriz de la vista** quedará:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Orange}&space;View}}&space;=&space;\begin{bmatrix}{\color{Red}&space;x}_{x}&space;&&space;{\color{Red}&space;x}_{y}&space;&&space;{\color{Red}&space;x}_{z}&space;&&space;0&space;\\{\color{DarkGreen}&space;y}_{x}&space;&&space;{\color{DarkGreen}&space;y}_{y}&space;&&space;{\color{DarkGreen}&space;y}_{z}&space;&&space;0&space;\\{\color{Cyan}&space;z}_{x}&space;&&space;{\color{Cyan}&space;z}_{y}&space;&&space;{\color{Cyan}&space;z}_{z}&space;&&space;0&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}*&space;&space;&space;\begin{bmatrix}1&space;&&space;0&space;&&space;0&space;&&space;{\color{Blue}&space;-&space;eye}_{x}&space;\\0&space;&&space;1&space;&&space;0&space;&&space;{\color{Blue}&space;-&space;eye}_{y}&space;\\0&space;&&space;0&space;&&space;1&space;&&space;{\color{Blue}&space;-&space;eye}_{z}&space;\\0&space;&&space;0&space;&&space;0&space;&&space;1&space;\\\end{bmatrix}&space;&space;" />
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Orange}View}}=\begin{bmatrix}{\color{Red}&space;x}_{x}&&{\color{Red}&space;x}_{y}&&{\color{Red}&space;x}_{z}&&(-{\color{Red}&space;x}_{x}&space;{\color{Blue}eye}_{x}&space;-{\color{Red}&space;x}_{y}{\color{Blue}eye}_{y}&space;-&space;{\color{Red}&space;x}_{z}{\color{Blue}eye}_{z}&space;)\\{\color{DarkGreen}&space;y}_{x}&&{\color{DarkGreen}&space;y}_{y}&&{\color{DarkGreen}&space;y}_{z}&&(-{\color{DarkGreen}&space;y}_{x}&space;{\color{Blue}eye}_{x}&space;-{\color{DarkGreen}&space;y}_{y}{\color{Blue}eye}_{y}&space;-&space;{\color{DarkGreen}&space;y}_{z}{\color{Blue}eye}_{z}&space;)\\{\color{Cyan}&space;z}_{x}&&{\color{Cyan}&space;z}_{y}&&{\color{Cyan}&space;z}_{z}&&(-{\color{Cyan}&space;z}_{x}&space;{\color{Blue}eye}_{x}&space;-{\color{Cyan}&space;z}_{y}{\color{Blue}eye}_{y}&space;-&space;{\color{Cyan}&space;z}_{z}{\color{Blue}eye}_{z}&space;)\\0&&1&&0&&1\\\end{bmatrix}">
+
+Lo cual se puede simplificar mediante **productos escalares**, en la forma final de nuestra **matriz de la vista** para una cámara `lookAt`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}M_{{\color{Orange}View}}=\begin{bmatrix}{\color{Red}x}_{x}&&{\color{Red}x}_{y}&&{\color{Red}x}_{z}&&-dot(-{\color{Red}x},&space;{\color{Blue}eye})\\{\color{DarkGreen}y}_{x}&&{\color{DarkGreen}y}_{y}&&{\color{DarkGreen}y}_{z}&&-dot(-{\color{DarkGreen}y},&space;{\color{Blue}eye})\\{\color{Cyan}z}_{x}&&{\color{Cyan}z}_{y}&&{\color{Cyan}z}_{z}&&-dot(-{\color{Cyan}z},&space;{\color{Blue}eye})\\0&&1&&0&&1\\\end{bmatrix}"/>
+
+Ahora que tenemos la matriz podemos al fin codificar el método `LookAt` en la clase `Matrix4`:
+
+![](./docs/image-134.png)
+
+```cpp
+static Matrix4 LookAt(Vector3 eye, Vector3 target, Vector3 up)
+{
+    // Forward (z) vector in new coordinate system
+    Vector3 z = target - eye;
+    // Right (x) vector in new coordinate system
+    Vector3 x = up.CrossProduct(z);
+    // Up (y) vector in new coordinate system
+    Vector3 y = z.CrossProduct(x);
+
+    // Normalize the vectors
+    x.Normalize();
+    y.Normalize();
+    z.Normalize();
+
+    // | x.x   x.y   x.z   -dot(x.eye) |
+    // | y.x   y.y   y.z   -dot(y.eye) |
+    // | z.x   z.y   z.z   -dot(z.eye) |
+    // |   0     0     0             1 |
+
+    Matrix4 viewMatrix = {{
+        { x.x, x.y, x.z, -x.DotProduct(eye) },
+        { y.x, y.y, y.z, -y.DotProduct(eye) },
+        { z.x, z.y, z.z, -z.DotProduct(eye) },
+        {   0,   0,   0,                  1 },
+    }};
+
+    return viewMatrix;
+}
+```
+
+Básicamente buscamos los vectores del nuevo sistema de coordenadas y los normalizamos porque solo nos interesa su dirección (teniendo en cuenta que nuestro sistema funciona con la regla de la mano izquierda). Luego construimos la **matriz de la vista** mediante los vectores y el ojo.
+
+En este punto vamos a modificar el funcionamiento del programa, a partir de ahora ya no tendremos un `Vector3` simulando una cámara con el punto origen, sino que la cámara constituirá su propia clase `camera.h`:
+
+```cpp
+#ifndef CAMERA_H
+#define CAMERA_H
+
+#include "vector.h"
+
+class Camera {
+public:
+    Vector3 position{0,0,0};
+    Vector3 direction{0,0,1};
+};
+
+#endif
+```
+
+De esta cámara crearemos una instancia en `window.h`, conservaremos el array actual todo a cero para usarlo de interfaz para el slider:
+
+```cpp
+#include "camera.h"
+
+class Window
+{
+public:
+    /* Camera settings */
+    float cameraPosition[3] = {0, 0, 0};
+    Camera camera;
+};
+```
+
+Como ya no utilizaremos `cameraPosition` le actualizaremos el valor debajo de la interfaz:
+
+```cpp
+// Update Camera Position
+camera.position = Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+```
+
+Ahora tenemos que adaptar el `mesh`, empezando por el método `SetTranslation`:
+
+```cpp
+void Mesh::SetTranslation(float *translation)
+{
+    // Con rectificación de origen
+    this->translation = {
+        translation[0] - window->camera.position.x,
+        translation[1] - window->camera.position.y,
+        translation[2] - window->camera.position.z};
+}
+``` 
+
+Luego en `Mesh::Update` modificamos el método `ApplyCulling` para que ahora reciba un puntero a la cámara:
+
+```cpp
+triangles[i].ApplyCulling(&window->camera);
+```
+
+Este método cambiará un poco su lógica respecto a la primera versión, pues ahora asumiremos siempre el punto origen `(0,0,0)` para calcular el `cameraRay` (teniendo en cuenta que esto es antes de aplicar la transformación del espacio de la vista):
+
+```cpp
+void ApplyCulling(Camera *camera)
+{
+    // Setup up the origin 0,0,0 to calculate the initial cameraRay
+    Vector3 origin = {0,0,0};
+    // Find the vector between a triangle point and camera origin
+    Vector3 cameraRay = Vector3(origin - this->vertices[0]);
+    // Calculate how aligned the camera ray is with the face normal
+    float dotNormalCamera = normal.DotProduct(cameraRay);
+    // Test the dotNormalCamera and render the triangle if is >0
+    this->culling = (dotNormalCamera < 0);
+}
+```
+
+Ahora, justo al principio de cada `mesh.Update` vamos a crear la matriz `viewMatrix` de tipo `lookAt`, por ahora hacia un punto harcodeado.
+
+No es necesaria crear esta matriz en cada ciclo, podemos definirla globalmente en la ventana:
+
+```cpp
+/* Camera settings */
+Matrix4 viewMatrix;
+float cameraPosition[3] = {0, 0, 0};
+Camera camera;
+```
+
+Pero sí que la iremos recalculando en el `Update`  porque si cambia su posición o dirección, todo cambiará :
+
+```cpp
+void Mesh::Update()
+{
+    // Create a hardcoded target point and the up direction vector
+    Vector3 target = { 0, 0, 10 };
+    Vector3 upDirection = { 0, 1, 0 };
+    // Calculate the view matrix for each frame
+    window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
+}
+```
+
+Justo después de aplicar la transformación de mundo haremos lo propio con la matriz de la vista:
+
+```cpp
+/*** Apply world transformation and view transformation for all face vertices ***/
+for (size_t j = 0; j < 3; j++)
+{
+    // World transformation to get the world space
+    triangles[i].WorldVertexTransform(j, scale, rotation, translation);
+    // View transformation to get the view space (aka camera space) 
+    triangles[i].ViewVertexTransform(j, window->viewMatrix);
+}
+```
+
+La implementación será muy sencilla en `Triangle`:
+
+```cpp
+void ViewVertexTransform(int vertexIndex, Matrix4 viewMatrix)
+{
+    // Multiply the view matrix by the original vector to transform the scene to camera space
+    Vector4 transformedVertex{ vertices[vertexIndex] };
+    transformedVertex = transformedVertex * viewMatrix;
+    vertices[vertexIndex] = transformedVertex.ToVector3();
+}
+```
+
+En este punto ya lo tendremos, pero antes de ejecutar el resultado recordemos que por defecto el modelo se encuentra en el origen `(0,0,0)`. Como hemos establecido nuestra cámara también en `(0,0,0)` al estar el modelo cortando la cámara es posible que el programa se bloquee o muy muy lento (si la profundidad respecto al ojo tiende a 0 el tamaño resultante es infinito).
+
+Para solucionarlo, primero vamos a rectificar que se reste la cámara de la posición del mesh (ya no nos hace falta):
+
+```cpp
+void Mesh::SetTranslation(float *translation)
+{
+    // Con rectificación de origen
+    this->translation = { translation[0], translation[1], translation[2] };
+}
+```
+
+Y simplemente estableceremos la posición del modelo inicialmente a una profundidad de 4 o 5 en `window.h`:
+
+```cpp
+/* Model settings */
+float modelTranslation[3] = {0, 0, 4};
+```
+
+El resultado será el mismo que teníamos antes de utilizar la cámara:
+
+![](./docs/image-135.png)
+
+A simple vista no parece una gran mejora pero si actualizamos en cada fotograma el vector `target` a donde se encuentra el modelo y añadimos un pequeño cambio en la posición de la cámara:
+
+```cpp
+void Mesh::Update()
+{
+    // Create a hardcoded target point and the up direction vector
+    Vector3 target = { 
+        window->modelTranslation[0], 
+        window->modelTranslation[1], 
+        window->modelTranslation[2] };
+
+    // Add a light movement to the camera to the right
+    window->cameraPosition[0] += 0.025;
+    window->cameraPosition[1] += 0.025;
+    window->cameraPosition[2] -= 0.025;
+}
+```
+
+Quedará claro que hemos conseguido algo súmamente importante:
+
+![](./docs/anim-38.gif) 
+
+Ya podemos renderizar el escenario desde cualquier posición mirando a un punto concreto.
+
+### Cámara FPS

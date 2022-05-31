@@ -88,7 +88,7 @@ void Window::Setup()
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
     /* Mesh loading */
-    mesh = Mesh(this, "res/f117.obj", "res/f117.png");
+    mesh = Mesh(this, "res/crab.obj", "res/crab.png");
     // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
     // mesh2 = Mesh(this, "res/cube.obj", "res/cube.png");
 }
@@ -145,7 +145,7 @@ void Window::Update()
     ImGui::SliderFloat3("Rotate", modelRotation, 0, 10);
     ImGui::Separator();
     ImGui::Text("Posición cámara (X,Y,Z)");
-    ImGui::SliderFloat2("Camera", cameraPosition, -5, 5);
+    ImGui::SliderFloat3("Camera", cameraPosition, -5, 5);
     ImGui::Separator();
     ImGui::Text("Campo de visión");
     ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
@@ -160,6 +160,9 @@ void Window::Update()
     mesh.SetScale(modelScale);
     mesh.SetRotation(modelRotation);
     mesh.SetTranslation(modelTranslation);
+
+    // Update Camera Position
+    camera.position = Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
 
     // Update Projection Matrix
     projectionMatrix = Matrix4::PerspectiveMatrix((this->fovFactorInGrades / 180.0) * M_PI, aspectRatio, zNear, zFar);

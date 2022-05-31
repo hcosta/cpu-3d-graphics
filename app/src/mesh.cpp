@@ -111,14 +111,21 @@ void Mesh::SetRotation(float *rotation)
 void Mesh::SetTranslation(float *translation)
 {
     // Con rectificación de origen
-    this->translation = {
-        translation[0] - window->cameraPosition[0],
-        translation[1] - window->cameraPosition[1],
-        translation[2] - window->cameraPosition[2]};
+    this->translation = { translation[0], translation[1], translation[2] };
 }
 
 void Mesh::Update()
 {
+    Vector3 upDirection = { 0, 1, 0 };
+    // Create a hardcoded target point and the up direction vector
+    Vector3 target = { window->modelTranslation[0], window->modelTranslation[1], window->modelTranslation[2] };
+    // Add a light movement to the camera to the right
+    //window->cameraPosition[0] += 0.025;
+    //window->cameraPosition[1] += 0.025;
+    //window->cameraPosition[2] -= 0.025;
+    // Calculate the view matrix for each frame
+    window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
+
     // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
     {
@@ -127,19 +134,22 @@ void Mesh::Update()
         triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
         triangles[i].vertices[2] = vertices[static_cast<int>(faces[i].z) - 1];
 
-        /*** Apply world transformation for all face vertices ***/
+        /*** Apply world transformation and view transformation for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
-            triangles[i].WorldVertex(j, scale, rotation, translation);
+            // World transformation to get the world space
+            triangles[i].WorldVertexTransform(j, scale, rotation, translation);
+            // View transformation to get the view space (aka camera space) 
+            triangles[i].ViewVertexTransform(j, window->viewMatrix);
         }
 
-        /*** Calculate the notmal ***/
+        /*** Calculate the normal ***/
         triangles[i].CalculateNormal();
 
         /*** Back Face Culling Algorithm ***/
         if (window->enableBackfaceCulling)
         {
-            triangles[i].ApplyCulling(window->cameraPosition);
+            triangles[i].ApplyCulling(&window->camera);
             // Bypass the projection if triangle is being culled
 
             if (triangles[i].culling)

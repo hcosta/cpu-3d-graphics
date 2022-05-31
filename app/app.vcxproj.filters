@@ -74,6 +74,9 @@
     <ClInclude Include="src\upng.h">
       <Filter>Archivos de encabezado\upng</Filter>
     </ClInclude>
+    <ClInclude Include="src\camera.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

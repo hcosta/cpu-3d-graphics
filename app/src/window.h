@@ -8,6 +8,7 @@
 #include "mesh.h"
 #include "matrix.h"
 #include "light.h"
+#include "camera.h"
 
 class Window
 {
@@ -30,11 +31,13 @@ public:
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {0.385, 0, 0};
-    float modelRotation[3] = {5.25, 0.875, 0};
+    float modelTranslation[3] = {0, 0, 4};
+    float modelRotation[3] = {0, 0, 0};
 
     /* Camera settings */
-    float cameraPosition[3] = {0, 0, -5};
+    Matrix4 viewMatrix;
+    float cameraPosition[3] = {0, 0, 0};
+    Camera camera;
 
     /* Projection settings */
     float fovFactor = M_PI / (180/70.0f); // 70º in radians

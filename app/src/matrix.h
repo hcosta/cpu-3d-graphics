@@ -153,6 +153,35 @@ public:
         }
         return result;
     }
+
+    static Matrix4 LookAt(Vector3 eye, Vector3 target, Vector3 up)
+    {
+        // Forward (z) vector in new coordinate system
+        Vector3 z = target - eye;
+        // Right (x) vector in new coordinate system
+        Vector3 x = up.CrossProduct(z);
+        // Up (y) vector in new coordinate system
+        Vector3 y = z.CrossProduct(x);
+
+        // Normalize the vectors
+        x.Normalize();
+        y.Normalize();
+        z.Normalize();
+
+        // | x.x   x.y   x.z   -dot(x.eye) |
+        // | y.x   y.y   y.z   -dot(y.eye) |
+        // | z.x   z.y   z.z   -dot(z.eye) |
+        // |   0     0     0             1 |
+
+        Matrix4 viewMatrix = {{
+            { x.x, x.y, x.z, -x.DotProduct(eye) },
+            { y.x, y.y, y.z, -y.DotProduct(eye) },
+            { z.x, z.y, z.z, -z.DotProduct(eye) },
+            {   0,   0,   0,                  1 },
+        }};
+
+        return viewMatrix;
+    }
 };
 
 #endif

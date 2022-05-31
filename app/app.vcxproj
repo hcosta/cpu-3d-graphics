@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\camera.h" />
     <ClInclude Include="src\light.h" />
     <ClInclude Include="src\matrix.h" />
     <ClInclude Include="src\mesh.h" />
