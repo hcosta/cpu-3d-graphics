@@ -120,9 +120,9 @@ void Mesh::Update()
     // Create a hardcoded target point and the up direction vector
     Vector3 target = { window->modelTranslation[0], window->modelTranslation[1], window->modelTranslation[2] };
     // Add a light movement to the camera to the right
-    //window->cameraPosition[0] += 0.025;
-    //window->cameraPosition[1] += 0.025;
-    //window->cameraPosition[2] -= 0.025;
+    window->cameraPosition[0] += 1 * window->deltaTime;
+    window->cameraPosition[1] += 1 * window->deltaTime;
+    window->cameraPosition[2] -= 1 * window->deltaTime;
     // Calculate the view matrix for each frame
     window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
 

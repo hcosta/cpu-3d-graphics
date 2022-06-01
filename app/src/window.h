@@ -49,6 +49,9 @@ public:
     /* Light settings */
     Light light = Light{{0, 0, 1} };
 
+    /* DeltaTime*/
+    float deltaTime;
+
 private:
     /* Window */
     SDL_Window *window{ nullptr };
@@ -57,7 +60,7 @@ private:
     uint32_t* colorBuffer{ nullptr };
     SDL_Texture *colorBufferTexture{ nullptr };
     /* Fps */
-    int fpsCap = 30;
+    int fpsCap = 300;
     int screenRefreshRate = fpsCap;
     bool enableCap = true;
     int screenTicksPerFrame = 1000 / fpsCap;

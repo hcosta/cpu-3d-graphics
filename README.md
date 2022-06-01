@@ -78,6 +78,7 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Rasterizado de las normales](#rasterizado-de-las-normales)
 * [Matriz de vista y cámaras](#matriz-de-vista-y-cámaras)
     * [Cámara Look-at](#cámara-look-at)
+    * [Variable Delta-time](#variable-delta-time)
     * [Cámara FPS](#cámara-fps)
 
 ## Configuración previa
@@ -6705,7 +6706,7 @@ void Mesh::Update()
         window->modelTranslation[1], 
         window->modelTranslation[2] };
 
-    // Add a light movement to the camera to the right
+    // Add a slight movement to the camera to the right
     window->cameraPosition[0] += 0.025;
     window->cameraPosition[1] += 0.025;
     window->cameraPosition[2] -= 0.025;
@@ -6717,5 +6718,59 @@ Quedará claro que hemos conseguido algo súmamente importante:
 ![](./docs/anim-38.gif) 
 
 Ya podemos renderizar el escenario desde cualquier posición mirando a un punto concreto.
+
+### Variable Delta-time
+
+Actualmente estamos realizando un ligero cambio en la posición de la cámara en cada fotograma para simular que ésta se aleja del modelo:
+
+```cpp
+window->cameraPosition[0] += 0.025;
+window->cameraPosition[1] += 0.025;
+window->cameraPosition[2] -= 0.025;
+``` 
+
+El problema de estos valores es que afectan en función de los fotogramas. Cuanto mayor sea la tasa de FPS más rápido cambiará la posición de cámara porque los valores se incrementarán/decrementarán más veces.
+
+Esto es lo que se conoce como movimiento en función de los fotogramas y si podiéramos asegurar que la tasa de FPS es completamente estable no sería un problema. Pero el caso es que eso dista mucho de la realidad, pues los FPS son tendientes a cambiar dependiendo de lo ocupado que se encuentre el procesador, incluso pueden variar por la potencia del propio procesar.
+
+La solución es realizar el movimiento en función del tiempo, pues esa unidad es común independientemente de los FPS y para ello se almacena en una variable conocida como `deltaTime` la diferencia de tiempo en el que se ejecuta un fotograma y el siguiente. Usando como factor esa cantidad, que por ejemplo a `60` FPS sería `1/60 = 0.016`, podemos establecer un movimiento más preciso en función del tiempo como por ejemplo "X distancia por segundo" y funcionará para cualquier tasa de FPS que tengamos.
+
+Lo que generalmente haríamos es calcular la diferencia de `SDL_GetTicks()` respecto a otra variable almacenada en el anterior fotogorama. Sin embargo al haber implementado la interfaz `Dear ImGui` esa información nos la calcula la biblioteca automáticamente y la encontramos en `ImGui::GetIO().DeltaTime`.
+
+Si el acceso nos parece demasiado largo podemos definir una variable `float deltaTime` en `window.h`:
+
+```cpp
+class Window
+{
+public:
+    /* DeltaTime*/
+    float deltaTime;
+};
+```
+
+Y establecerla con ese valor en cada fotograma:
+
+```cpp
+// DeltaTime saving
+deltaTime = ImGui::GetIO().DeltaTime;
+```
+
+Solo tendremos que utilizarla donde precisemos, por ejemplo al alejar la cámara, ahora utilizando una cantidad de distancia por segundo:
+
+```cpp
+window->cameraPosition[0] += 1 * window->deltaTime;
+window->cameraPosition[1] += 1 * window->deltaTime;
+window->cameraPosition[2] -= 1 * window->deltaTime;
+```
+
+Ahora independientemente de si tenemos 5 FPS:
+
+![](./docs/anim-39.gif) 
+
+O 300 FPS:
+
+![](./docs/anim-40.gif) 
+
+La velocidad de movimiento siempre será 1 unidad del mundo por segundo.
 
 ### Cámara FPS
