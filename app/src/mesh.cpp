@@ -116,13 +116,21 @@ void Mesh::SetTranslation(float *translation)
 
 void Mesh::Update()
 {
+
+    //// LOOKAT CAMERA VIEW MATRIX WITH HARDCODED TARGET
+    // Vector3 target = { window->modelTranslation[0], window->modelTranslation[1], window->modelTranslation[2] };
+    // window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
+
+    //// FPS CAMERA VIEW MATRIX WITHOUT HARDCODED TARGET
+    // Create an initial target vector forward the z-axis
+    Vector3 target = {0, 0, 1};  
+    // Calculate yaw rotation matrix and set the direction
+    Matrix4 cameraYawRotationMatrix = Matrix4::RotationYMatrix(window->camera.yawPitch[0]);
+    Matrix4 cameraPitchRotationMatrix = Matrix4::RotationXMatrix(window->camera.yawPitch[1]);
+    window->camera.direction = target * cameraPitchRotationMatrix * cameraYawRotationMatrix;
+    // Offset the camera position in the direction where the camera is pointint at
+    target = window->camera.position + window->camera.direction;
     Vector3 upDirection = { 0, 1, 0 };
-    // Create a hardcoded target point and the up direction vector
-    Vector3 target = { window->modelTranslation[0], window->modelTranslation[1], window->modelTranslation[2] };
-    // Add a light movement to the camera to the right
-    window->cameraPosition[0] += 1 * window->deltaTime;
-    window->cameraPosition[1] += 1 * window->deltaTime;
-    window->cameraPosition[2] -= 1 * window->deltaTime;
     // Calculate the view matrix for each frame
     window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
 

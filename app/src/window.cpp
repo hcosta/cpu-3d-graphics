@@ -77,6 +77,9 @@ void Window::Init()
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer_Init(renderer);
+
+    // Enable mouse relative positions
+    SDL_WarpMouseInWindow(window, windowWidth/2, windowHeight/2);
 }
 
 void Window::Setup()
@@ -90,11 +93,13 @@ void Window::Setup()
     /* Mesh loading */
     mesh = Mesh(this, "res/cube.obj", "res/cube.png");
     // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
-    // mesh2 = Mesh(this, "res/cube.obj", "res/cube.png");
 }
 
 void Window::ProcessInput()
 {
+    // Update mouse positions for debugging
+    SDL_GetMouseState(&mousePosition[0], &mousePosition[1]);
+
     while (SDL_PollEvent(&event))
     {
         ImGui_ImplSDL2_ProcessEvent(&event);
@@ -104,10 +109,57 @@ void Window::ProcessInput()
             running = false;
             break;
         case SDL_KEYDOWN:
-            if (event.key.keysym.sym == SDLK_ESCAPE)
-                running = false;
+            if (event.key.keysym.sym == SDLK_ESCAPE) running = false;
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            mouseClicked = true;
+            // Save current click position
+            SDL_GetMouseState(&mouseClickPosition[0], &mouseClickPosition[1]);
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+            break;
+        case SDL_MOUSEBUTTONUP:
+            mouseClicked = false;
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+            // Reset current click position
+            SDL_WarpMouseInWindow(window, mouseClickPosition[0], mouseClickPosition[1]);
+            break;
+        case SDL_MOUSEMOTION:
+            if (mouseClicked and !guiHovered){
+                // Rotation per second in radians
+                float mouseSensitivity = 0.075;
+                // Increment the yaw and the pitch
+                camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime ;
+                camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime ;
+            }
             break;
         }
+    }
+
+    // Process the WASD movement with a keyState map
+    {
+        const uint8_t* keystate = SDL_GetKeyboardState(NULL);
+
+        // Calculate the forwardVelocity for the z axis and increment it
+        int zMovement{ keystate[SDL_SCANCODE_W] - keystate[SDL_SCANCODE_S] };
+        if (zMovement != 0)
+        {
+            camera.forwardVelocity = camera.direction * 5.0 * deltaTime;
+            camera.position += camera.forwardVelocity * zMovement;
+        }
+
+        // Calculate the sideVelocity for the x axis and increment it
+        int xMovement{ keystate[SDL_SCANCODE_A] - keystate[SDL_SCANCODE_D] };
+        if (xMovement != 0)
+        {
+            Vector3 vectorLeft = camera.direction.CrossProduct({ 0, 1, 0 });
+            camera.sideVelocity = vectorLeft * 5.0 * deltaTime;
+            camera.position += camera.sideVelocity * xMovement;
+        }
+
+        // Set the result moving positions into the camera interface
+        cameraPosition[0] = camera.position.x;
+        cameraPosition[1] = camera.position.y;
+        cameraPosition[2] = camera.position.z;
     }
 }
 
@@ -141,11 +193,15 @@ void Window::Update()
     ImGui::SliderFloat3("Scale", modelScale, 0, 5);
     ImGui::Text("Traslación del modelo");
     ImGui::SliderFloat3("Translate", modelTranslation, -5, 5);
-    ImGui::Text("Vector de rotación");
+    ImGui::Text("Rotación del modelo");
     ImGui::SliderFloat3("Rotate", modelRotation, 0, 10);
     ImGui::Separator();
     ImGui::Text("Posición cámara (X,Y,Z)");
     ImGui::SliderFloat3("Camera", cameraPosition, -5, 5);
+    ImGui::Text("Ángulos cámara (yaw,pitch,roll)");
+    ImGui::SliderFloat2("Angles", camera.yawPitch, -5, 5);
+    ImGui::Text("Posición ratón (X,Y)");
+    ImGui::SliderInt2("Mouse", mousePosition, 0, 0);
     ImGui::Separator();
     ImGui::Text("Campo de visión");
     ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
@@ -154,6 +210,7 @@ void Window::Update()
     ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
     ImGui::Separator();
     ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    guiHovered = ImGui::IsWindowHovered();
     ImGui::End();
 
     // DeltaTime saving

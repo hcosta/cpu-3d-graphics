@@ -31,13 +31,17 @@ public:
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {0, 0, 4};
-    float modelRotation[3] = {0, 0, 0};
+    float modelTranslation[3] = {0, 0, 6};
+    float modelRotation[3] = {0.25, 0.25, 0};
 
-    /* Camera settings */
-    Matrix4 viewMatrix;
-    float cameraPosition[3] = {0, 0, 0};
+    /* Camera and mouse settings */
     Camera camera;
+    Matrix4 viewMatrix;
+    float cameraPosition[3];
+    bool guiHovered{ false };
+    bool mouseClicked;
+    int mousePosition[2];
+    int mouseClickPosition[2];
 
     /* Projection settings */
     float fovFactor = M_PI / (180/70.0f); // 70º in radians
@@ -60,7 +64,7 @@ private:
     uint32_t* colorBuffer{ nullptr };
     SDL_Texture *colorBufferTexture{ nullptr };
     /* Fps */
-    int fpsCap = 300;
+    int fpsCap = 60;
     int screenRefreshRate = fpsCap;
     bool enableCap = true;
     int screenTicksPerFrame = 1000 / fpsCap;
@@ -68,7 +72,6 @@ private:
     Timer capTimer;
     /* Custom objects */
     Mesh mesh;
-    Mesh mesh2;
     /* Event Handling */
     SDL_Event event{};
 

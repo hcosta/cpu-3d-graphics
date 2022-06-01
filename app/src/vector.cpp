@@ -87,6 +87,16 @@ Vector3 Vector3::operator*(float factor) const
     return Vector3(x * factor, y * factor, z * factor);
 }
 
+
+Vector3 Vector3::operator*(Matrix4 m) const
+{
+    Vector3 result;
+    result.x = m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z ;
+    result.y = m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z;
+    result.z = m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z;
+    return result;
+}
+
 Vector3 Vector3::operator/(float factor) const
 {
     return Vector3(x / factor, y / factor, z / factor);

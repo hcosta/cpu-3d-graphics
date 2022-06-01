@@ -6561,7 +6561,6 @@ En este punto vamos a modificar el funcionamiento del programa, a partir de ahor
 class Camera {
 public:
     Vector3 position{0,0,0};
-    Vector3 direction{0,0,1};
 };
 
 #endif
@@ -6774,3 +6773,161 @@ O 300 FPS:
 La velocidad de movimiento siempre será 1 unidad del mundo por segundo.
 
 ### Cámara FPS
+
+Para implementar una cámara libre tipo `FPS` que podamos mover a voluntad en el sistema, necesitamos considerar las diferencias respecto a una cámara `lookAt`:
+
+1. Para empezar, como la cámara no tendrá un objetivo sino que apuntará hacia donde nosotros queramos, necesitaremos un **vector con la dirección** a parte de la posición. 
+2. Si podemos mover la cámara hacia adelante y atrás eso necesitamos un **vector de velocidad de velocidad adelante** para el eje `Z` y otro para moverla a la izquierda y a la derecha que podemos llamar **vector de velocidad lateral** para el eje `X`. 
+3. Finalmente para rotar la cámara tanto horizontalmente como verticalmente necesitaremos **diferentes ángulos** conocidos como `yaw` y `pitch`, los cuales se basan en congelar un eje y realizar la rotación en el espacio a su alrededor:
+    ![](./docs/image-136.png)
+
+```cpp
+class Camera {
+public:
+    Vector3 position{ 0, 0, 0 };
+    Vector3 direction{ 0, 0, 0 };
+    Vector3 forwardVelocity{ 0, 0, 0 };
+    Vector3 sideVelocity{ 0, 0, 0 };
+    float yawPitch[2]{0,0}; // y,p
+};
+```
+
+Para ayudarme a debugear la información añadiré algunos unos campos para los ángulos en la interfaz:
+
+```cpp
+ImGui::Text("Ángulos cámara (yaw,pitch,roll)");
+ImGui::SliderFloat2("Angles", camera.yawPitch, -5, 5);
+ImGui::Text("Posición ratón (X,Y)");
+ImGui::SliderInt2("Mouse", mousePosition, 0, 0);
+```
+
+Además definiré un kit de variables para controlar la posición del ratón, si ha ocurrido un click y el lugar, etc:
+
+```cpp
+class Window
+{
+public:
+    /* Camera and mouse settings */
+    Camera camera;
+    float cameraPosition[3];
+    Matrix4 viewMatrix;
+    bool mouseClicked;
+    int mousePosition[2];
+    int mouseClickPosition[2];
+};
+```
+
+Empezaremos por la rotación `yaw` y `pitch`, capturando los eventos `SDL_MOUSEBUTTONDOWN`, `SDL_MOUSEBUTTONUP` y `SDL_MOUSEMOTION`:
+
+```cpp
+void Window::ProcessInput()
+{
+    // Update mouse positions for debugging
+    SDL_GetMouseState(&mousePosition[0], &mousePosition[1]);
+
+    while (SDL_PollEvent(&event))
+    {
+        ImGui_ImplSDL2_ProcessEvent(&event);
+        switch (event.type)
+        {
+        case SDL_MOUSEBUTTONDOWN:
+            mouseClicked = true;
+            // Save current click position
+            SDL_GetMouseState(&mouseClickPosition[0], &mouseClickPosition[1]);
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+            break;
+        case SDL_MOUSEBUTTONUP:
+            mouseClicked = false;
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+            // Reset current click position
+            SDL_WarpMouseInWindow(window, mouseClickPosition[0], mouseClickPosition[1]);
+            break;
+        case SDL_MOUSEMOTION:
+            if (mouseClicked){
+                // Rotation per second in radians
+                float mouseSensitivity = 0.075;
+                camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime ;
+                camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime ; 
+            }
+            break;
+        }
+    }
+}
+```
+
+Básicamente incrementaremos los ángulos `yaw` y `pìtch` en función del movimiento del ratón en los ejes horizontal y vertical respectivamente. Cuando empiece el clic y finalice controlaremos una variable booleana `mouseClicked` y guardaremos la posición del click en la pantalla. Mientras el ratón está presionado podremos modificar los ángulos moviendo el ratón, pero para que se mantenga en el espacio de la ventana activaremos el modo de ratón relativo con `SDL_SetRelativeMouseMode`, haciéndolo desaparecer. Al dejar de presionar desactivaremos el modo de ratón relativo y dejaremos el puntero donde estaba antes de hacer el clic con `SDL_WarpMouseInWindow`.
+
+Con esto tenemos los ángulos de rotación y debemos crear la matriz de la vista para nuestra cámara FPS. Reutilizaremos el método Matrix::LookAt pero adaptando el vector objetivo `target`:
+
+```cpp
+void Mesh::Update()
+{
+    //// FPS CAMERA VIEW MATRIX WITHOUT HARDCODED TARGET
+    // Create an initial target vector forward the z-axis
+    Vector3 target = {0, 0, 1};  
+    // Calculate yaw rotation matrix and set the direction
+    Matrix4 cameraYawRotationMatrix = Matrix4::RotationYMatrix(window->camera.yawPitch[0]);
+    Matrix4 cameraPitchRotationMatrix = Matrix4::RotationXMatrix(window->camera.yawPitch[1]);
+    window->camera.direction = target * cameraPitchRotationMatrix * cameraYawRotationMatrix;
+    // Offset the camera position in the direction where the camera is pointing at
+    target = window->camera.position + window->camera.direction;
+    Vector3 upDirection = { 0, 1, 0 };
+    // Calculate the view matrix for each frame
+    window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
+}
+```
+
+Esta parte tiene más miga pero no es tan difícil, empezaremos con un `Vector3` básico para el objetivo. Es importante que tenga una profundidad `Z` mayor o igual a 1 porque eso implica que nuestro objetivo `target` estará inicialmente hacia adelante de la cámara (si el sistema utilizará la regla de la mano derecha deberíamos cambiar el número a `-1`).
+
+Luego generaremos dos matrices de rotación, la del ángulo `yaw` a partir de nuestro método `Matrix4::RotationYMatrix` y la del ángulo `pitch` a partir del método `Matrix4::RotationXMatrix` y los multiplicaremos por el `target` para conseguir la dirección de cámara. 
+
+Una vez tengamos la cámara mirando a la dirección ya rotada en `X` e `Y` calcularemos la posición del `target` simplemente como el offset entre la posición de la cámara y su dirección. Con el `target` listo calcularemos la matriz de la vista con `LookAt` y ya estará, podremos rotar la vista mientras h hacemos clic en la ventana:
+
+![](./docs/anim-41.gif) 
+
+La segunda parte de la cámara FPS es añadir el movimiento en función de las velocidades en el eje `Z` y `X`, para lo cuál he optado por un sistema en torno a la instrucción `SDL_GetKeyboardState` que genera un mapa de todas las teclas presionadas justo después de procesar el `while` de los eventos:
+
+```cpp
+// Process the WASD movement with a keyState map
+{
+    const uint8_t* keystate = SDL_GetKeyboardState(NULL);
+
+    // Calculate the forwardVelocity for the z axis and increment it
+    int zMovement{ keystate[SDL_SCANCODE_W] - keystate[SDL_SCANCODE_S] };
+    if (zMovement != 0) 
+    {
+        camera.forwardVelocity = camera.direction * 5.0 * deltaTime;
+        camera.position += camera.forwardVelocity * zMovement;
+    }
+
+    // Calculate the sideVelocity for the x axis and increment it
+    int xMovement{ keystate[SDL_SCANCODE_A] - keystate[SDL_SCANCODE_D] };
+    if (xMovement != 0) 
+    {
+        Vector3 vectorLeft = camera.direction.CrossProduct({ 0, 1, 0 });
+        camera.sideVelocity = vectorLeft * 5.0 * deltaTime;
+        camera.position += camera.sideVelocity * xMovement;
+    }
+
+    // Set the result moving positions into the camera interface
+    cameraPosition[0] = camera.position.x;
+    cameraPosition[1] = camera.position.y; 
+    cameraPosition[2] = camera.position.z;
+}
+```
+
+Primero detectamos si hay movimiento en el eje `Z`, de manera que tengamos almacenado un factor `-1, 0, 1`. Si ese factor es distinto de 0 significa que hay que mover la cámara en el eje `Z`. Ese eje es el de la propia dirección de la cámara `camera.direction`, solo debemos multiplicar esa dirección por una cantidad de movimiento y tendremos la `forwardVelocity` para incrementar `camera.position`.
+
+Luego haremos exactamente lo mismo para el eje `X`, pero deberemos calcular al  principio un vector para el eje `X` de la cámara. Eso es tan fácil como hacer el producto vectorial entre la dirección a la que mira la cámara y un vector genérico hacia arriba `{0,1,0}`:
+
+![](./docs/image-42.png)
+
+Este vector en el eje `X` llamado `vectorLeft` marcará la dirección y lo multiplicaremos por la cantidad a movernos en ese eje para luego sumarla a la posición.
+
+Finalmente actualizamos los valores de la interfaz de la cámara `cameraPosition` con la nuea posición que hemos calculado en `camera.position`:
+
+![](./docs/anim-42.gif) 
+
+Con esto he finalizado el desarrollo de la cámara FPS utilizando teclas `WASD` y apuntando con dirección del ratón.
+
+# TODO: Crear la ventana de SDL como una subventana de ImGUI

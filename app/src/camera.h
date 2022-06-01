@@ -5,8 +5,11 @@
 
 class Camera {
 public:
-    Vector3 position{ 0,0,0 };
-    Vector3 direction{ 0,0,1 };
+    Vector3 position{ 0, 0, 0 };
+    Vector3 direction{ 0, 0, 0 };
+    Vector3 forwardVelocity{ 0, 0, 0 };
+    Vector3 sideVelocity{ 0, 0, 0 };
+    float yawPitch[2]{ 0,0 };
 };
 
 #endif

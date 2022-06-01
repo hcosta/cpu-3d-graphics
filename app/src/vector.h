@@ -36,6 +36,7 @@ public:
     Vector3 &operator+=(const Vector3 &v);
     Vector3 operator-(const Vector3 &v) const;
     Vector3 operator*(float factor) const;
+    Vector3 operator*(Matrix4 m) const;
     Vector3 operator/(float factor) const;
     Vector3 CrossProduct(const Vector3 &v) const;
     float DotProduct(const Vector3 &v) const;
