@@ -9,6 +9,7 @@
 #include "matrix.h"
 #include "light.h"
 #include "camera.h"
+#include "clipping.h"
 
 class Window
 {
@@ -46,12 +47,13 @@ public:
     int mousePosition[2];
     int mouseClickPosition[2];
 
-    /* Projection settings */
-    float fovFactor = M_PI / (180/60.0f); // 60º in radians
+    /* Projection and frustum settings */
+    float fovFactor; // in radians
     float fovFactorInGrades = 60;
-    float aspectRatio = windowHeight / static_cast<float>(windowWidth);
+    float aspectRatio;
     float zNear = 0.1, zFar = 100.0;
-    Matrix4 projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
+    Matrix4 projectionMatrix;
+    Frustum viewFrustum;
 
     /* Light settings */
     Light light = Light{{0, 0, 1} };
@@ -88,6 +90,7 @@ public:
     {
         aspectRatio = rendererHeight / static_cast<float>(rendererWidth);
         projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
+        viewFrustum = Frustum(fovFactor, zNear, zFar);
     };
 
     ~Window();

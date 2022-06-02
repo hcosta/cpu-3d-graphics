@@ -7184,8 +7184,186 @@ El resultado final es todo lo que podía esperar:
 
 ## Clipping
 
-Llegó la hora de implementar la última funcionalidad importante de mi sistema de renderizado, la técnica que me permitirá descartar los triángulos fuera del *frustum* para ahorrar muchos recursos:
+Llegó la hora de implementar la última funcionalidad importante de mi sistema de renderizado, el *clipping*:
 
 ![](./docs/image-72.png)
 
-Sé de antemano que va a ser el tema más extenso y complejo pues hay mucho a tener en cuenta, pero el esfuerzo estoy seguro que valdrá la pena.
+Empezaré enumerando sus objetivos más importantes del *clipping*:
+
+* La meta de usar *clipping* es eliminar los objetos o segmentos de línea que quedan fuera del volumen de la vista (aka *frustum*).
+* El *clipping 3D* es un conjunto de métodos para recortar los polígonos que cortan planos. 
+* El *pipeline* define varios pasos, uno para cada plano del *frustum* que hay que recortar.
+
+Es decir, no se trata solo de descartar los modelos externos al *frustum* sino de la capacidad de recortar los que se encuentran cortando el propio *frustum* y eso nos traerá bastante trabajo:
+
+![](./docs/image-138.png)
+
+En el *frustum clipping* tenemos que recortar los modelos en cada uno de los seis planos por orden:
+
+1. Arriba
+2. Abajo
+3. Izquierda
+4. Derecha
+5. Cerca
+6. Lejos
+
+El polígono producido por cada paso se utiliza como entrada para el siguiente, por lo que al final estamos acumulando todos estos pasos para producir el modelo recortado final.
+
+### Planos
+
+Empecemos repasando qué es un plano, a fin de cuentas necesitamos 6 planos para formar un *frustum*.
+
+Un plano se define como el **conjunto de un punto y un vector normal**:
+
+![](./docs/image-139.png)
+
+Un punto puede tener infinitos planos dependiendo del vector normal.
+
+Así que vamos a crear esta clase dentro de nuestra nueva cabecera `clipping.h`:
+
+```cpp
+#ifndef CLIPPING_H
+#define CLIPPING_H
+
+#include "vector.h"
+
+class Plane
+{
+public:
+    Vector3 point;
+    Vector3 normal;
+};
+
+#endif
+```
+
+Lo siguiente que haremos es determinar para cada plano del `frustum` cual es el punto y el vector normal que lo identifica. Por eso nos preguntaremos lo siguiente para cada uno:
+
+* ¿Qué punto podemos tomar para definir un plano del *frustum*?
+* ¿Cuáles son los componentes `X`, `Y`, `Z` de su vector normal?
+
+**Plano derecho**
+
+Si suponemos que miramos desde arriba y queremos determinar el plano derecho del `frustum` tenemos:
+
+![](./docs/image-140.png)
+
+El punto `P` podemos suponerlo como el origen o la propia cámara en `(0,0,0)`. Mediante trigonometría encontraremos cada componente:
+
+![](./docs/image-141.png)
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\{\color{Blue}&space;P}&space;=&space;(0,0,0)\\&space;{\color{Green}&space;\overrightarrow{n}}_{x}&space;=&space;-cos({\color{Orange}&space;fov/2})\\&space;{\color{Green}&space;\overrightarrow{n}}_{y}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{z}&space;=&space;sin({\color{Orange}&space;fov/2})"/>
+
+Debemos tener en cuenta que `X` se encuentra a la izquierda y por tanto es negativa, de ahí que el coseno sea negativo.
+
+**Plano izquierdo**
+
+Este es exactamente igual pero la `X` es positiva, por tanto el ángulo del coseno será positivo:
+
+![](./docs/image-142.png)
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\{\color{Blue}&space;P}&space;=&space;(0,0,0)\\&space;{\color{Green}&space;\overrightarrow{n}}_{x}&space;=&space;cos({\color{Orange}&space;fov/2})\\&space;{\color{Green}&space;\overrightarrow{n}}_{y}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{z}&space;=&space;sin({\color{Orange}&space;fov/2})"/>
+
+**Plano superior**
+
+Ahora vamos a cambiar de perspectiva, vamos a ver el `frustum` desde el lado. Así podemos conseguir `Y` y `Z`:
+
+![](./docs/image-143.png)
+
+Dado que la `Y` es negativa, el coseno del ángulo será negativo:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\{\color{Blue}&space;P}&space;=&space;(0,0,0)\\&space;{\color{Green}&space;\overrightarrow{n}}_{x}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{y}&space;=&space;-cos({\color{Orange}&space;fov/2})\\&space;{\color{Green}&space;\overrightarrow{n}}_{z}&space;=&space;sin({\color{Orange}&space;fov/2})" />
+
+**Plano inferior**
+
+Cambiando al plano de abajo, el único cambio es que la `Y` es ahora positiva, por tanto el coseno será positivo:
+
+![](./docs/image-144.png)
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\{\color{Blue}&space;P}&space;=&space;(0,0,0)\\&space;{\color{Green}&space;\overrightarrow{n}}_{x}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{y}&space;=&space;cos({\color{Orange}&space;fov/2})\\&space;{\color{Green}&space;\overrightarrow{n}}_{z}&space;=&space;sin({\color{Orange}&space;fov/2})"/>
+
+**Plano cercano**
+
+Para poner en perspectiva la profundidad la vamos a visualizar desde el lado, suponiendo que tenemos un plano cercano cortando el `frustum`:
+
+![](./docs/image-145.png)
+
+En esta ocasión el punto `P` ya no será `(0,0,0)` sino que la profundidad `Z` vendrá marcada por el valor `znear` y la longitud normalizada es `1` hacia adelante, por tanto positiva:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\{\color{Blue}&space;P}&space;=&space;(0,&space;0,&space;{\color{Orange}&space;znear})\\&space;{\color{Green}&space;\overrightarrow{n}}_{x}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{y}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{z}&space;=&space;1" />
+
+**Plano alejado**
+
+Prácticamente con la misma lógica determinamos el plano más lejos en profundidad:
+
+![](./docs/image-146.png)
+
+la diferencia es que ahora la profundidad del punto `P` la determina nuestro valor `zfar` y el vector normal apunta hacia adentro, por lo que será negativo:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\{\color{Blue}&space;P}&space;=&space;(0,&space;0,&space;{\color{Orange}&space;zfar})\\&space;{\color{Green}&space;\overrightarrow{n}}_{x}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{y}&space;=&space;0\\&space;{\color{Green}&space;\overrightarrow{n}}_{z}&space;=&space;-1" />
+
+Con la información de los planos podemos codificar un método para inicializar una nueva clase `frustum` en función del valor `fov`, `znear` y `zfar`:
+
+```cpp
+#include <math.h>
+
+class Frustum
+{
+public:
+    Plane leftPlane;
+    Plane rightPlane;
+    Plane topPlane;
+    Plane bottomPlane;
+    Plane nearPlane;
+    Plane farPlane;
+
+    Frustum(float fov, float zNear, float zFar)
+    {
+        float cosHalfFov = cos(fov/2);
+        float sinHalfFov = sin(fov/2);
+
+        leftPlane.point = Vector3{0,0,0};
+        leftPlane.normal = Vector3{cosHalfFov,0,sinHalfFov};
+
+        rightPlane.point = Vector3{0,0,0};
+        rightPlane.normal = Vector3{-cosHalfFov,0,sinHalfFov};
+
+        topPlane.point = Vector3{0,0,0};
+        topPlane.normal = Vector3{0,-cosHalfFov,sinHalfFov};
+
+        bottomPlane.point = Vector3{0,0,0};
+        bottomPlane.normal = Vector3{0,cosHalfFov,sinHalfFov};
+
+        nearPlane.point = Vector3{0,0,zNear};
+        bottomPlane.normal = Vector3{0,0,1};
+
+        farPlane.point  = Vector3{0,0,zFar};
+        bottomPlane.normal = Vector3{0,0,-1};
+    }
+};
+```
+
+Inicializaremos nuestro `Frustum` justo después de crear la matriz de proyección:
+
+```cpp
+#include "clipping.h"
+
+class Window
+{
+public:
+    /* Projection and frustum settings */
+    float fovFactor; // in radians
+    float fovFactorInGrades = 60;
+    float aspectRatio;
+    float zNear = 0.1, zFar = 100.0;
+    Matrix4 projectionMatrix;
+    Frustum viewFrustum;  // <-----------
+
+    Window() : windowWidth(1280), windowHeight(720), rendererWidth(965), rendererHeight(655) 
+    {
+        aspectRatio = rendererHeight / static_cast<float>(rendererWidth);
+        projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
+        viewFrustum = Frustum(fovFactor, zNear, zFar);
+    };
+};
+```
