@@ -16,6 +16,10 @@ public:
     bool running = false;
     int windowWidth;
     int windowHeight;
+    int rendererWidth;
+    int rendererHeight;
+    bool rendererActive;
+    bool rendererDragged;
 
     /* Depth buffer  */
     float* depthBuffer{ nullptr };
@@ -31,21 +35,20 @@ public:
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {0, 0, 6};
+    float modelTranslation[3] = {0, 0, 7};
     float modelRotation[3] = {0.25, 0.25, 0};
 
     /* Camera and mouse settings */
     Camera camera;
     Matrix4 viewMatrix;
     float cameraPosition[3];
-    bool guiHovered{ false };
     bool mouseClicked;
     int mousePosition[2];
     int mouseClickPosition[2];
 
     /* Projection settings */
-    float fovFactor = M_PI / (180/70.0f); // 70º in radians
-    float fovFactorInGrades = 45;
+    float fovFactor = M_PI / (180/60.0f); // 60º in radians
+    float fovFactorInGrades = 60;
     float aspectRatio = windowHeight / static_cast<float>(windowWidth);
     float zNear = 0.1, zFar = 100.0;
     Matrix4 projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
@@ -60,7 +63,10 @@ private:
     /* Window */
     SDL_Window *window{ nullptr };
     SDL_Renderer *renderer{ nullptr };
-    /* Color buffer  */
+    /* Window textures*/
+    SDL_Texture* texture{ nullptr };
+    SDL_Texture* frameTexture{ nullptr };
+    /* Color buffer */
     uint32_t* colorBuffer{ nullptr };
     SDL_Texture *colorBufferTexture{ nullptr };
     /* Fps */
@@ -77,7 +83,12 @@ private:
 
 
 public:
-    Window(int w, int h) : windowWidth(w), windowHeight(h){};
+    Window() : windowWidth(1280), windowHeight(720), rendererWidth(960), rendererHeight(640) 
+    {
+        aspectRatio = rendererHeight / static_cast<float>(rendererWidth);
+        projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
+    };
+
     ~Window();
 
     void Init();

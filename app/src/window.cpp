@@ -53,7 +53,8 @@ void Window::Init()
     }
 
     // Creamos la ventana SDL
-    window = SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, 0); // SDL_WINDOW_BORDERLESS
+    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI); // SDL_WINDOW_BORDERLESS
+    window = SDL_CreateWindow("3D Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, window_flags);
 
     if (!window)
     {
@@ -63,7 +64,6 @@ void Window::Init()
 
     // Creamos el renderizador SDL
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
-
     if (!renderer)
     {
         std::cout << "Error creating SDL renderer." << std::endl;
@@ -73,23 +73,29 @@ void Window::Init()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
+    //ImGui::StyleColorsDark();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer_Init(renderer);
 
-    // Enable mouse relative positions
+    // Other options
     SDL_WarpMouseInWindow(window, windowWidth/2, windowHeight/2);
+    SDL_SetWindowResizable(window, SDL_FALSE);
+
 }
 
 void Window::Setup()
 {
     // Reservar la memoria requerida en bytes para mantener el color buffer
-    colorBuffer = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * windowWidth * windowHeight));
+    colorBuffer = static_cast<uint32_t *>(malloc(sizeof(uint32_t) * rendererWidth * rendererHeight));
     // Reservar la memoria para el depth buffer
-    depthBuffer = static_cast<float*>(malloc(sizeof(float) * windowWidth * windowHeight));
+    depthBuffer = static_cast<float*>(malloc(sizeof(float) * rendererWidth * rendererHeight));
     // Crear la textura SDL utilizada para mostrar el color buffer
-    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, windowWidth, windowHeight);
+    colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, rendererWidth, rendererHeight);
     /* Mesh loading */
     mesh = Mesh(this, "res/cube.obj", "res/cube.png");
     // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
@@ -114,28 +120,51 @@ void Window::ProcessInput()
         case SDL_MOUSEBUTTONDOWN:
             mouseClicked = true;
             // Save current click position
-            SDL_GetMouseState(&mouseClickPosition[0], &mouseClickPosition[1]);
-            SDL_SetRelativeMouseMode(SDL_TRUE);
+            //SDL_GetMouseState(&mouseClickPosition[0], &mouseClickPosition[1]);
+            //SDL_SetRelativeMouseMode(SDL_TRUE);
             break;
         case SDL_MOUSEBUTTONUP:
             mouseClicked = false;
-            SDL_SetRelativeMouseMode(SDL_FALSE);
+            //SDL_SetRelativeMouseMode(SDL_FALSE);
             // Reset current click position
-            SDL_WarpMouseInWindow(window, mouseClickPosition[0], mouseClickPosition[1]);
+            //SDL_WarpMouseInWindow(window, mouseClickPosition[0], mouseClickPosition[1]);
             break;
         case SDL_MOUSEMOTION:
-            if (mouseClicked and !guiHovered){
+            if (mouseClicked and rendererActive and !rendererDragged){
                 // Rotation per second in radians
-                float mouseSensitivity = 0.075;
+                float mouseSensitivity = 0.125;
                 // Increment the yaw and the pitch
                 camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime ;
                 camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime ;
             }
             break;
+        case SDL_MOUSEWHEEL:
+
+            // Scroll up
+            if (event.wheel.y > 0)
+            {
+                camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
+                camera.position += camera.forwardVelocity;
+            }
+
+            // Scroll down
+            else if (event.wheel.y < 0)
+            {
+                camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
+                camera.position -= camera.forwardVelocity;
+            }
+
+            // Set the result moving positions into the camera interface
+            cameraPosition[0] = camera.position.x;
+            cameraPosition[1] = camera.position.y;
+            cameraPosition[2] = camera.position.z;
+            
+            break;
         }
     }
 
     // Process the WASD movement with a keyState map
+    if (rendererActive and !rendererDragged)
     {
         const uint8_t* keystate = SDL_GetKeyboardState(NULL);
 
@@ -170,11 +199,32 @@ void Window::Update()
 
     // Iniciamos un Frame de Imgui
     ImGui_ImplSDLRenderer_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
 
-    // Creamos ventana demo de ImGUI
-    ImGui::Begin("CPU 3D Rendering");
+    // Top menú bar
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("Archivo"))
+        {
+            if (ImGui::MenuItem("Salir")) { running = false; }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+
+    // Rendering window
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::Begin("Rendering");
+    rendererDragged = ImGui::IsItemHovered();
+    ImGui::Image(colorBufferTexture, ImVec2(rendererWidth, rendererHeight));
+    rendererActive = ImGui::IsWindowFocused() && ImGui::IsWindowHovered();
+    ImGui::End();
+
+    ImGui::PopStyleVar();
+
+    // Debug window
+    ImGui::Begin("Debugging");
     ImGui::Checkbox("Limitar FPS", &this->enableCap);
     ImGui::SliderInt(" ", &this->fpsCap, 5, this->screenRefreshRate);
     ImGui::Separator();
@@ -207,11 +257,12 @@ void Window::Update()
     ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
     // ImGui::Text("Luz global");
     // ImGui::SliderFloat3("Posición de la luz (X,Y,Z)", lightPosition, -1, 1);
-    ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
+    ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 30));
     ImGui::Separator();
     ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    guiHovered = ImGui::IsWindowHovered();
     ImGui::End();
+
+    ImGui::EndFrame();
 
     // DeltaTime saving
     deltaTime = ImGui::GetIO().DeltaTime;
@@ -252,6 +303,10 @@ void Window::Render()
     // Renderizamos el frame de ImGui
     ImGui::Render();
 
+    // Clear the renderer
+    SDL_SetRenderDrawColor(renderer, 80, 80, 80, 0);
+    SDL_RenderClear(renderer);
+
     // Late rendering actions
     PostRender();
 }
@@ -285,46 +340,46 @@ void Window::PostRender()
 
 void Window::ClearColorBuffer(uint32_t color)
 {
-    for (size_t y = 0; y < windowHeight; y++)
+    for (size_t y = 0; y < rendererHeight; y++)
     {
-        for (size_t x = 0; x < windowWidth; x++)
+        for (size_t x = 0; x < rendererWidth; x++)
         {
-            colorBuffer[(windowWidth * y) + x] = color;
+            colorBuffer[(rendererWidth * y) + x] = color;
         }
     }
 }
 
 void Window::ClearDepthBuffer()
 {
-    for (size_t y = 0; y < windowHeight; y++)
+    for (size_t y = 0; y < rendererHeight; y++)
     {
-        for (size_t x = 0; x < windowWidth; x++)
+        for (size_t x = 0; x < rendererWidth; x++)
         {
-            depthBuffer[(windowWidth * y) + x] = 1.0;
+            depthBuffer[(rendererWidth * y) + x] = 1.0;
         }
     }
 }
 
 void Window::RenderColorBuffer()
 {
-    // Copiar el color buffer y su contenido a la textura
+    // Copiar el color buffer y su contenido a la textura de imgui
     // Así podremos dibujar la textura en el renderer
-    SDL_UpdateTexture(colorBufferTexture, NULL, colorBuffer, windowWidth * sizeof(uint32_t));
-    SDL_RenderCopy(renderer, colorBufferTexture, NULL, NULL);
+    SDL_UpdateTexture(colorBufferTexture, NULL, colorBuffer, rendererWidth * sizeof(uint32_t));
+    //SDL_RenderCopy(renderer, colorBufferTexture, NULL, NULL);
 }
 
 void Window::DrawGrid(unsigned int color)
 {
-    for (size_t x = 72; x < windowWidth; x += 100)
+    for (size_t x = 72; x < rendererWidth; x += 100)
     {
-        for (size_t y = 0; y < windowHeight; y++) {
+        for (size_t y = 0; y < rendererHeight; y++) {
             DrawPixel(x, y, color);
         }
     }
 
-    for (size_t y = 72; y < windowHeight; y+= 100)
+    for (size_t y = 72; y < rendererHeight; y+= 100)
     {
-        for (size_t x = 0; x < windowWidth; x++) {
+        for (size_t x = 0; x < rendererWidth; x++) {
             DrawPixel(x, y, color);
         }
     }
@@ -332,9 +387,9 @@ void Window::DrawGrid(unsigned int color)
 
 void Window::DrawPixel(int x, int y, unsigned int color)
 {
-    if (x >= 0 && x < windowWidth && y >= 0 && y < windowHeight)
+    if (x >= 0 && x < rendererWidth && y >= 0 && y < rendererHeight)
     {
-        colorBuffer[(windowWidth * y) + x] = static_cast<uint32_t>(color);
+        colorBuffer[(rendererWidth * y) + x] = static_cast<uint32_t>(color);
     }
 }
 
@@ -372,16 +427,16 @@ void Window::DrawTexel(int x, int y, Vector4 a, Vector4 b, Vector4 c, Texture2 t
     interpolatedReciprocalW = 1 - interpolatedReciprocalW;
 
     // Security check to not draw outside the buffers size
-    int bufferPosition = this->windowWidth * y + x;
-    if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+    int bufferPosition = this->rendererWidth * y + x;
+    if (bufferPosition >= 0 && bufferPosition <= (this->rendererWidth * this->rendererHeight)) {
         // Only draw the pixel if the depth value is less than the one previously stored in the depth buffer
-        if (interpolatedReciprocalW < this->depthBuffer[(this->windowWidth * y) + x])
+        if (interpolatedReciprocalW < this->depthBuffer[(this->rendererWidth * y) + x])
         {
             // Finally draw the pixel with the color stored in our texture harcoded array
             DrawPixel(x, y, texture[(textureWidth * texelY) + texelX]);
 
             // And update the depth for the pixel in the depthBuffer
-            this->depthBuffer[(this->windowWidth * y) + x] = interpolatedReciprocalW;
+            this->depthBuffer[(this->rendererWidth * y) + x] = interpolatedReciprocalW;
         }
     }
 }
@@ -406,8 +461,8 @@ void Window::DrawTrianglePixel(int x, int y, Vector4 a, Vector4 b, Vector4 c, fl
     interpolatedReciprocalW = 1 - interpolatedReciprocalW;
 
     // Security check to not draw outside the buffers size
-    int bufferPosition = (windowWidth * y) + x;
-    if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+    int bufferPosition = (rendererWidth * y) + x;
+    if (bufferPosition >= 0 && bufferPosition <= (this->rendererWidth * this->rendererHeight)) {
         // Only draw the pixel if the depth value is less than the one previously stored in the depth buffer
         if (interpolatedReciprocalW < this->depthBuffer[bufferPosition])
         {
@@ -422,9 +477,9 @@ void Window::DrawTrianglePixel(int x, int y, Vector4 a, Vector4 b, Vector4 c, fl
 
 void Window::DrawRect(int sx, int sy, int width, int height, uint32_t color)
 {
-    for (size_t y = sy; (y < sy + static_cast<__int64>(height)) && (y < windowHeight); y++)
+    for (size_t y = sy; (y < sy + static_cast<__int64>(height)) && (y < rendererHeight); y++)
     {
-        for (size_t x = sx; (x < sx + static_cast<__int64>(width)) && (x < windowWidth); x++)
+        for (size_t x = sx; (x < sx + static_cast<__int64>(width)) && (x < rendererWidth); x++)
         {
             DrawPixel(x, y, color);
         }
@@ -484,12 +539,12 @@ void Window::DrawLine(int x0, int y0, int x1, int y1, uint32_t color)
         float zInterpolated = 1.0f - oneOverW;
 
         // Security check
-        int bufferPosition = windowWidth * y + x;
-        if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
-            if (zInterpolated < depthBuffer[(y * windowHeight) + x])
+        int bufferPosition = rendererWidth * y + x;
+        if (bufferPosition >= 0 && bufferPosition <= (this->rendererWidth * this->rendererHeight)) {
+            if (zInterpolated < depthBuffer[(y * rendererHeight) + x])
             {
                 DrawPixel(x, y, color);
-                depthBuffer[(y * windowHeight) + x] = zInterpolated;
+                depthBuffer[(y * rendererHeight) + x] = zInterpolated;
             }
         }
 
@@ -524,8 +579,8 @@ void Window::DrawLine3D(int x0, int y0, float w0, int x1, int y1, float w1, uint
         float zInterpolated = 1.f - oneOverW;
 
         // Security check
-        int bufferPosition = (windowWidth * y) + x;
-        if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+        int bufferPosition = (rendererWidth * y) + x;
+        if (bufferPosition >= 0 && bufferPosition <= (this->rendererWidth * this->rendererHeight)) {
             if (zInterpolated < depthBuffer[bufferPosition])
             {
                 DrawPixel(x, y, color);
@@ -565,8 +620,8 @@ void Window::DrawLine3D(int x0, int y0, float w0, int x1, int y1, float w1, uint
         float zInterpolated = 1.0f - oneOverW;
 
         // Security check
-        int bufferPosition = (windowWidth * y) + x;
-        if (bufferPosition >= 0 && bufferPosition <= (this->windowWidth * this->windowHeight)) {
+        int bufferPosition = (rendererWidth * y) + x;
+        if (bufferPosition >= 0 && bufferPosition <= (this->rendererWidth * this->rendererHeight)) {
             // Si el valor en Z es menor que el del bufer es que está más cerca
             if (zInterpolated < depthBuffer[bufferPosition])
             {

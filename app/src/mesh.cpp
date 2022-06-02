@@ -8,7 +8,6 @@
 Mesh::Mesh(Window* window, std::string modelFileName, std::string textureFileName)
 {
     this->window = window;
-
     // Open the file
     std::ifstream modelFile(modelFileName);
     if (!modelFile.is_open())
@@ -174,13 +173,13 @@ void Mesh::Update()
             // Project the current vertex using matrices
             triangles[i].ProjectWorldVertex(j, window->projectionMatrix);
             // First scale the projected vertex by screen sizes
-            triangles[i].projectedVertices[j].x *= (window->windowWidth / 2.0);
-            triangles[i].projectedVertices[j].y *= (window->windowHeight / 2.0);
+            triangles[i].projectedVertices[j].x *= (window->rendererWidth / 2.0);
+            triangles[i].projectedVertices[j].y *= (window->rendererHeight / 2.0);
             // Invert the y values to account the flipped screen y coord
             triangles[i].projectedVertices[j].y *= -1;
             // Then translate the projected vertex to the middle screen
-            triangles[i].projectedVertices[j].x += (window->windowWidth / 2.0);
-            triangles[i].projectedVertices[j].y += (window->windowHeight / 2.0);
+            triangles[i].projectedVertices[j].x += (window->rendererWidth / 2.0);
+            triangles[i].projectedVertices[j].y += (window->rendererHeight / 2.0);
         }
 
         // Project the normal vectors if we want to draw it
@@ -191,13 +190,13 @@ void Mesh::Update()
             for (size_t j = 0; j < 2; j++)
             {
                 // First scale the projected vertex by screen sizes
-                triangles[i].projectedNormal[j].x *= (window->windowWidth / 2.0);
-                triangles[i].projectedNormal[j].y *= (window->windowHeight / 2.0);
+                triangles[i].projectedNormal[j].x *= (window->rendererWidth / 2.0);
+                triangles[i].projectedNormal[j].y *= (window->rendererHeight / 2.0);
                 // Invert the y values to account the flipped screen y coord
                 triangles[i].projectedNormal[j].y *= -1;
                 // Then translate the projected vertex to the middle screen
-                triangles[i].projectedNormal[j].x += (window->windowWidth / 2.0);
-                triangles[i].projectedNormal[j].y += (window->windowHeight / 2.0);
+                triangles[i].projectedNormal[j].x += (window->rendererWidth / 2.0);
+                triangles[i].projectedNormal[j].y += (window->rendererHeight / 2.0);
             }
         }
 
