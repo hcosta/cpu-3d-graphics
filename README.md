@@ -6778,7 +6778,7 @@ La velocidad de movimiento siempre será 1 unidad del mundo por segundo.
 Para implementar una cámara libre tipo `FPS` que podamos mover a voluntad en el sistema, necesitamos considerar las diferencias respecto a una cámara `lookAt`:
 
 1. Para empezar, como la cámara no tendrá un objetivo sino que apuntará hacia donde nosotros queramos, necesitaremos un **vector con la dirección** a parte de la posición. 
-2. Si podemos mover la cámara hacia adelante y atrás eso necesitamos un **vector de velocidad de velocidad adelante** para el eje `Z` y otro para moverla a la izquierda y a la derecha que podemos llamar **vector de velocidad lateral** para el eje `X`. 
+2. Si podemos mover la cámara hacia adelante y atrás eso necesitamos un **vector de velocidad de velocidad adelante** para el eje `Z`, otro para moverla a la izquierda y a la derecha que podemos llamar **vector de velocidad lateral** para el eje `X` y uno para el eje `Y` para mover el **vector de velocidad vertical** hacia arriba y abajo. 
 3. Finalmente para rotar la cámara tanto horizontalmente como verticalmente necesitaremos **diferentes ángulos** conocidos como `yaw` y `pitch`, los cuales se basan en congelar un eje y realizar la rotación en el espacio a su alrededor:
     ![](./docs/image-136.png)
 
@@ -6789,6 +6789,7 @@ public:
     Vector3 direction{ 0, 0, 0 };
     Vector3 forwardVelocity{ 0, 0, 0 };
     Vector3 sideVelocity{ 0, 0, 0 };
+    Vector3 verticalVelocity{ 0, 0, 0};
     float yawPitch[2]{0,0}; // y,p
 };
 ```
@@ -6847,8 +6848,11 @@ void Window::ProcessInput()
             if (mouseClicked){
                 // Rotation per second in radians
                 float mouseSensitivity = 0.075;
-                camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime ;
-                camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime ; 
+                camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime;
+                camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime; 
+                // Clamp the pitch between values close to -90º and 90º (-PI/2 and PI/2) to avoid flipping
+                if (camera.yawPitch[1] < (-M_PI / 2 + 0.05)) camera.yawPitch[1] = -M_PI / 2 + 0.05;
+                if (camera.yawPitch[1] > (M_PI / 2 - 0.05)) camera.yawPitch[1] = M_PI / 2 - 0.05;
             }
             break;
         }
@@ -6910,6 +6914,14 @@ La segunda parte de la cámara FPS es añadir el movimiento en función de las v
         camera.position += camera.sideVelocity * xMovement;
     }
 
+    // Calculate the verticalVelocity for the y axis and increment it
+    int yMovement{ keystate[SDL_SCANCODE_E] - keystate[SDL_SCANCODE_Q] };
+    if (yMovement != 0)
+    {
+        camera.verticalVelocity = Vector3{ 0, 1, 0 } * 5.0 * deltaTime;
+        camera.position += camera.verticalVelocity * yMovement;
+    }
+
     // Set the result moving positions into the camera interface
     cameraPosition[0] = camera.position.x;
     cameraPosition[1] = camera.position.y; 
@@ -6919,13 +6931,13 @@ La segunda parte de la cámara FPS es añadir el movimiento en función de las v
 
 Primero detectamos si hay movimiento en el eje `Z`, de manera que tengamos almacenado un factor `-1, 0, 1`. Si ese factor es distinto de 0 significa que hay que mover la cámara en el eje `Z`. Ese eje es el de la propia dirección de la cámara `camera.direction`, solo debemos multiplicar esa dirección por una cantidad de movimiento y tendremos la `forwardVelocity` para incrementar `camera.position`.
 
-Luego haremos exactamente lo mismo para el eje `X`, pero deberemos calcular al  principio un vector para el eje `X` de la cámara. Eso es tan fácil como hacer el producto vectorial entre la dirección a la que mira la cámara y un vector genérico hacia arriba `{0,1,0}`:
+Luego haremos exactamente lo mismo para el eje `X`, pero deberemos calcular al  principio un vector para el eje `X` de la cámara. Eso es tan fácil como hacer el producto vectorial entre la dirección a la que mira la cámara y un vector genérico hacia arriba `{0,1,0}`. Este vector en el eje `X` llamado `vectorLeft` marcará la dirección y lo multiplicaremos por la cantidad a movernos en ese eje para luego sumarla a la posición:
 
 ![](./docs/image-42.png)
 
-Este vector en el eje `X` llamado `vectorLeft` marcará la dirección y lo multiplicaremos por la cantidad a movernos en ese eje para luego sumarla a la posición.
+En cuanto al eje `Y`es el más sencillo, tan solo debemos aplicar un `VectorUp` genérico con la respectiva velocidad.
 
-Finalmente actualizamos los valores de la interfaz de la cámara `cameraPosition` con la nuea posición que hemos calculado en `camera.position`:
+Luego actualizamos los valores de la interfaz de la cámara `cameraPosition` con la nueva posición que hemos calculado en `camera.position`:
 
 ![](./docs/anim-42.gif) 
 
@@ -7145,29 +7157,35 @@ Un último detalle que me gustaría implementar es la posibilidad de que la rued
 
 ```cpp
 case SDL_MOUSEWHEEL:
-
-    // Scroll up
-    if (event.wheel.y > 0)
-    {
-        camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
-        camera.position += camera.forwardVelocity;
+    if (rendererActive and !rendererDragged) {
+        // Scroll up
+        if (event.wheel.y > 0)
+        {
+            camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
+            camera.position += camera.forwardVelocity;
+        }
+        // Scroll down
+        else if (event.wheel.y < 0)
+        {
+            camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
+            camera.position -= camera.forwardVelocity;
+        }
+        // Set the result moving positions into the camera interface
+        cameraPosition[0] = camera.position.x;
+        cameraPosition[1] = camera.position.y;
+        cameraPosition[2] = camera.position.z;
     }
-
-    // Scroll down
-    else if (event.wheel.y < 0)
-    {
-        camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
-        camera.position -= camera.forwardVelocity;
-    }
-
-    // Set the result moving positions into the camera interface
-    cameraPosition[0] = camera.position.x;
-    cameraPosition[1] = camera.position.y;
-    cameraPosition[2] = camera.position.z;
-    
     break;
 ```
 
 El resultado final es todo lo que podía esperar:
 
 ![](./docs/anim-44.gif) 
+
+## Clipping
+
+Llegó la hora de implementar la última funcionalidad importante de mi sistema de renderizado, la técnica que me permitirá descartar los triángulos fuera del *frustum* para ahorrar muchos recursos:
+
+![](./docs/image-72.png)
+
+Sé de antemano que va a ser el tema más extenso y complejo pues hay mucho a tener en cuenta, pero el esfuerzo estoy seguro que valdrá la pena.

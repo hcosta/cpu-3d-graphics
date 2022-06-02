@@ -26,17 +26,17 @@ public:
 
     /* Configurable options */
     bool drawGrid = true;
-    bool drawWireframe = true;
+    bool drawWireframe = false;
     bool drawWireframeDots = false;
-    bool drawTriangleNormals = true;
+    bool drawTriangleNormals = false;
     bool drawFilledTriangles = true;
-    bool drawTexturedTriangles = false;
+    bool drawTexturedTriangles = true;
     bool enableBackfaceCulling = true;
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {0, 0, 7};
-    float modelRotation[3] = {0.25, 0.25, 0};
+    float modelTranslation[3] = {0, 0, 5};
+    float modelRotation[3] = {5.5, 0.5, 0};
 
     /* Camera and mouse settings */
     Camera camera;
@@ -55,6 +55,7 @@ public:
 
     /* Light settings */
     Light light = Light{{0, 0, 1} };
+    float lightPosition[3]{0,0,1};
 
     /* DeltaTime*/
     float deltaTime;
@@ -83,7 +84,7 @@ private:
 
 
 public:
-    Window() : windowWidth(1280), windowHeight(720), rendererWidth(960), rendererHeight(640) 
+    Window() : windowWidth(1280), windowHeight(720), rendererWidth(965), rendererHeight(655) 
     {
         aspectRatio = rendererHeight / static_cast<float>(rendererWidth);
         projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
@@ -102,6 +103,8 @@ public:
     void ClearColorBuffer(uint32_t color);
     void RenderColorBuffer();
     void ClearDepthBuffer();
+
+    SDL_HitTestResult SDLCALL DraggableHitTest(SDL_Window* window, const SDL_Point* pt, void* data);
 
     void DrawGrid(unsigned int color);
     void DrawPixel(int sx, int sy, unsigned int color);

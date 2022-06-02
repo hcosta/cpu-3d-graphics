@@ -31,6 +31,21 @@ Window::~Window()
     SDL_Quit();
 }
 
+static SDL_HitTestResult SDLCALL hitTest(SDL_Window* window, const SDL_Point* pt, void* data)
+{
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+
+    const SDL_Rect dragArea = { 70, 0, w-70-25, 20 };
+
+    if (SDL_PointInRect(pt, &dragArea)) {
+        //SDL_Log("HIT-TEST: DRAGGABLE\n");
+        return SDL_HITTEST_DRAGGABLE;
+    }
+    //SDL_Log("HIT-TEST: NORMAL\n");
+    return SDL_HITTEST_NORMAL;
+}
+
 void Window::Init()
 {
     running = true;
@@ -53,7 +68,7 @@ void Window::Init()
     }
 
     // Creamos la ventana SDL
-    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI); // SDL_WINDOW_BORDERLESS
+    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_BORDERLESS | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI); // SDL_WINDOW_BORDERLESS
     window = SDL_CreateWindow("3D Renderer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowWidth, windowHeight, window_flags);
 
     if (!window)
@@ -70,6 +85,11 @@ void Window::Init()
         running = false;
     }
 
+    if (SDL_SetWindowHitTest(window, hitTest, NULL) == -1) {
+        SDL_Log("Enabling hit-testing failed!\n");
+        running = false;
+    }
+
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -83,7 +103,7 @@ void Window::Init()
     ImGui_ImplSDLRenderer_Init(renderer);
 
     // Other options
-    SDL_WarpMouseInWindow(window, windowWidth/2, windowHeight/2);
+    SDL_WarpMouseInWindow(window, 495, 370);
     SDL_SetWindowResizable(window, SDL_FALSE);
 
 }
@@ -97,7 +117,7 @@ void Window::Setup()
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, rendererWidth, rendererHeight);
     /* Mesh loading */
-    mesh = Mesh(this, "res/cube.obj", "res/cube.png");
+    mesh = Mesh(this, "res/f117.obj", "res/f117.png");
     // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
 }
 
@@ -119,46 +139,41 @@ void Window::ProcessInput()
             break;
         case SDL_MOUSEBUTTONDOWN:
             mouseClicked = true;
-            // Save current click position
-            //SDL_GetMouseState(&mouseClickPosition[0], &mouseClickPosition[1]);
-            //SDL_SetRelativeMouseMode(SDL_TRUE);
             break;
         case SDL_MOUSEBUTTONUP:
             mouseClicked = false;
-            //SDL_SetRelativeMouseMode(SDL_FALSE);
-            // Reset current click position
-            //SDL_WarpMouseInWindow(window, mouseClickPosition[0], mouseClickPosition[1]);
             break;
         case SDL_MOUSEMOTION:
             if (mouseClicked and rendererActive and !rendererDragged){
                 // Rotation per second in radians
                 float mouseSensitivity = 0.125;
                 // Increment the yaw and the pitch
-                camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime ;
-                camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime ;
+                camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime;
+                camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime;
+                // Clamp the pitch between values close to -90º and 90º (-PI/2 and PI/2) to avoid flipping
+                if (camera.yawPitch[1] < (-M_PI / 2 + 0.05)) camera.yawPitch[1] = -M_PI / 2 + 0.05;
+                if (camera.yawPitch[1] > (M_PI / 2 - 0.05)) camera.yawPitch[1] = M_PI / 2 - 0.05;
             }
             break;
         case SDL_MOUSEWHEEL:
-
-            // Scroll up
-            if (event.wheel.y > 0)
-            {
-                camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
-                camera.position += camera.forwardVelocity;
+            if (rendererActive and !rendererDragged) {
+                // Scroll up
+                if (event.wheel.y > 0)
+                {
+                    camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
+                    camera.position += camera.forwardVelocity;
+                }
+                // Scroll down
+                else if (event.wheel.y < 0)
+                {
+                    camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
+                    camera.position -= camera.forwardVelocity;
+                }
+                // Set the result moving positions into the camera interface
+                cameraPosition[0] = camera.position.x;
+                cameraPosition[1] = camera.position.y;
+                cameraPosition[2] = camera.position.z;
             }
-
-            // Scroll down
-            else if (event.wheel.y < 0)
-            {
-                camera.forwardVelocity = camera.direction * 30.0 * deltaTime;
-                camera.position -= camera.forwardVelocity;
-            }
-
-            // Set the result moving positions into the camera interface
-            cameraPosition[0] = camera.position.x;
-            cameraPosition[1] = camera.position.y;
-            cameraPosition[2] = camera.position.z;
-            
             break;
         }
     }
@@ -185,6 +200,15 @@ void Window::ProcessInput()
             camera.position += camera.sideVelocity * xMovement;
         }
 
+        // Calculate the sideVelocity for the x axis and increment it
+        int yMovement{ keystate[SDL_SCANCODE_E] - keystate[SDL_SCANCODE_Q] };
+        if (yMovement != 0)
+        {
+            Vector3 vectorUp = { 0, 1, 0 };
+            camera.verticalVelocity = vectorUp * 5.0 * deltaTime;
+            camera.position += camera.verticalVelocity * yMovement;
+        }
+
         // Set the result moving positions into the camera interface
         cameraPosition[0] = camera.position.x;
         cameraPosition[1] = camera.position.y;
@@ -197,7 +221,7 @@ void Window::Update()
     // Iniciar el temporizador de cap
     if (enableCap) capTimer.start();
 
-    // Iniciamos un Frame de Imgui
+    // Start ImGui Frame
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
@@ -205,26 +229,23 @@ void Window::Update()
     // Top menú bar
     if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::BeginMenu("Archivo"))
+        if (ImGui::BeginMenu("Menú"))
         {
             if (ImGui::MenuItem("Salir")) { running = false; }
             ImGui::EndMenu();
         }
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(windowWidth - 20);
+        if (ImGui::MenuItem("X")) { running = false; }
+        ImGui::SetCursorPosX(windowWidth/2 - 75);
+        ImGui::Text("3D Renderer by Hektor");
         ImGui::EndMainMenuBar();
     }
 
-    // Rendering window
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::Begin("Rendering");
-    rendererDragged = ImGui::IsItemHovered();
-    ImGui::Image(colorBufferTexture, ImVec2(rendererWidth, rendererHeight));
-    rendererActive = ImGui::IsWindowFocused() && ImGui::IsWindowHovered();
-    ImGui::End();
-
-    ImGui::PopStyleVar();
-
     // Debug window
-    ImGui::Begin("Debugging");
+    ImGui::SetNextWindowSize(ImVec2(275, rendererHeight + 20));
+    ImGui::SetNextWindowPos(ImVec2(windowWidth-275-14, 31));
+    ImGui::Begin("Debugging", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse);
     ImGui::Checkbox("Limitar FPS", &this->enableCap);
     ImGui::SliderInt(" ", &this->fpsCap, 5, this->screenRefreshRate);
     ImGui::Separator();
@@ -248,20 +269,33 @@ void Window::Update()
     ImGui::Separator();
     ImGui::Text("Posición cámara (X,Y,Z)");
     ImGui::SliderFloat3("Camera", cameraPosition, -5, 5);
-    ImGui::Text("Ángulos cámara (yaw,pitch,roll)");
+    ImGui::Text("Ángulos cámara (yaw, pitch)");
     ImGui::SliderFloat2("Angles", camera.yawPitch, -5, 5);
     ImGui::Text("Posición ratón (X,Y)");
     ImGui::SliderInt2("Mouse", mousePosition, 0, 0);
     ImGui::Separator();
+    ImGui::Text("Luz global (X,Y,Z)");
+    ImGui::SliderFloat3("Light", lightPosition, -1, 1);
+    ImGui::Separator();
     ImGui::Text("Campo de visión");
     ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
-    // ImGui::Text("Luz global");
-    // ImGui::SliderFloat3("Posición de la luz (X,Y,Z)", lightPosition, -1, 1);
-    ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 30));
-    ImGui::Separator();
-    ImGui::Text(" %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
 
+    // Rendering window
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(rendererWidth, rendererHeight + 20));
+    ImGui::SetNextWindowPos(ImVec2(14, 31));
+    ImGui::Begin("Rendering", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse);
+    rendererDragged = ImGui::IsItemHovered();
+    ImGui::Image(colorBufferTexture, ImVec2(rendererWidth, rendererHeight));
+    rendererActive = ImGui::IsWindowFocused() && ImGui::IsWindowHovered();
+    ImGui::SetCursorPosX(10);
+    ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
+    ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+    ImGui::PopStyleVar();
+
+    // End the Frame
     ImGui::EndFrame();
 
     // DeltaTime saving
@@ -282,7 +316,7 @@ void Window::Update()
     screenTicksPerFrame = 1000 / this->fpsCap;
 
     // Update the light position
-    // light.direction = Vector3(lightPosition[0], lightPosition[1], lightPosition[2]);
+    light.direction = Vector3(lightPosition[0], lightPosition[1], lightPosition[2]);
 
     // Custom objects update
     mesh.Update();
