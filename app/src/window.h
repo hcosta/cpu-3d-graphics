@@ -48,8 +48,8 @@ public:
     int mouseClickPosition[2];
 
     /* Projection and frustum settings */
-    float fovFactor; // in radians
     float fovFactorInGrades = 60;
+    float fovFactor = M_PI / (180 / 60.0f);  // 60º in radians
     float aspectRatio;
     float zNear = 0.1, zFar = 100.0;
     Matrix4 projectionMatrix;

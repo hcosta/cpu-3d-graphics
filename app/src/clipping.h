@@ -1,8 +1,10 @@
 #ifndef CLIPPING_H
 #define CLIPPING_H
 
+#include <deque>
 #include <math.h>
 #include "vector.h"
+#include "triangle.h"
 
 class Plane
 {
@@ -45,6 +47,37 @@ public:
 
         farPlane.point = Vector3{ 0,0,zFar };
         bottomPlane.normal = Vector3{ 0,0,-1 };
+    }
+};
+
+
+class Polygon
+{
+public:
+    std::deque<Vector3> vertices;
+
+    Polygon(Triangle triangle)
+    {
+        // Save the starting triangle vertices
+        this->vertices.push_back(triangle.vertices[0]);
+        this->vertices.push_back(triangle.vertices[1]);
+        this->vertices.push_back(triangle.vertices[2]);
+    }
+
+    void Clip(Frustum viewFrustum)
+    {
+        ClipAgainstPlane(viewFrustum.leftPlane);
+        ClipAgainstPlane(viewFrustum.rightPlane);
+        ClipAgainstPlane(viewFrustum.topPlane);
+        ClipAgainstPlane(viewFrustum.bottomPlane);
+        ClipAgainstPlane(viewFrustum.nearPlane);
+        ClipAgainstPlane(viewFrustum.bottomPlane);
+    }
+
+private:
+    void ClipAgainstPlane(Plane plane)
+    {
+        // Lógica del recorte
     }
 };
 

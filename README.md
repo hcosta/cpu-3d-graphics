@@ -81,6 +81,11 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Variable Delta-time](#variable-delta-time)
     * [Cámara FPS](#cámara-fps)
 * [Renderizado y debug por separado](#renderizado-y-debug-por-separado)
+* [Clipping](#clipping)
+    * [Planos del frustum](#planos-del-frustum)
+    * [Punto respecto a un plano](#punto-respecto-a-un-plano)
+    * [Punto de intersección](#punto-de-intersección)
+    * [Algoritmo de clipping](#algoritmo-de-clipping)
 
 ## Configuración previa
 
@@ -7209,7 +7214,7 @@ En el *frustum clipping* tenemos que recortar los modelos en cada uno de los sei
 
 El polígono producido por cada paso se utiliza como entrada para el siguiente, por lo que al final estamos acumulando todos estos pasos para producir el modelo recortado final.
 
-### Planos
+### Planos del frustum
 
 Empecemos repasando qué es un plano, a fin de cuentas necesitamos 6 planos para formar un *frustum*.
 
@@ -7343,7 +7348,7 @@ public:
 };
 ```
 
-Inicializaremos nuestro `Frustum` justo después de crear la matriz de proyección:
+Inicializaré un `viewFrustum` justo después de crear la matriz de proyección:
 
 ```cpp
 #include "clipping.h"
@@ -7352,18 +7357,145 @@ class Window
 {
 public:
     /* Projection and frustum settings */
-    float fovFactor; // in radians
     float fovFactorInGrades = 60;
+    float fovFactor = M_PI / (180 / 60.0f); // in radians
     float aspectRatio;
     float zNear = 0.1, zFar = 100.0;
     Matrix4 projectionMatrix;
-    Frustum viewFrustum;  // <-----------
+    Frustum viewFrustum; // <-----------
 
     Window() : windowWidth(1280), windowHeight(720), rendererWidth(965), rendererHeight(655) 
     {
         aspectRatio = rendererHeight / static_cast<float>(rendererWidth);
         projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
-        viewFrustum = Frustum(fovFactor, zNear, zFar);
+        viewFrustum = Frustum(fovFactor, zNear, zFar); // <-----------
     };
 };
 ```
+
+### Punto respecto a un plano
+
+Lo siguiente que debemos tener en cuenta es cómo saber si un punto, por ejemplo punto `Q`, se encuentra dentro o fuera de un plano, teniendo en cuenta que el vector normal apunta hacia dentro del plano. Esto nos permitirá identificar los vértices fuera del *frustum*, descartarlos o recortarlo.
+
+El cálculo que nos permitirá determinar esta cuestión es el **producto escalar** del vector `Q - P` por la normal del plano y tenemos tres posibilidades:
+
+**Dentro del plano**
+
+El punto `Q` estará dentro del plano si el resultado del producto escalar es mayor que `0`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}({\color{DarkRed}&space;Q}&space;-&space;{\color{Blue}&space;P})&space;\cdot&space;{\color{DarkGreen}&space;\overrightarrow{n}}&space;>&space;0" />
+
+![](./docs/image-148.png)
+
+**Fuera del plano**
+
+El punto `Q` estará fuera del plano si el resultado del producto escalar es menor que `0`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}({\color{DarkRed}&space;Q}&space;-&space;{\color{Blue}&space;P})&space;\cdot&space;{\color{DarkGreen}&space;\overrightarrow{n}}&space;<&space;0" />
+
+![](./docs/image-149.png)
+
+**Alineado sobre el plano**
+
+El punto `Q` estará alineado sobre el plano si el resultado del producto escalar es igual `0`:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}({\color{DarkRed}&space;Q}&space;-&space;{\color{Blue}&space;P})&space;\cdot&space;{\color{DarkGreen}&space;\overrightarrow{n}}&space;=&space;0" />
+
+![](./docs/image-147.png)
+
+### Punto de intersección
+
+Sabiendo cómo determinar si un punto `Q` se encuentra dentro o fuera de un plano ya podemos descartar los vértices fuera del frustum.
+
+Si todos los vértices de una malla están fuera del frustum simplemente la ignoramos y no la dibujamos, pero... ¿Y si la malla tiene algunos vértices dentro y otros fuera del plano? 
+
+![](./docs/image-150.png)
+
+En ese caso lo siguiente que debemos encontrar son **los puntos de intersección** entre el plano y el polígono:
+
+![](./docs/image-151.png)
+
+Bueno, en realidad lo que queremos encontrar es el punto de intersección entre un segmento de una línea y una plano:
+
+![](./docs/image-152.png)
+
+Podemos interpolar cualquier punto de este segmento mediante la ecuación de **interpolación lineal**:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Red}&space;I}&space;=&space;Q_1&space;&plus;&space;{\color{Blue}&space;t}(Q_2&space;-&space;Q_1)"/>
+
+Donde `t` es un factor entre `0` y `1` cuyo valor nos dará cualquier punto entre el segmento `Q1` y `Q2`, siendo `I = Q1` si `t = 0` o `I = Q2` si `t = 1`.
+
+Extrapolando, para encontrar el punto de intersección `I` necesitamos encontrar el factor de interpolación `t`. Este procedimiento no es fácil, un desglose de la técnica se puede encontrar en este [paper](https://import.cdn.thinkific.com/167815/JoyKennethClipping-200905-175314.pdf). 
+
+Después de aplicar toda la magia el factor `t` se puede encontrar aplicando la fórmula:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Blue}&space;t}&space;=&space;\frac{dot_{Q1}}{(dot_{Q1}-dot_{Q2})}"/>
+
+Donde el factor `t` es igual al producto escalar del punto `Q1` dividido entre la resta del producto escalar de `Q1` menos el producto escalar de `Q2`.
+
+Con esto la fórmula para encontrar el punto de intersección queda completada:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}{\color{Red}&space;I}&space;=&space;Q_1&space;&plus;&space;\frac{dot_{Q1}}{(dot_{Q1}-dot_{Q2})}(Q_2&space;-&space;Q_1)" />
+
+### Algoritmo de clipping
+
+En este punto ya podemos hacernos una idea del procedimiento de *clipping*:
+
+![](./docs/image-153.png)
+
+Al final la idea se basa en subtituir los vértices fuera de los planos por los puntos de intersecciónen, dando lugar a un nuevo polígono:
+
+![](./docs/image-154.png)
+
+Esto sería el recorte para un plano, tendremos que repetir el proceso para cada plano del *frustum* (arriba, abajo, izquierda, derecha, cercano y alejado), **utilizando como entrada el polígono resultante de cada recorte anterior**:
+
+![](./docs/image-155.png)
+
+La función que implementará todo este procedimiento para los seis planos tomará un polígono (una nueva clase `Poligon` en `clipping.h`) creado inicialmente con un triángulo y que podrá tener un número indeterminado de vértices, debido a que después del corte, pueden generarse nuevos vértices como en este ejmplo que al cortar un triángulo obtenemos un polígono de cuatro costados:
+
+![](./docs/image-156.png)
+
+```cpp
+#include <deque>
+#include "vector.h"
+#include "triangle.h"
+
+class Polygon
+{
+public:
+    std::deque<Vector3> vertices;
+
+    Polygon(Triangle triangle)
+    {
+        // Save the starting triangle vertices
+        this->vertices.push_back(triangle.vertices[0]);
+        this->vertices.push_back(triangle.vertices[1]);
+        this->vertices.push_back(triangle.vertices[2]);
+    };
+};
+```
+
+En esta clase tendremos al fin el método `Clip` para aplicar todo el algoritmo plano por plano con otro método `ClipAgainstPlane`:
+
+```cpp
+class Polygon
+{
+public:
+    void Clip(Frustum viewFrustum)
+    {
+        ClipAgainstPlane(viewFrustum.leftPlane);
+        ClipAgainstPlane(viewFrustum.rightPlane);
+        ClipAgainstPlane(viewFrustum.topPlane);
+        ClipAgainstPlane(viewFrustum.bottomPlane);
+        ClipAgainstPlane(viewFrustum.nearPlane);
+        ClipAgainstPlane(viewFrustum.bottomPlane);
+    }
+
+private:
+    void ClipAgainstPlane(Plane plane)
+    {
+        // Lógica del recorte
+    }
+};
+```
+
