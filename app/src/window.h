@@ -26,18 +26,21 @@ public:
     float* depthBuffer{ nullptr };
 
     /* Configurable options */
-    bool drawGrid = true;
-    bool drawWireframe = false;
-    bool drawWireframeDots = false;
+    bool drawGrid = false;
+    bool drawWireframe = true;
+    bool drawWireframeDots = true;
     bool drawTriangleNormals = false;
-    bool drawFilledTriangles = true;
-    bool drawTexturedTriangles = true;
+    bool drawFilledTriangles = false;
+    bool drawTexturedTriangles = false;
     bool enableBackfaceCulling = true;
 
     /* Model settings */
-    float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {0, 0, 5};
-    float modelRotation[3] = {5.5, 0.5, 0};
+    /*float modelScale[3] = {1, 1, 1};
+    float modelTranslation[3] = {0, 0, 5.5};
+    float modelRotation[3] = {5.5, 0.5, 0};*/
+    float modelScale[3] = { 1, 1, 1 };
+    float modelTranslation[3] = { 0, 0, 4 };
+    float modelRotation[3] = { 0, 0, 0 };
 
     /* Camera and mouse settings */
     Camera camera;

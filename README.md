@@ -86,7 +86,7 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Punto respecto a un plano](#punto-respecto-a-un-plano)
     * [Punto de intersección](#punto-de-intersección)
     * [Algoritmo de clipping](#algoritmo-de-clipping)
-
+    * [De polígonos a triángulos](#de-polígonos-a-triángulos)
 ## Configuración previa
 
 Este proyecto se desarrolla en Windows 11 con Visual Studio Code. La estructura principal es:
@@ -7340,10 +7340,10 @@ public:
         bottomPlane.normal = Vector3{0,cosHalfFov,sinHalfFov};
 
         nearPlane.point = Vector3{0,0,zNear};
-        bottomPlane.normal = Vector3{0,0,1};
+        nearPlane.normal = Vector3{0,0,1};
 
         farPlane.point  = Vector3{0,0,zFar};
-        bottomPlane.normal = Vector3{0,0,-1};
+        farPlane.normal = Vector3{0,0,-1};
     }
 };
 ```
@@ -7488,7 +7488,7 @@ public:
         ClipAgainstPlane(viewFrustum.topPlane);
         ClipAgainstPlane(viewFrustum.bottomPlane);
         ClipAgainstPlane(viewFrustum.nearPlane);
-        ClipAgainstPlane(viewFrustum.bottomPlane);
+        ClipAgainstPlane(viewFrustum.farPlane);
     }
 
 private:
@@ -7498,4 +7498,126 @@ private:
     }
 };
 ```
+
+El *clipping* lo ejecutaremos antes de proyectar los puntos, después de las transformaciones 3D. Crearemos nuestro polígono, realizaremos los recortes del *clipping* y como resultado posiblemente obtendremos un polígono con muchos más vértices que posteriormente deberemos transformar de nuevo a triángulos:
+
+```cpp
+#include "clipping.h"
+
+void Mesh::Update()
+{
+    /*** BEFORE THE PROJECTION EXECUTE THE CLIPPING */
+    // Create the initial polygon with the triangle face vertices
+    Polygon polygon(triangles[i]);
+    // Then do the clipping
+    polygon.Clip(window->viewFrustum);
+}
+```
+
+Ahora viene el desarrollo de la función `ClipAgainstPlane` que a partir del corte con un plano determinará la nueva lista de vértices del polígono:
+
+```cpp
+void ClipAgainstPlane(Plane plane)
+{
+    // Creamos una cola para almacenar los vértices dentro del plano
+    std::deque<Vector3> insideVertices;
+
+    // Recorremos todos los vértices
+    for (size_t i = 0; i < vertices.size(); i++)
+    {
+        // Recuperamos el vértice actual y el anterior
+        Vector3 currentVertex = vertices[i];
+        // Si recién empezamos (i==0) el anterior será el último
+        Vector3 previousVertex = (i > 0) ? vertices[i - 1] : vertices[vertices.size() - 1];
+
+        // Calculamos los productos escalares de ambos (dotQ1 = n·(Q1-P))
+        float currentDot = (currentVertex - plane.point).DotProduct(plane.normal);
+        float previousDot = (previousVertex - plane.point).DotProduct(plane.normal);
+
+        // Si el vértice está fuera del plano calculamos el punto de intersección
+        // Podemos saberlo si uno es positivo y el otro es negativo, signigicando esto
+        // que un punto a pasado a estar de dentro a fuera o viceversa, de fuera a dentro
+        if (currentDot * previousDot < 0)
+        {
+            // Calculamos el factor de interpolación, t = dotQ1/(dotQ1-dotQ2)
+            float tFactor = previousDot / (previousDot - currentDot);
+            // Calculamos el punto de intersección, I = Q1 + t(Q2-Q1)
+            Vector3 intersectionPoint = currentVertex; // I = Qc
+            intersectionPoint -= previousVertex;       // I = (Qc-Qp)
+            intersectionPoint *= tFactor;              // I = t(Qc-Qp)
+            intersectionPoint += previousVertex;       // I = Qp+t(Qc-Qp)
+            // Insertamos el nuevo punto de intersección a la lista de vértices internos
+            insideVertices.push_back(intersectionPoint);
+        }
+
+        // Si el vértice se encuentra dentro del plano lo añadimos a la cola
+        if (currentDot > 0) insideVertices.push_back(currentVertex);
+    }
+
+    // Copiamos los vértices dentro del plano a los vértices actuales
+    vertices.clear();
+    vertices = insideVertices;
+}
+```
+
+En este punto si estamos renderizando un cubo, si miramos cuál es el índice del primer triángulo definido en el `cube.obj` que en mi caso es el `5` y hacemos un bypass para renderizar solo el primer triángulo:
+
+```cpp    
+void Mesh::Update()
+{
+    // Loop all triangle faces of the mesh
+    for (size_t i = 0; i < triangles.size(); i++)
+    {   
+        // bypass para debugear solo el primer triángulo
+        if (i != 5) continue;
+```
+
+Si imprimimos el número de vértices del polígono después de recortarlo:
+
+```cpp
+// Create the initial polygon with the triangle face vertices
+Polygon polygon(triangles[i]);
+// Then do the clipping
+polygon.Clip(window->viewFrustum);
+std::cout << "Polygon vertices: " << polygon.vertices.size() << std::endl;
+```
+
+Deberíamos ver como cambia el contador dependiendo de cómo lo cortemos.
+
+Recortando por arriba 3 vértices:
+
+![](./docs/image-157.png)
+
+Por la izquierda 4 vértices:
+
+![](./docs/image-158.png)
+
+Por la abajo a la izquierda 5 vértices:
+
+![](./docs/image-159.png)
+
+Bueno, pues parece que más o menos esto funciona.
+
+### De polígonos a triángulos
+
+Nuestro siguiente objetivo es transformar el polígono formado por una cantidad indeterminado de vértices de nuevo a triángulos que podamos renderizar.
+
+La conseguirlo sólo necesitamos unir el primer vértice del polígono con el segundo y el tercero, de nuevo el primero con el tercero y el cuarto, el primero con el cuarto y el quinto... Así sucesivamente hasta el penúltimo vértice:
+
+![](./docs/image-160.png)
+
+La implementación es bastante sencilla:
+
+```cpp
+for(size_t i=0;i < vertices.size()-2;i++)
+{
+    int index0 = 0;
+    int index1 = i + 1;
+    int index2 = i + 2;
+
+    Triangle triangle(index0, index1, index2);
+}
+```
+
+Así que...
 

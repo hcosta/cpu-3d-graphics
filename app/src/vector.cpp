@@ -95,6 +95,13 @@ Vector3 Vector3::operator*(float factor) const
     return Vector3(x * factor, y * factor, z * factor);
 }
 
+Vector3& Vector3:: operator*=(float factor)
+{
+    x *= factor;
+    y *= factor;
+    z *= factor;
+    return *this;
+}
 
 Vector3 Vector3::operator*(Matrix4 m) const
 {

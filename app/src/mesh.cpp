@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "window.h" // Importamos la fuente de la ventana
+#include "clipping.h"
 #include <fstream>
 #include <algorithm>
 #include <string>
@@ -136,6 +137,8 @@ void Mesh::Update()
     // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
     {
+        if (i != 5) continue;
+
         // Create a new triangle to store data and render it later
         triangles[i].vertices[0] = vertices[static_cast<int>(faces[i].x) - 1];
         triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
@@ -166,6 +169,13 @@ void Mesh::Update()
         /*Before project calculate depth*/
         // No longer needed since we use z buffer
         // triangles[i].CalculateAverageDepth();
+
+        /*** BEFORE THE PROJECTION EXECUTE THE CLIPPING */
+        // Create the initial polygon with the triangle face vertices
+        Polygon polygon(triangles[i]);
+        // Then do the clipping
+        polygon.Clip(window->viewFrustum);
+        std::cout << "Polygon vertices: " << polygon.vertices.size() << std::endl;
 
         /*** Apply projections and lighting for all face vertices ***/
         for (size_t j = 0; j < 3; j++)

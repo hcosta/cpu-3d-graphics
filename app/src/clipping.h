@@ -43,13 +43,12 @@ public:
         bottomPlane.normal = Vector3{ 0,cosHalfFov,sinHalfFov };
 
         nearPlane.point = Vector3{ 0,0,zNear };
-        bottomPlane.normal = Vector3{ 0,0,1 };
+        nearPlane.normal = Vector3{ 0,0,1 };
 
         farPlane.point = Vector3{ 0,0,zFar };
-        bottomPlane.normal = Vector3{ 0,0,-1 };
+        farPlane.normal = Vector3{ 0,0,-1 };
     }
 };
-
 
 class Polygon
 {
@@ -59,9 +58,9 @@ public:
     Polygon(Triangle triangle)
     {
         // Save the starting triangle vertices
-        this->vertices.push_back(triangle.vertices[0]);
-        this->vertices.push_back(triangle.vertices[1]);
-        this->vertices.push_back(triangle.vertices[2]);
+        vertices.push_back(triangle.vertices[0]);
+        vertices.push_back(triangle.vertices[1]);
+        vertices.push_back(triangle.vertices[2]);
     }
 
     void Clip(Frustum viewFrustum)
@@ -71,13 +70,50 @@ public:
         ClipAgainstPlane(viewFrustum.topPlane);
         ClipAgainstPlane(viewFrustum.bottomPlane);
         ClipAgainstPlane(viewFrustum.nearPlane);
-        ClipAgainstPlane(viewFrustum.bottomPlane);
+        ClipAgainstPlane(viewFrustum.farPlane);
     }
 
 private:
     void ClipAgainstPlane(Plane plane)
     {
-        // Lógica del recorte
+        // Creamos una cola para almacenar los vértices dentro del plano
+        std::deque<Vector3> insideVertices;
+
+        // Recorremos todos los vértices
+        for (size_t i = 0; i < vertices.size(); i++)
+        {
+            // Recuperamos el vértice actual y el anterior
+            Vector3 currentVertex = vertices[i];
+            // Si recién empezamos (i==0) el anterior será el último
+            Vector3 previousVertex = (i > 0) ? vertices[i - 1] : vertices[vertices.size() - 1];
+
+            // Calculamos los productos escalares de ambos (dotQ1 = n·(Q1-P))
+            float currentDot = (currentVertex - plane.point).DotProduct(plane.normal);
+            float previousDot = (previousVertex - plane.point).DotProduct(plane.normal);
+
+            // Si el vértice está fuera del plano calculamos el punto de intersección
+            // Podemos saberlo si uno es positivo y el otro es negativo, signigicando esto
+            // que un punto a pasado a estar de dentro a fuera o viceversa, de fuera a dentro
+            if (currentDot * previousDot < 0)
+            {
+                // Calculamos el factor de interpolación, t = dotQ1/(dotQ1-dotQ2)
+                float tFactor = previousDot / (previousDot - currentDot);
+                // Calculamos el punto de intersección, I = Q1 + t(Q2-Q1)
+                Vector3 intersectionPoint = currentVertex; // I = Qc
+                intersectionPoint -= previousVertex;       // I = (Qc-Qp)
+                intersectionPoint *= tFactor;              // I = t(Qc-Qp)
+                intersectionPoint += previousVertex;       // I = Qp+t(Qc-Qp)
+                // Insertamos el nuevo punto de intersección a la lista de vértices internos
+                insideVertices.push_back(intersectionPoint);
+            }
+
+            // Si el vértice se encuentra dentro del plano lo añadimos a la cola
+            if (currentDot > 0) insideVertices.push_back(currentVertex);
+        }
+
+        // Copiamos los vértices dentro del plano a los vértices actuales
+        vertices.clear();
+        vertices = insideVertices;
     }
 };
 
