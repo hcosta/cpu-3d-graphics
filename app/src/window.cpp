@@ -117,8 +117,9 @@ void Window::Setup()
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, rendererWidth, rendererHeight);
     /* Mesh loading */
-    //mesh = Mesh(this, "res/f117.obj", "res/f117.png");
-    mesh = Mesh(this, "res/cube.obj", "res/cube.png");
+    //mesh = Mesh(this, "res/drone.obj", "res/drone.png");
+    mesh = Mesh(this, "res/f117.obj", "res/f117.png");
+    // 
     // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
 }
 

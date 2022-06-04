@@ -154,7 +154,18 @@ void Mesh::Update()
             triangles[i].ViewVertexTransform(j, window->viewMatrix);
         }
 
-        /*** CLIPPING: BEFORE THE NORMAL CALCULATION AND PROJECTION */
+        /*** Back Face Culling Algorithm ***/
+        triangles[i].CalculateNormal();
+        if (window->enableBackfaceCulling)
+        {
+            triangles[i].ApplyCulling(&window->camera);
+            // Bypass the projection if triangle is being culled
+
+            if (triangles[i].culling)
+                continue;
+        }
+
+        /*** CLIPPING: BEFORE THE PROJECTION */
 
         // Create the initial polygon with the triangle face vertices
         Polygon polygon(triangles[i]);
@@ -164,21 +175,11 @@ void Mesh::Update()
         polygon.GenerateClippedTriangles(clippedTriangles);
     }
 
-    // CULLING AND PROJECTING
+    // PROJECTING
     for (size_t i = 0; i < clippedTriangles.size(); i++)
     {
-        /*** Calculate the normal ***/
+        /*** Calculate the new triangle normal ***/
         clippedTriangles[i].CalculateNormal();
-
-        /*** Back Face Culling Algorithm ***/
-        if (window->enableBackfaceCulling)
-        {
-            clippedTriangles[i].ApplyCulling(&window->camera);
-            // Bypass the projection if triangle is being culled
-
-            if (clippedTriangles[i].culling)
-                continue;
-        }
 
         /*** Apply projections and lighting for all face vertices ***/
         for (size_t j = 0; j < 3; j++)

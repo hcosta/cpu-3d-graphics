@@ -29,20 +29,20 @@ public:
 
     /* Configurable options */
     bool drawGrid = false;
-    bool drawWireframe = true;
-    bool drawWireframeDots = true;
+    bool drawWireframe = false;
+    bool drawWireframeDots = false;
     bool drawTriangleNormals = false;
     bool drawFilledTriangles = false;
-    bool drawTexturedTriangles = false;
+    bool drawTexturedTriangles = true;
     bool enableBackfaceCulling = true;
 
     /* Model settings */
-    /*float modelScale[3] = {1, 1, 1};
+    float modelScale[3] = {1, 1, 1};
     float modelTranslation[3] = {0, 0, 5.5};
-    float modelRotation[3] = {5.5, 0.5, 0};*/
-    float modelScale[3] = { 1, 1, 1 };
+    float modelRotation[3] = {5.5, 0.5, 0};
+        /*float modelScale[3] = { 1, 1, 1 };
     float modelTranslation[3] = { 0, 0, 4 };
-    float modelRotation[3] = { 0, 0, 0 };
+    float modelRotation[3] = { 0, 0, 0 };*/
 
     /* Camera and mouse settings */
     Camera camera;
@@ -60,7 +60,7 @@ public:
     float fovFactorX = 2 * atan(tan(fovFactorY / 2) * aspectRatioX);  // conversion to radians
     float aspectRatioX;
     float aspectRatioY;
-    float zNear = 2.0, zFar = 20.0;
+    float zNear = 0.5, zFar = 20.0;
     Matrix4 projectionMatrix;
     Frustum viewFrustum;
 

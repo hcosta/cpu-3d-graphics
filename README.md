@@ -88,8 +88,9 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Algoritmo de clipping](#algoritmo-de-clipping)
     * [De polígonos a triángulos](#de-polígonos-a-triángulos)
     * [Ajustando el ángulo FOV](#ajustando-el-ángulo-fov)
-    * [Clipping de coordenadas UV en texturas](#clipping-de-coordenadas-uv-en-texturas)
-
+    * [Clipping en las texturas](#clipping-en-las-texturas)
+    * [Frustum clipping y space clipping](#frustum-clipping-y-space-clipping)
+* [Múltiples mallas](#múltiples-mallas)
 
 
 ## Configuración previa
@@ -7516,7 +7517,7 @@ void Mesh::Update()
      // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
     {
-        /*** CLIPPING: BEFORE THE NORMAL CALCULATION AND PROJECTION */
+        /*** CLIPPING: BEFORE THE PROJECTION */
 
         // Create the initial polygon with the triangle face vertices
         Polygon polygon(triangles[i]);
@@ -7789,4 +7790,210 @@ El coloreado de triángulos también debería funcionar, pero el texturizado ten
 
 ![](./docs/anim-47.gif) 
 
-### Clipping de coordenadas UV en texturas
+### Clipping en las texturas
+
+La información de la textura de cada cara está contenida en el triángulo que enviamos al polígono y almacenamos en `sourceTriangle`, por lo que podemos empezar almacenándolas en una cola durante la creación del mismo:
+
+```cpp
+class Polygon
+{
+public:
+    std::deque<Texture2> textureUVCoords;
+
+    Polygon(Triangle triangle)
+    {
+        // Save the starting triangle UV Coords
+        textureUVCoords.push_back(triangle.textureUVCoords[0]);
+        textureUVCoords.push_back(triangle.textureUVCoords[1]);
+        textureUVCoords.push_back(triangle.textureUVCoords[2]);
+    }
+};
+```
+
+Lo que haremos es, durante el *clipping* de cada plano, recuperar las coordenadas UV para la textura del triángulo actual y el anterior de la misma forma que hicimos con los vértices:
+
+```cpp
+// Recuperamos las coordenadas UV actuales y anteriores
+Texture2 curTexUVCoords = textureUVCoords[i];
+// Si recién empezamos (i==0) el anterior será el último
+Texture2 prevTexUVCoords = (i > 0) ? textureUVCoords[i - 1] : textureUVCoords[textureUVCoords.size() - 1];
+```
+
+Empezamos a recorrer todos los vértices y empecemos por la parte fácil, ¿qué hacer con las coordenadas cuando el vértice se encuentra dentro del plano? Pues evidentemente añadirlas a una cola `insideTextureUVCoords` que crearemos al principio y al final de todos las añadiremos de nuevo a la cola:
+
+```cpp
+void ClipAgainstPlane(Plane plane)
+{
+    // Creamos una cola para almacenar las coordenadas UV de las tetxturas dentro del plano
+    std::deque<Texture2> insideTextureUVCoords;
+
+    //...
+
+    // Si el vértice se encuentra dentro del plano
+    if (currentDot > 0)
+    {
+        // Lo añadimos a la cola
+        insideVertices.push_back(currentVertex);
+        // Y también añadimos la textura
+        insideTextureUVCoords.push_back(curTexUVCoords);
+    }
+
+    // Copiamos las coordenadas de las texturas UV dentro del plano a las actuales
+    textureUVCoords.clear();
+    textureUVCoords = insideTextureUVCoords;
+}
+```
+
+Nos falta implementar el otro caso, cuando el vértice se encuentre fuera del plano. Para ello tendremos que interpolar la posición de las coordenadas reutiliando el mismo factor `t` de los vértices:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}\\&space;{\color{Magenta}&space;U_{interpolated}}&space;=&space;u_1&space;&plus;&space;{\color{Blue}&space;t}(u_2-u_1)\\&space;{\color{Magenta}&space;V_{interpolated}}&space;=&space;v_1&space;&plus;&space;{\color{Blue}&space;t}(v_2-v_1)" />
+
+Podemos utilizar nuestra propia función `FloatLerp` que recibe dos valores y devuelve la interpolación en función de un tercer factor. Luego la insertamos en la cola:
+
+```cpp
+if (currentDot * previousDot < 0)
+{
+    // Find the interpolation factor t
+    float t = previousDot / (previousDot - currentDot);
+
+    // Use a lerp formula to get the interpolated U & V texture coords
+    Texture2 interpolatedTexUVCoord;
+    interpolatedTexUVCoord.u = FloatLerp(prevTexUVCoords.u, curTexUVCoords.u, tFactor);
+    interpolatedTexUVCoord.v = FloatLerp(prevTexUVCoords.v, curTexUVCoords.v, tFactor);
+
+    // Insertamos las coordenadas de la nueva textura interpolada
+    insideTextureUVCoords.push_back(interpolatedTexUVCoord);
+}
+```
+
+La fórmula la podemos definir de forma estática en la propia clase:
+
+```cpp
+static float FloatLerp(float a, float b, float f)
+{
+    return a + f * (b - a);
+}
+```
+
+Ya que estamos podemos utilizar nuestra nueva función podemos substituir todo el cálculo del punto de intersección de forma mucho más sencilla. El bloque completo quedará:
+
+```cpp
+// Si el vértice está fuera del plano...
+if (currentDot * previousDot < 0)
+{
+    // Calculamos el factor de interpolación, t = dotQ1/(dotQ1-dotQ2)
+    float tFactor = previousDot / (previousDot - currentDot);
+
+    // Calculamos el punto de intersección interpolado, I = Q1 + t(Q2-Q1)
+    Vector3 intersectionPoint;
+    intersectionPoint.x = FloatLerp(previousVertex.x, currentVertex.x, tFactor);
+    intersectionPoint.y = FloatLerp(previousVertex.y, currentVertex.y, tFactor);
+    intersectionPoint.z = FloatLerp(previousVertex.z, currentVertex.z, tFactor);
+
+    // Insertamos el nuevo punto de intersección a la lista de vértices internos
+    insideVertices.push_back(intersectionPoint);
+
+    // Calculamos las coordenadas de las texturas UV interpoladas
+    Texture2 interpolatedTexUVCoord;
+    interpolatedTexUVCoord.u = FloatLerp(prevTexUVCoords.u, curTexUVCoords.u, tFactor);
+    interpolatedTexUVCoord.v = FloatLerp(prevTexUVCoords.v, curTexUVCoords.v, tFactor);
+
+    // Insertamos las nueva coordenadas de la textura interpolada
+    insideTextureUVCoords.push_back(interpolatedTexUVCoord);
+}
+```
+
+Finalmente estableceremos las nuevas texturas en los triángulos al momento de generar los triángulos del polígono:
+
+```cpp
+void GenerateClippedTriangles(std::deque<Triangle>& clippedTriangles)
+{
+    // Ensure a minimum of 3 vertices to create a new triangle
+    if (vertices.size() >= 3)
+    {
+        for (size_t i = 0; i < vertices.size() - 2; i++)
+        {
+            int index0 = 0;
+            int index1 = i + 1;
+            int index2 = i + 2;
+
+            Triangle clippedTriangle = Triangle(0xFFFFFFFF);
+
+            // Set the vertices
+            clippedTriangle.vertices[0] = vertices[index0];
+            clippedTriangle.vertices[1] = vertices[index1];
+            clippedTriangle.vertices[2] = vertices[index2];
+
+            // Set the texture UV coords
+            clippedTriangle.textureUVCoords[0] = textureUVCoords[index0];
+            clippedTriangle.textureUVCoords[1] = textureUVCoords[index1];
+            clippedTriangle.textureUVCoords[2] = textureUVCoords[index2];
+
+            clippedTriangles.push_back(clippedTriangle);
+        }
+    }
+}
+```
+
+Con esto el *clipping* para las texturas debería funcionar:
+
+![](./docs/anim-48.gif) 
+
+Ha sido un largo camino empezando por la creación del *frustum* con sus diferentes planos, el recorte de los vértices de los triángulos dando lugar a polígonos de lados indeterminados, la interpolación de los nuevos vértices y texturas para finalmente regenerar nuevos triángulos, pero ha valido la pena.
+
+Ahora el sistema de renderizado está mucho más optimizado, el *clipping* nos ahorra renderizar elementos descartados y además evita que se bloquee por los vértices por detrás de la cámara:
+
+![](./docs/anim-49.gif) 
+
+### Frustum clipping y space clipping
+
+Al final el proceso de realizar el *clipping* es bastante costoso para nuestra CPU. Debemos tener en cuenta que se ejecuta todo el procedimiento de recortar los polígonos, rengerar los triángulos y todas sus interpolaciones en cada fotograma. Con una malla formada por pocos triángulos no se notará, como un cubo de 8 vértices el rendimiento es exagerado y fácilmente llego a los `300` FPS:
+
+![](./docs/image-162.png)
+
+Pero con otros modelos con un número de triángulos mucho mayor, como este dron con `7750` vértices la tasa de fotogramas se reduce drásticamente hasta apenas alcanzar los `25` FPS de media:
+
+![](./docs/image-163.png)
+
+Repasando el *rendering pipeline* de mi sistema:
+
+1. **Model space**: El modelo empieza en su propio espacio codificado tal como se ha creado en un programa de modelado.
+2. **World space**: Le aplicamos la transformación de mundo para ubicarlo en nuestro espacio 3D.
+3. **View space**: Le aplicamos la transformación de la vista para visualizarlo desde nuestra cámara. 
+4. **Back-face culling**: Mediante el cálculo de las normales determinamos qué triángulos no son visibles por la cámara y les hacemos un *bypass*.
+5. **Frustum clipping**: Realizamos el descarte y recorte de los triángulos para cada plano del *frustum* regenerando los triángulos mediante la interpolación de los vértices y coordenadas.
+6. **Projection**: Aplicamos la matriz de proyección para transformar el espacio 3D a 2D. 
+7. **Perspective divide**: Realizamos los cálculos de la brecha de perspectiva para generar el efecto de profundidad 2D.
+8. **Image space**: Conseguimos el espacio de valores normalizados (*NDC*).
+9. **Screen space**: En este punto tendremos los valores preparados para dibujarlos en la pantalla pero todavía faltará aplicar diferentes rectificaciones para ubicar los elementos en el lugar adecuado.
+
+La realidad es que la mayoría de renders y APIs para GPUs (*DirectX*, *OpenGL*, *Vulkan*...) no implementan el *clipping* a nivel del *frustum* antes de la proyección, sino que lo implementan después de la proyección en su propio *clipping space* y antes de aplicar la brecha de perspectiva:
+
+1. Model space
+2. World space
+3. View space
+4. Projection
+5. **Clipping space** <---------
+6. Perspective divide
+7. Image space (NDC)
+8. Screen space
+
+En este espacio se realiza tanto el *culling* como el *clipping* (*homogeneuos clipping*) respecto al *frustum*, lo que les otorga alguna ventajas.
+
+Durante el **frustum culling**: 
+
+* La brecha de perspectiva es la encargada de dividir cada `X`, `Y`, `Z` entre `W`.
+* Como el *clipping space* ocurre antes de la brecha de perspectiva es fácil determinar si los componentes `X`, `Y`, `Z` de cada vértice se encuentran **dentro** del *frustum*, entre `(-1 * w)` y `(+1 * w)`.
+* Para realizar el *frustum culling* la mayoría de renders simplemente comparan cada componente con `W`.
+
+Durante el **frustum clipping**:
+
+* Las coordenadas de las texturas pueden ser interpoladas linealmente porque todavía no se ha realizado la brecha de perspectiva.
+* La división entre cero se evita porque se realiza el *culling* y el *clipping* teniendo en cuenta siempre la variable `znear`.
+
+Por mi parte como este proyecto tiene la finalidad de aprender, creo que implementar el *clipping* antes de la proyección es más entendible. Al separar la lógica del espacio 3D y del plano 2D he podido desarrollar el procedimiento visualizando cada paso. 
+
+Para profundizar sobre los algoritmos de *culling* recomiendo el artículo de la Wikipedia sobre la [determinación de las caras ocultas](https://en.wikipedia.org/wiki/Hidden-surface_determination). Los llamados algoritmos **HSR** (*Hidden Surface Determination*), **OC** (*Oclusion culling*) o el **VSD** (*Visible Surface Determination*) abarcan todo tipo de técnicas desde el *Z-Buffer*, el algoritmo del pintor o el *Ray tracing*, vale la pena echar un vistazo.
+
+## Múltiples mallas
+
