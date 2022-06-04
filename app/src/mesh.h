@@ -25,6 +25,7 @@ private:
     std::deque<Vector3> faces;
     std::deque<Vector3> vertices;
     std::deque<Triangle> triangles;
+    std::deque<Triangle> clippedTriangles;
     std::deque<Texture2> coordinates;
 
     int textureWidth{ 0 };

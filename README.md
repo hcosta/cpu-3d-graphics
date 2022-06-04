@@ -87,6 +87,11 @@ Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sis
     * [Punto de intersección](#punto-de-intersección)
     * [Algoritmo de clipping](#algoritmo-de-clipping)
     * [De polígonos a triángulos](#de-polígonos-a-triángulos)
+    * [Ajustando el ángulo FOV](#ajustando-el-ángulo-fov)
+    * [Clipping de coordenadas UV en texturas](#clipping-de-coordenadas-uv-en-texturas)
+
+
+
 ## Configuración previa
 
 Este proyecto se desarrolla en Windows 11 con Visual Studio Code. La estructura principal es:
@@ -4591,7 +4596,7 @@ Para hacer uso de esta nueva funcionalidad tendremos que sustituir el código de
 /* Projection settings */
 float fovFactor = M_PI / 3.0; // 60º in radians
 float aspectRatio = windowHeight / static_cast<float>(windowWidth);
-float zNear = 0.1, zFar = 100.0;
+float zNear = 0.1, zFar = 20.0;
 Matrix4 projectionMatrix = Matrix4::PerspectiveMatrix(
     fovFactor, aspectRatio, zNear, zFar);
 ```
@@ -7360,7 +7365,7 @@ public:
     float fovFactorInGrades = 60;
     float fovFactor = M_PI / (180 / 60.0f); // in radians
     float aspectRatio;
-    float zNear = 0.1, zFar = 100.0;
+    float zNear = 0.1, zFar = 20.0;
     Matrix4 projectionMatrix;
     Frustum viewFrustum; // <-----------
 
@@ -7451,7 +7456,7 @@ Esto sería el recorte para un plano, tendremos que repetir el proceso para cada
 
 ![](./docs/image-155.png)
 
-La función que implementará todo este procedimiento para los seis planos tomará un polígono (una nueva clase `Poligon` en `clipping.h`) creado inicialmente con un triángulo y que podrá tener un número indeterminado de vértices, debido a que después del corte, pueden generarse nuevos vértices como en este ejmplo que al cortar un triángulo obtenemos un polígono de cuatro costados:
+La función que implementará todo este procedimiento para los seis planos tomará un polígono (una nueva clase `Poligon` en `clipping.h`) creado inicialmente con un triángulo y que podrá tener un número indeterminado de vértices, debido a que después del corte, pueden generarse nuevos vértices como en este ejemplo que al cortar un triángulo obtenemos un polígono de cuatro costados:
 
 ![](./docs/image-156.png)
 
@@ -7468,10 +7473,10 @@ public:
     Polygon(Triangle triangle)
     {
         // Save the starting triangle vertices
-        this->vertices.push_back(triangle.vertices[0]);
-        this->vertices.push_back(triangle.vertices[1]);
-        this->vertices.push_back(triangle.vertices[2]);
-    };
+        vertices.push_back(triangle.vertices[0]);
+        vertices.push_back(triangle.vertices[1]);
+        vertices.push_back(triangle.vertices[2]);
+    }
 };
 ```
 
@@ -7499,18 +7504,24 @@ private:
 };
 ```
 
-El *clipping* lo ejecutaremos antes de proyectar los puntos, después de las transformaciones 3D. Crearemos nuestro polígono, realizaremos los recortes del *clipping* y como resultado posiblemente obtendremos un polígono con muchos más vértices que posteriormente deberemos transformar de nuevo a triángulos:
+El *clipping* lo ejecutaremos antes del *culling*  y proyectar los puntos, justo después de las transformaciones 3D. 
+
+Crearemos nuestro polígono, realizaremos los recortes del *clipping* y como resultado posiblemente obtendremos un polígono con muchos más vértices que posteriormente deberemos transformar de nuevo a triángulos:
 
 ```cpp
 #include "clipping.h"
 
 void Mesh::Update()
-{
-    /*** BEFORE THE PROJECTION EXECUTE THE CLIPPING */
-    // Create the initial polygon with the triangle face vertices
-    Polygon polygon(triangles[i]);
-    // Then do the clipping
-    polygon.Clip(window->viewFrustum);
+{   
+     // Loop all triangle faces of the mesh
+    for (size_t i = 0; i < triangles.size(); i++)
+    {
+        /*** CLIPPING: BEFORE THE NORMAL CALCULATION AND PROJECTION */
+
+        // Create the initial polygon with the triangle face vertices
+        Polygon polygon(triangles[i]);
+        // Then do the clipping
+        polygon.Clip(window->viewFrustum);
 }
 ```
 
@@ -7560,7 +7571,7 @@ void ClipAgainstPlane(Plane plane)
 }
 ```
 
-En este punto si estamos renderizando un cubo, si miramos cuál es el índice del primer triángulo definido en el `cube.obj` que en mi caso es el `5` y hacemos un bypass para renderizar solo el primer triángulo:
+En este punto si estamos renderizando un cubo, si miramos cuál es el índice del primer triángulo definido en el `cube.obj` que en mi caso es el `5`, podemos hacer un bypass para renderizar solo el primer triángulo:
 
 ```cpp    
 void Mesh::Update()
@@ -7575,49 +7586,207 @@ void Mesh::Update()
 Si imprimimos el número de vértices del polígono después de recortarlo:
 
 ```cpp
-// Create the initial polygon with the triangle face vertices
-Polygon polygon(triangles[i]);
-// Then do the clipping
 polygon.Clip(window->viewFrustum);
 std::cout << "Polygon vertices: " << polygon.vertices.size() << std::endl;
 ```
 
-Deberíamos ver como cambia el contador dependiendo de cómo lo cortemos.
-
-Recortando por arriba 3 vértices:
+Deberíamos ver como cambia el contador dependiendo de cómo lo cortemos, por ejemplo recortando por arriba obtendremos 3 vértices:
 
 ![](./docs/image-157.png)
 
-Por la izquierda 4 vértices:
+Recortando por la izquierda 4 vértices:
 
 ![](./docs/image-158.png)
 
-Por la abajo a la izquierda 5 vértices:
+Por abajo a la izquierda 5 vértices:
 
 ![](./docs/image-159.png)
 
-Bueno, pues parece que más o menos esto funciona.
+En conclusión parece que funciona.
 
 ### De polígonos a triángulos
 
-Nuestro siguiente objetivo es transformar el polígono formado por una cantidad indeterminado de vértices de nuevo a triángulos que podamos renderizar.
+El siguiente objetivo es transformar el polígono formado por una cantidad indeterminado de vértices de nuevo a triángulos para renderizararlos.
 
-La conseguirlo sólo necesitamos unir el primer vértice del polígono con el segundo y el tercero, de nuevo el primero con el tercero y el cuarto, el primero con el cuarto y el quinto... Así sucesivamente hasta el penúltimo vértice:
+Para conseguirlo podemos unir el primer vértice del polígono con el segundo y el tercero, de nuevo el primero con el tercero y el cuarto, el primero con el cuarto y el quinto... Así sucesivamente hasta el penúltimo vértice (`-2` respecto a la longitud de la cola):
 
 ![](./docs/image-160.png)
 
-La implementación es bastante sencilla:
+La implementación es fácil, en un método `GenerateClippedTriangles` iremos metiendo los triángulos recortados en una cola que pasaremos por referencia:
 
 ```cpp
-for(size_t i=0;i < vertices.size()-2;i++)
+class Polygon
 {
-    int index0 = 0;
-    int index1 = i + 1;
-    int index2 = i + 2;
+public:
+    void GenerateClippedTriangles(std::deque<Triangle>& clippedTriangles)
+    {
+        // Ensure a minimum of 3 vertices to create a new triangle
+        if (vertices.size() > 2)
+        {
+            for (size_t i = 0; i < vertices.size() - 2; i++)
+            {
+                int index0 = 0;
+                int index1 = i + 1;
+                int index2 = i + 2;
 
-    Triangle triangle(index0, index1, index2);
+                Triangle triangle = Triangle(0xFFFFFFFF);
+                triangle.vertices[0] = vertices[index0];
+                triangle.vertices[1] = vertices[index1];
+                triangle.vertices[2] = vertices[index2];
+
+                clippedTriangles.push_back(triangle);
+            }
+        }
+    }
+};
+```
+
+Esta cola la crearé en el `mesh` y se llamará `clippedTriangles`:
+
+```cpp
+class Mesh
+{
+public:
+    std::deque<Triangle> clippedTriangles;
+};
+```
+
+La reiniciaré siempre al principio del `Update` para no acumular los triángulos recortados entre fotogramas:
+
+```cpp
+void Mesh::Update()
+{
+    // Clear all the clippedTriangles for the current frame
+    clippedTriangles.clear();
+```
+
+Luego añadiré todos los nuevos triángulos generados durante el *clipping*:
+
+```cpp
+// Create the initial polygon with the triangle face vertices
+Polygon polygon(triangles[i]);
+// Then do the clipping
+polygon.Clip(window->viewFrustum);
+// Add the new triangles to the clippedTriangles dequeue
+polygon.GenerateClippedTriangles(clippedTriangles);
+``` 
+
+Finalizaré el primer bucle `for` e iniciaré otro para calcular las normales, hacer el *culling* y proyectar los triángulos recortados, ahora con `clippedTriangles` en lugar de `triangles`:
+
+```cpp
+// PROJECTING: Loop all clippedTriangles and project them
+for (size_t i = 0; i < clippedTriangles.size(); i++)
+```
+
+Y lo mismo para los triángulos en el `Render`, ahora tomándolos de `clippedTriangles`:
+
+```cpp
+// RENDERING: Loop all projected clippedTriangles and render them
+for (size_t i = 0; i < clippedTriangles.size(); i++)
+```
+
+En este punto, aunque con algún *bug* en el frustum, se deberían recortar los triángulos, formarse nuevos polígonos y transformarse de nuevo en triángulos:
+
+![](./docs/anim-45.gif) 
+
+### Ajustando el ángulo FOV
+
+Por alguna razón ahora mismo se está considerando el espacio de **clipping** algo así:
+
+![](./docs/image-161.png)
+
+Solo con observar podemos suponer que se está tomando el mismo ancho que alto para el *frustum* y es que al crearlo utilizamos un `fovFactor` basado en el `aspectRatio` de la altura respecto a la anchura:
+
+```cpp
+aspectRatio = rendererHeight / static_cast<float>(rendererWidth);
+viewFrustum = Frustum(fovFactor, zNear, zFar);
+```
+
+En otras palabras es un `fovFactor` vertical y por ello el ancho del *frustum* es exactamente igual a su altura.
+
+Para solucionar este problema empezaremos diferenciando entre un `fovFactorX` y un `fovFactorY`, lo cuál nos llevará también a tener dos relaciones de aspecto `aspectRatioX` y `aspectRatioY`:
+
+```cpp
+/* Projection and frustum settings */
+float fovInGrades = 60;
+float fovYInGrades = fovInGrades;
+float fovXInGrades = fovInGrades;
+float fovFactorY = M_PI / (180 / fovInGrades);  // radians
+float fovFactorX = ????;
+float aspectRatioX;
+float aspectRatioY;
+float zNear = 1.0, zFar = 20.0;
+```
+
+En [este artículo de la Wikipedia](https://en.wikipedia.org/wiki/Field_of_view_in_video_games) se explica cómo determinar el `fovFactorX`que al final resulta en la fórmula:
+
+<img src="https://latex.codecogs.com/png.image?\dpi{150}\bg{white}fov_{\color{Orange}&space;x}&space;=&space;{\color{Magenta}&space;2}&space;*&space;{\color{Blue}&space;arctang}(tan(fov_{\color{DarkGreen}&space;y}/2)&space;*&space;aspect_x)&space;&space;"/>
+
+```cpp
+#include <math.h>
+
+float fovFactorX = 2 * atan(tan(fovFactorY/2) * aspectRatioX);
+```
+
+Ahora para iniciar la matriz de proyección utilizaremos el factor y relación de aspecto vertical y para el *frustum* pasaremos tanto el el factor horizontal como vertical para rectificarlo en ancho:
+
+```cpp
+Window() : windowWidth(1280), windowHeight(720), rendererWidth(965), rendererHeight(655) 
+{
+    projectionMatrix = Matrix4::PerspectiveMatrix(fovFactorY, aspectRatioY, zNear, zFar);
+    viewFrustum = Frustum(fovFactorX, fovFactorY, zNear, zFar);
+};
+```
+
+Deberemos adaptar el código del *frustum* para aplicar el cálculo rectificado del plano izquierdo y derecho con el nuevo `fovFactorX`:
+
+```cpp
+Frustum(float fovFactorX, float fovFactorY, float zNear, float zFar)
+{
+    float cosHalfFovX = cos(fovFactorX / 2);
+    float sinHalfFovX = sin(fovFactorX / 2);
+
+    float cosHalfFovY = cos(fovFactorY / 2);
+    float sinHalfFovY = sin(fovFactorY / 2);
+
+    leftPlane.point = Vector3{ 0, 0, 0 };
+    leftPlane.normal = Vector3{ cosHalfFovX, 0, sinHalfFovX };
+
+    rightPlane.point = Vector3{ 0, 0, 0 };
+    rightPlane.normal = Vector3{ -cosHalfFovX, 0, sinHalfFovX };
+
+    topPlane.point = Vector3{ 0, 0, 0 }; 
+    topPlane.normal = Vector3{ 0, -cosHalfFovY, sinHalfFovY };
+
+    bottomPlane.point = Vector3{ 0, 0, 0 };
+    bottomPlane.normal = Vector3{ 0, cosHalfFovY, sinHalfFovY };
+
+    nearPlane.point = Vector3{ 0, 0, zNear };
+    nearPlane.normal = Vector3{ 0, 0, 1 };
+
+    farPlane.point = Vector3{ 0, 0, zFar };
+    farPlane.normal = Vector3{ 0, 0, -1 };
 }
 ```
 
-Así que...
+Con esto ya estaría, pero como estamos permitiendo adaptar el `fovFactor` desde la interfaz tendremos que rectificar esa parte y generar de nuevo tanto la matriz de proyección como el frustum con el nuevo ángulo (convirtiéndolo a radianos) :
 
+```cpp
+ImGui::SliderFloat("Fov", &this->fovInGrades, 30, 120);
+
+// Update the Projection Matrix and thr Frustum
+fovFactorY = M_PI / (180 / fovInGrades);  // in radians
+fovFactorX = 2 * atan(tan(fovFactorY / 2) * aspectRatioX);  // in radians
+projectionMatrix = Matrix4::PerspectiveMatrix(fovFactorY, aspectRatioY, zNear, zFar);
+viewFrustum = Frustum(fovFactorX, fovFactorY, zNear, zFar);
+```
+
+Con esto tendremos perfectamente configurado el *frustum* de la cámara:
+
+![](./docs/anim-46.gif) 
+
+El coloreado de triángulos también debería funcionar, pero el texturizado tendremos que rectificarlo:
+
+![](./docs/anim-47.gif) 
+
+### Clipping de coordenadas UV en texturas

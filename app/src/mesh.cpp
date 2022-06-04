@@ -116,6 +116,8 @@ void Mesh::SetTranslation(float *translation)
 
 void Mesh::Update()
 {
+    // Clear all the clippedTriangles for the current frame
+    clippedTriangles.clear();
 
     //// LOOKAT CAMERA VIEW MATRIX WITH HARDCODED TARGET
     // Vector3 target = { window->modelTranslation[0], window->modelTranslation[1], window->modelTranslation[2] };
@@ -137,7 +139,6 @@ void Mesh::Update()
     // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
     {
-        if (i != 5) continue;
 
         // Create a new triangle to store data and render it later
         triangles[i].vertices[0] = vertices[static_cast<int>(faces[i].x) - 1];
@@ -153,65 +154,67 @@ void Mesh::Update()
             triangles[i].ViewVertexTransform(j, window->viewMatrix);
         }
 
-        /*** Calculate the normal ***/
-        triangles[i].CalculateNormal();
+        /*** CLIPPING: BEFORE THE NORMAL CALCULATION AND PROJECTION */
 
-        /*** Back Face Culling Algorithm ***/
-        if (window->enableBackfaceCulling)
-        {
-            triangles[i].ApplyCulling(&window->camera);
-            // Bypass the projection if triangle is being culled
-
-            if (triangles[i].culling)
-                continue;
-        }
-
-        /*Before project calculate depth*/
-        // No longer needed since we use z buffer
-        // triangles[i].CalculateAverageDepth();
-
-        /*** BEFORE THE PROJECTION EXECUTE THE CLIPPING */
         // Create the initial polygon with the triangle face vertices
         Polygon polygon(triangles[i]);
         // Then do the clipping
         polygon.Clip(window->viewFrustum);
-        std::cout << "Polygon vertices: " << polygon.vertices.size() << std::endl;
+        // Add the new triangles to the clippedTriangles dequeue
+        polygon.GenerateClippedTriangles(clippedTriangles);
+    }
+
+    // CULLING AND PROJECTING
+    for (size_t i = 0; i < clippedTriangles.size(); i++)
+    {
+        /*** Calculate the normal ***/
+        clippedTriangles[i].CalculateNormal();
+
+        /*** Back Face Culling Algorithm ***/
+        if (window->enableBackfaceCulling)
+        {
+            clippedTriangles[i].ApplyCulling(&window->camera);
+            // Bypass the projection if triangle is being culled
+
+            if (clippedTriangles[i].culling)
+                continue;
+        }
 
         /*** Apply projections and lighting for all face vertices ***/
         for (size_t j = 0; j < 3; j++)
         {
             // Project the current vertex using matrices
-            triangles[i].ProjectWorldVertex(j, window->projectionMatrix);
+            clippedTriangles[i].ProjectWorldVertex(j, window->projectionMatrix);
             // First scale the projected vertex by screen sizes
-            triangles[i].projectedVertices[j].x *= (window->rendererWidth / 2.0);
-            triangles[i].projectedVertices[j].y *= (window->rendererHeight / 2.0);
+            clippedTriangles[i].projectedVertices[j].x *= (window->rendererWidth / 2.0);
+            clippedTriangles[i].projectedVertices[j].y *= (window->rendererHeight / 2.0);
             // Invert the y values to account the flipped screen y coord
-            triangles[i].projectedVertices[j].y *= -1;
+            clippedTriangles[i].projectedVertices[j].y *= -1;
             // Then translate the projected vertex to the middle screen
-            triangles[i].projectedVertices[j].x += (window->rendererWidth / 2.0);
-            triangles[i].projectedVertices[j].y += (window->rendererHeight / 2.0);
+            clippedTriangles[i].projectedVertices[j].x += (window->rendererWidth / 2.0);
+            clippedTriangles[i].projectedVertices[j].y += (window->rendererHeight / 2.0);
         }
 
         // Project the normal vectors if we want to draw it
         if (window->drawTriangleNormals)
         {
             // Project the current normal to create an origin and a destiny vectors
-            triangles[i].ProjectWorldNormal(window->projectionMatrix);
+            clippedTriangles[i].ProjectWorldNormal(window->projectionMatrix);
             for (size_t j = 0; j < 2; j++)
             {
                 // First scale the projected vertex by screen sizes
-                triangles[i].projectedNormal[j].x *= (window->rendererWidth / 2.0);
-                triangles[i].projectedNormal[j].y *= (window->rendererHeight / 2.0);
+                clippedTriangles[i].projectedNormal[j].x *= (window->rendererWidth / 2.0);
+                clippedTriangles[i].projectedNormal[j].y *= (window->rendererHeight / 2.0);
                 // Invert the y values to account the flipped screen y coord
-                triangles[i].projectedNormal[j].y *= -1;
+                clippedTriangles[i].projectedNormal[j].y *= -1;
                 // Then translate the projected vertex to the middle screen
-                triangles[i].projectedNormal[j].x += (window->rendererWidth / 2.0);
-                triangles[i].projectedNormal[j].y += (window->rendererHeight / 2.0);
+                clippedTriangles[i].projectedNormal[j].x += (window->rendererWidth / 2.0);
+                clippedTriangles[i].projectedNormal[j].y += (window->rendererHeight / 2.0);
             }
         }
 
         /** Apply flat shading ***/
-        triangles[i].ApplyFlatShading(window->light);
+        clippedTriangles[i].ApplyFlatShading(window->light);
     }
 }
 
@@ -222,30 +225,30 @@ void Mesh::Render()
     // std::deque<Triangle> sortedTriangles(triangles);
     // std::sort(sortedTriangles.begin(), sortedTriangles.end());
 
-    // RENDERING: Loop projected triangles array and render them
-    for (size_t i = 0; i < triangles.size(); i++)
+    // RENDERING: Loop all projected clippedTriangles and render them
+    for (size_t i = 0; i < clippedTriangles.size(); i++)
     {
         // If culling is true and enabled globally bypass the current triangle
-        if (window->enableBackfaceCulling && triangles[i].culling)
+        if (window->enableBackfaceCulling && clippedTriangles[i].culling)
             continue;
 
         // Triángulos
         if (window->drawFilledTriangles && !window->drawTexturedTriangles)
         {
             window->DrawFilledTriangle(
-                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y, triangles[i].projectedVertices[0].z, triangles[i].projectedVertices[0].w,
-                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y, triangles[i].projectedVertices[1].z, triangles[i].projectedVertices[1].w,
-                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y, triangles[i].projectedVertices[2].z, triangles[i].projectedVertices[2].w,
-                triangles[i].color);
+                clippedTriangles[i].projectedVertices[0].x, clippedTriangles[i].projectedVertices[0].y, clippedTriangles[i].projectedVertices[0].z, clippedTriangles[i].projectedVertices[0].w,
+                clippedTriangles[i].projectedVertices[1].x, clippedTriangles[i].projectedVertices[1].y, clippedTriangles[i].projectedVertices[1].z, clippedTriangles[i].projectedVertices[1].w,
+                clippedTriangles[i].projectedVertices[2].x, clippedTriangles[i].projectedVertices[2].y, clippedTriangles[i].projectedVertices[2].z, clippedTriangles[i].projectedVertices[2].w,
+                clippedTriangles[i].color);
         }
 
         // Triángulos texturizados
         if (window->drawTexturedTriangles)
         {
             window->DrawTexturedTriangle(
-                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y, triangles[i].projectedVertices[0].z, triangles[i].projectedVertices[0].w, triangles[i].textureUVCoords[0],
-                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y, triangles[i].projectedVertices[1].z, triangles[i].projectedVertices[1].w, triangles[i].textureUVCoords[1],
-                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y, triangles[i].projectedVertices[2].z, triangles[i].projectedVertices[2].w, triangles[i].textureUVCoords[2],
+                clippedTriangles[i].projectedVertices[0].x, clippedTriangles[i].projectedVertices[0].y, clippedTriangles[i].projectedVertices[0].z, clippedTriangles[i].projectedVertices[0].w, clippedTriangles[i].textureUVCoords[0],
+                clippedTriangles[i].projectedVertices[1].x, clippedTriangles[i].projectedVertices[1].y, clippedTriangles[i].projectedVertices[1].z, clippedTriangles[i].projectedVertices[1].w, clippedTriangles[i].textureUVCoords[1],
+                clippedTriangles[i].projectedVertices[2].x, clippedTriangles[i].projectedVertices[2].y, clippedTriangles[i].projectedVertices[2].z, clippedTriangles[i].projectedVertices[2].w, clippedTriangles[i].textureUVCoords[2],
                 meshTexture, textureWidth, textureHeight);
         }
 
@@ -253,9 +256,9 @@ void Mesh::Render()
         if (window->drawWireframe)
         {
             window->DrawTriangle3D(
-                triangles[i].projectedVertices[0].x, triangles[i].projectedVertices[0].y, triangles[i].projectedVertices[0].w,
-                triangles[i].projectedVertices[1].x, triangles[i].projectedVertices[1].y, triangles[i].projectedVertices[1].w,
-                triangles[i].projectedVertices[2].x, triangles[i].projectedVertices[2].y, triangles[i].projectedVertices[2].w,
+                clippedTriangles[i].projectedVertices[0].x, clippedTriangles[i].projectedVertices[0].y, clippedTriangles[i].projectedVertices[0].w,
+                clippedTriangles[i].projectedVertices[1].x, clippedTriangles[i].projectedVertices[1].y, clippedTriangles[i].projectedVertices[1].w,
+                clippedTriangles[i].projectedVertices[2].x, clippedTriangles[i].projectedVertices[2].y, clippedTriangles[i].projectedVertices[2].w,
                 0xFF000000);
         }
 
@@ -263,17 +266,17 @@ void Mesh::Render()
         if (window->drawTriangleNormals)
         {
             window->DrawLine3D(
-                triangles[i].projectedNormal[0].x, triangles[i].projectedNormal[0].y, triangles[i].projectedNormal[0].w,
-                triangles[i].projectedNormal[1].x, triangles[i].projectedNormal[1].y, triangles[i].projectedNormal[1].w,
+                clippedTriangles[i].projectedNormal[0].x, clippedTriangles[i].projectedNormal[0].y, clippedTriangles[i].projectedNormal[0].w,
+                clippedTriangles[i].projectedNormal[1].x, clippedTriangles[i].projectedNormal[1].y, clippedTriangles[i].projectedNormal[1].w,
                 0xFF07EB07);
         }
 
         // Vértices
         if (window->drawWireframeDots)
         {
-            window->DrawRect(triangles[i].projectedVertices[0].x - 1, triangles[i].projectedVertices[0].y - 1, 3, 3, 0xFF00FFFF);
-            window->DrawRect(triangles[i].projectedVertices[1].x - 1, triangles[i].projectedVertices[1].y - 1, 3, 3, 0xFF00FFFF);
-            window->DrawRect(triangles[i].projectedVertices[2].x - 1, triangles[i].projectedVertices[2].y - 1, 3, 3, 0xFF00FFFF);
+            window->DrawRect(clippedTriangles[i].projectedVertices[0].x - 1, clippedTriangles[i].projectedVertices[0].y - 1, 3, 3, 0xFF00FFFF);
+            window->DrawRect(clippedTriangles[i].projectedVertices[1].x - 1, clippedTriangles[i].projectedVertices[1].y - 1, 3, 3, 0xFF00FFFF);
+            window->DrawRect(clippedTriangles[i].projectedVertices[2].x - 1, clippedTriangles[i].projectedVertices[2].y - 1, 3, 3, 0xFF00FFFF);
         }
     }
 }

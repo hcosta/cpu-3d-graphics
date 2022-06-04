@@ -145,9 +145,9 @@ void Window::ProcessInput()
             mouseClicked = false;
             break;
         case SDL_MOUSEMOTION:
-            if (mouseClicked and rendererActive and !rendererDragged){
+            if (mouseClicked and rendererFocused and !rendererDragged){
                 // Rotation per second in radians
-                float mouseSensitivity = 0.125;
+                float mouseSensitivity = 0.175;
                 // Increment the yaw and the pitch
                 camera.yawPitch[0] += event.motion.xrel * mouseSensitivity * deltaTime;
                 camera.yawPitch[1] += event.motion.yrel * mouseSensitivity * deltaTime;
@@ -157,7 +157,7 @@ void Window::ProcessInput()
             }
             break;
         case SDL_MOUSEWHEEL:
-            if (rendererActive and !rendererDragged) {
+            if (rendererFocused and rendererHovered and !rendererDragged) {
                 // Scroll up
                 if (event.wheel.y > 0)
                 {
@@ -180,7 +180,7 @@ void Window::ProcessInput()
     }
 
     // Process the WASD movement with a keyState map
-    if (rendererActive and !rendererDragged)
+    if (rendererFocused and !rendererDragged)
     {
         const uint8_t* keystate = SDL_GetKeyboardState(NULL);
 
@@ -279,7 +279,7 @@ void Window::Update()
     ImGui::SliderFloat3("Light", lightPosition, -1, 1);
     ImGui::Separator();
     ImGui::Text("Campo de visión");
-    ImGui::SliderFloat("Fov", &this->fovFactorInGrades, 30, 120);
+    ImGui::SliderFloat("Fov", &this->fovInGrades, 30, 120);
     ImGui::End();
 
     // Rendering window
@@ -289,7 +289,8 @@ void Window::Update()
     ImGui::Begin("Rendering", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse);
     rendererDragged = ImGui::IsItemHovered();
     ImGui::Image(colorBufferTexture, ImVec2(rendererWidth, rendererHeight));
-    rendererActive = ImGui::IsWindowFocused() && ImGui::IsWindowHovered();
+    rendererFocused = ImGui::IsWindowFocused();
+    rendererHovered = ImGui::IsWindowHovered();
     ImGui::SetCursorPosX(10);
     ImGui::SetCursorPosY((ImGui::GetWindowSize().y - 20));
     ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -310,8 +311,11 @@ void Window::Update()
     // Update Camera Position
     camera.position = Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
 
-    // Update Projection Matrix
-    projectionMatrix = Matrix4::PerspectiveMatrix((this->fovFactorInGrades / 180.0) * M_PI, aspectRatio, zNear, zFar);
+    // Update the Projection Matrix and thr Frustum
+    fovFactorY = M_PI / (180 / fovInGrades);  // in radians
+    fovFactorX = 2 * atan(tan(fovFactorY / 2) * aspectRatioX);  // in radians
+    projectionMatrix = Matrix4::PerspectiveMatrix(fovFactorY, aspectRatioY, zNear, zFar);
+    viewFrustum = Frustum(fovFactorX, fovFactorY, zNear, zFar);
 
     // Update Screen Ticks si han sido mofificados
     screenTicksPerFrame = 1000 / this->fpsCap;

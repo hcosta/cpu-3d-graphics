@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <SDL.h>
+#include <math.h>
 #include "timer.h"
 #include "vector.h"
 #include "mesh.h"
@@ -19,7 +20,8 @@ public:
     int windowHeight;
     int rendererWidth;
     int rendererHeight;
-    bool rendererActive;
+    bool rendererFocused;
+    bool rendererHovered;
     bool rendererDragged;
 
     /* Depth buffer  */
@@ -51,10 +53,14 @@ public:
     int mouseClickPosition[2];
 
     /* Projection and frustum settings */
-    float fovFactorInGrades = 60;
-    float fovFactor = M_PI / (180 / 60.0f);  // 60º in radians
-    float aspectRatio;
-    float zNear = 0.1, zFar = 100.0;
+    float fovInGrades = 60;
+    float fovXInGrades = fovInGrades;
+    float fovYInGrades = fovInGrades;
+    float fovFactorY = M_PI / (180 / fovInGrades);  // conversion to radians
+    float fovFactorX = 2 * atan(tan(fovFactorY / 2) * aspectRatioX);  // conversion to radians
+    float aspectRatioX;
+    float aspectRatioY;
+    float zNear = 2.0, zFar = 20.0;
     Matrix4 projectionMatrix;
     Frustum viewFrustum;
 
@@ -91,9 +97,10 @@ private:
 public:
     Window() : windowWidth(1280), windowHeight(720), rendererWidth(965), rendererHeight(655) 
     {
-        aspectRatio = rendererHeight / static_cast<float>(rendererWidth);
-        projectionMatrix = Matrix4::PerspectiveMatrix(fovFactor, aspectRatio, zNear, zFar);
-        viewFrustum = Frustum(fovFactor, zNear, zFar);
+        aspectRatioX = rendererWidth / static_cast<float>(rendererHeight);
+        aspectRatioY = rendererHeight / static_cast<float>(rendererWidth);
+        projectionMatrix = Matrix4::PerspectiveMatrix(fovFactorY, aspectRatioY, zNear, zFar);
+        viewFrustum = Frustum(fovFactorX, fovFactorY, zNear, zFar);
     };
 
     ~Window();
