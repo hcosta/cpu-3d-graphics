@@ -117,7 +117,6 @@ void Window::Setup()
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, rendererWidth, rendererHeight);
 
     /* Mesh loading */
-    //mesh = Mesh(this, "res/drone.obj", "res/drone.png");
     meshes.push_back(
         Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(-3, 0, 8)));
     meshes.push_back(
@@ -131,10 +130,8 @@ void Window::Setup()
     meshes.push_back(
         Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(0, 6, 8)));
 
+    // Send the loaded meshes to the render engine
     renderEngine.SetMeshes(meshes);
-
-    // 
-    // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
 }
 
 void Window::ProcessInput()

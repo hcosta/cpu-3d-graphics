@@ -8044,7 +8044,21 @@ private:
 #endif
 ```
 
-Luego puedo crear un vector de `mesh` en la ventana, generarlos y pasárselos al `RenderEngine`:
+Luego puedo crear un vector de `mesh` en la ventana:
+
+```cpp
+#include "engine.h"
+
+class Window
+{
+public:
+    RenderEngine renderEngine;
+private:
+    std::vector<Mesh> meshes;
+};
+```
+
+Cargar unos cuantos cubos y pasárselos al `RenderEngine`:
 
 ```cpp
 /* Mesh loading */
@@ -8061,14 +8075,15 @@ meshes.push_back(
 meshes.push_back(
     Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(0, 6, 8)));
 
+// Send the loaded meshes to the render engine
 renderEngine.SetMeshes(meshes);
 ```
 
-Ahora en lugar de actualizar y dibujar una sola malla ejecuto `renderEngine.Update` y `renderEngine.Render` para procesar todos mis modelos de golpe:
+En lugar de actualizar y dibujar una sola malla ejecuto `renderEngine.Update` y `renderEngine.Render` para procesar todos mis modelos de golpe:
 
 ![](./docs/anim-50.gif) 
 
-Evidentemente lo óptimo sería unificar todo el *rendering pipeline* pero no tengo otros proyectos en mente (como aprender `OpenGL`) y será en ese momento cuando aprovecharé para rehacer este experimento de una forma mucho más óptima.
+Evidentemente lo óptimo sería unificar todo el *rendering pipeline* pero tengo otros proyectos en mente (como aprender `OpenGL`) y será en ese momento cuando aproveche para rehacer este experimento de una forma mucho más óptima.
 
 Por cierto, ¿por qué un `<vector>` y no una `deque`? Porque hoy me ha dado por realizar algunos experimentos para determinar qué contenedor es más rápido y este es el resultado:
 
