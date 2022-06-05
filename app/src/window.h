@@ -4,6 +4,7 @@
 #include <iostream>
 #include <SDL.h>
 #include <math.h>
+#include <vector>
 #include "timer.h"
 #include "vector.h"
 #include "mesh.h"
@@ -11,6 +12,7 @@
 #include "light.h"
 #include "camera.h"
 #include "clipping.h"
+#include "engine.h"
 
 class Window
 {
@@ -23,6 +25,9 @@ public:
     bool rendererFocused;
     bool rendererHovered;
     bool rendererDragged;
+
+    /* Engine */
+    RenderEngine renderEngine;
 
     /* Depth buffer  */
     float* depthBuffer{ nullptr };
@@ -38,22 +43,22 @@ public:
 
     /* Model settings */
     float modelScale[3] = {1, 1, 1};
-    float modelTranslation[3] = {0, 0, 5.5};
+    float modelTranslation[3] = {0, 0, 10};
     float modelRotation[3] = {5.5, 0.5, 0};
-        /*float modelScale[3] = { 1, 1, 1 };
+    /*float modelScale[3] = { 1, 1, 1 };
     float modelTranslation[3] = { 0, 0, 4 };
     float modelRotation[3] = { 0, 0, 0 };*/
 
     /* Camera and mouse settings */
     Camera camera;
     Matrix4 viewMatrix;
-    float cameraPosition[3];
+    float cameraPosition[3]{0,2.75f,0};
     bool mouseClicked;
     int mousePosition[2];
     int mouseClickPosition[2];
 
     /* Projection and frustum settings */
-    float fovInGrades = 60;
+    float fovInGrades = 70;
     float fovXInGrades = fovInGrades;
     float fovYInGrades = fovInGrades;
     float fovFactorY = M_PI / (180 / fovInGrades);  // conversion to radians
@@ -88,8 +93,10 @@ private:
     int screenTicksPerFrame = 1000 / fpsCap;
     /* Timers */
     Timer capTimer;
+
     /* Custom objects */
-    Mesh mesh;
+    std::vector<Mesh> meshes;
+
     /* Event Handling */
     SDL_Event event{};
 

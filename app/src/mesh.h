@@ -2,7 +2,7 @@
 #define MESH_H
 
 #include <iostream>
-#include <deque>
+#include <vector>
 #include <deque>
 #include "vector.h"
 #include "triangle.h"
@@ -18,15 +18,14 @@ public:
     Vector3 rotation{0, 0, 0};
     Vector3 rotationAmount{0, 0, 0};
     Vector3 translation{0, 0, 0};
+    std::vector<Vector3> vertices;
+    std::vector<Texture2> coordinates;
 
 private:
     Window* window{ nullptr };
-
-    std::deque<Vector3> faces;
-    std::deque<Vector3> vertices;
-    std::deque<Triangle> triangles;
-    std::deque<Triangle> clippedTriangles;
-    std::deque<Texture2> coordinates;
+    std::vector<Vector3> faces;
+    std::vector<Triangle> triangles;
+    std::vector<Triangle> clippedTriangles;
 
     int textureWidth{ 0 };
     int textureHeight{ 0 };
@@ -35,7 +34,7 @@ private:
 
 public:
     Mesh() = default;
-    Mesh(Window *window, std::string modelFileName, std::string textureFileName);
+    Mesh(Window *window, std::string modelFileName, std::string textureFileName, Vector3 scale, Vector3 rotation, Vector3 translation);
     Mesh(Window *window, Vector3 *vertices, int verticesLength, Vector3 *faces, int facesLength, uint32_t *colors, Texture2 *textures);
     void Free();
     void SetScale(float *scale);

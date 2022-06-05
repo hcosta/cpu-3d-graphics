@@ -17,7 +17,7 @@ Window::~Window()
     free(depthBuffer);
 
     // Liberamos la textura del mesh
-    mesh.Free();
+    for(size_t i=0;i<meshes.size();i++) meshes[i].Free();
 
     // Liberamos ImGUI
     ImGui_ImplSDLRenderer_Shutdown();
@@ -58,10 +58,10 @@ void Window::Init()
     }
 
     // Utilizar SDL para preguntar la resolucion maxima del monitor
-    SDL_DisplayMode Window_mode;
-    SDL_GetCurrentDisplayMode(0, &Window_mode);
+    SDL_DisplayMode displayMode;
+    SDL_GetCurrentDisplayMode(0, &displayMode);
     // Set the max FPS as the monitor max hz
-    screenRefreshRate = Window_mode.refresh_rate;
+    screenRefreshRate = displayMode.refresh_rate;
     if (!enableCap)
     {
         fpsCap = screenRefreshRate;
@@ -105,7 +105,6 @@ void Window::Init()
     // Other options
     SDL_WarpMouseInWindow(window, 495, 370);
     SDL_SetWindowResizable(window, SDL_FALSE);
-
 }
 
 void Window::Setup()
@@ -116,9 +115,24 @@ void Window::Setup()
     depthBuffer = static_cast<float*>(malloc(sizeof(float) * rendererWidth * rendererHeight));
     // Crear la textura SDL utilizada para mostrar el color buffer
     colorBufferTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, rendererWidth, rendererHeight);
+
     /* Mesh loading */
     //mesh = Mesh(this, "res/drone.obj", "res/drone.png");
-    mesh = Mesh(this, "res/f117.obj", "res/f117.png");
+    meshes.push_back(
+        Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(-3, 0, 8)));
+    meshes.push_back(
+        Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(0, 0, 8)));
+    meshes.push_back(
+        Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(3, 0, 8)));
+    meshes.push_back(
+        Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(-1.5, 3, 8)));
+    meshes.push_back(
+        Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(1.5, 3, 8)));
+    meshes.push_back(
+        Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(0, 6, 8)));
+
+    renderEngine.SetMeshes(meshes);
+
     // 
     // !!!! Añadir más meshes implicará crear todo el funcionamiento del update y render a nivel global y no en la malla
 }
@@ -262,6 +276,7 @@ void Window::Update()
     ImGui::Checkbox("Dibujar wireframe", &this->drawWireframe);
     ImGui::Checkbox("Dibujar normales", &this->drawTriangleNormals);
     ImGui::Separator();
+    /*
     ImGui::Text("Escalado del modelo");
     ImGui::SliderFloat3("Scale", modelScale, 0, 5);
     ImGui::Text("Traslación del modelo");
@@ -269,6 +284,7 @@ void Window::Update()
     ImGui::Text("Rotación del modelo");
     ImGui::SliderFloat3("Rotate", modelRotation, 0, 10);
     ImGui::Separator();
+    */
     ImGui::Text("Posición cámara (X,Y,Z)");
     ImGui::SliderFloat3("Camera", cameraPosition, -5, 5);
     ImGui::Text("Ángulos cámara (yaw, pitch)");
@@ -305,9 +321,11 @@ void Window::Update()
     deltaTime = ImGui::GetIO().DeltaTime;
 
     // Update Model Settings
-    mesh.SetScale(modelScale);
-    mesh.SetRotation(modelRotation);
-    mesh.SetTranslation(modelTranslation);
+    /*for (size_t i = 0; i < meshes.size(); i++) {
+        meshes[i].SetScale(modelScale);
+        meshes[i].SetRotation(modelRotation);
+        meshes[i].SetTranslation(modelTranslation);
+    }*/
 
     // Update Camera Position
     camera.position = Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
@@ -325,7 +343,9 @@ void Window::Update()
     light.direction = Vector3(lightPosition[0], lightPosition[1], lightPosition[2]);
 
     // Custom objects update
-    mesh.Update();
+    //mesh.Update();
+
+    renderEngine.Update();
 }
 
 void Window::Render()
@@ -338,7 +358,8 @@ void Window::Render()
     if (this->drawGrid) DrawGrid(0xFF616161);
 
     // Custom objects render
-    mesh.Render();
+    //mesh.Render();
+    renderEngine.Render();
 
     // Renderizamos el frame de ImGui
     ImGui::Render();

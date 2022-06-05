@@ -6,9 +6,14 @@
 #include <string>
 #include <deque>
 
-Mesh::Mesh(Window* window, std::string modelFileName, std::string textureFileName)
+Mesh::Mesh(Window* window, std::string modelFileName, std::string textureFileName, Vector3 scale, Vector3 rotation, Vector3 translation)
 {
     this->window = window;
+
+    this->scale = scale;
+    this->rotation = rotation;
+    this->translation = translation;
+
     // Open the file
     std::ifstream modelFile(modelFileName);
     if (!modelFile.is_open())
@@ -51,10 +56,13 @@ Mesh::Mesh(Window* window, std::string modelFileName, std::string textureFileNam
             face.z = vertexIndices[2];
             this->faces.push_back(face);
             // recover the triangle coords using the textureIndeces
-            Texture2 triangleCoords[]{ 
-                this->coordinates[textureIndices[0] - 1], 
-                this->coordinates[textureIndices[1] - 1], 
-                this->coordinates[textureIndices[2] - 1]};
+            Texture2 triangleCoords[]{
+                this->coordinates[textureIndices[0] - 1],
+                this->coordinates[textureIndices[1] - 1],
+                this->coordinates[textureIndices[2] - 1] };
+
+            Triangle(0xFFFFFFFF, triangleCoords);
+            // Create a new triangle to store data and render it later
             this->triangles.push_back(Triangle(0xFFFFFFFF, triangleCoords));
         }
     }
@@ -119,27 +127,13 @@ void Mesh::Update()
     // Clear all the clippedTriangles for the current frame
     clippedTriangles.clear();
 
-    //// LOOKAT CAMERA VIEW MATRIX WITH HARDCODED TARGET
-    // Vector3 target = { window->modelTranslation[0], window->modelTranslation[1], window->modelTranslation[2] };
-    // window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
-
-    //// FPS CAMERA VIEW MATRIX WITHOUT HARDCODED TARGET
-    // Create an initial target vector forward the z-axis
-    Vector3 target = {0, 0, 1};  
-    // Calculate yaw rotation matrix and set the direction
-    Matrix4 cameraYawRotationMatrix = Matrix4::RotationYMatrix(window->camera.yawPitch[0]);
-    Matrix4 cameraPitchRotationMatrix = Matrix4::RotationXMatrix(window->camera.yawPitch[1]);
-    window->camera.direction = target * cameraPitchRotationMatrix * cameraYawRotationMatrix;
-    // Offset the camera position in the direction where the camera is pointint at
-    target = window->camera.position + window->camera.direction;
-    Vector3 upDirection = { 0, 1, 0 };
     // Calculate the view matrix for each frame
-    window->viewMatrix = Matrix4::LookAt(window->camera.position, target, upDirection);
+    window->viewMatrix = Matrix4::LookAt(
+        window->camera.position, window->camera.GetTarget(), {0, 1, 0});  // Vector3 upDirection
 
     // Loop all triangle faces of the mesh
     for (size_t i = 0; i < triangles.size(); i++)
     {
-
         // Create a new triangle to store data and render it later
         triangles[i].vertices[0] = vertices[static_cast<int>(faces[i].x) - 1];
         triangles[i].vertices[1] = vertices[static_cast<int>(faces[i].y) - 1];
@@ -221,10 +215,6 @@ void Mesh::Update()
 
 void Mesh::Render()
 {
-    // Antes de renderizar triángulos ordenarlos por media de profundidad
-    // Esto ya no es necesario al estar utilizando un zbuffer
-    // std::deque<Triangle> sortedTriangles(triangles);
-    // std::sort(sortedTriangles.begin(), sortedTriangles.end());
 
     // RENDERING: Loop all projected clippedTriangles and render them
     for (size_t i = 0; i < clippedTriangles.size(); i++)

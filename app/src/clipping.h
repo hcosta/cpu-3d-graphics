@@ -1,7 +1,7 @@
 #ifndef CLIPPING_H
 #define CLIPPING_H
 
-#include <deque>
+#include <vector>
 #include <math.h>
 #include "vector.h"
 #include "triangle.h"
@@ -56,8 +56,8 @@ public:
 class Polygon
 {
 public:
-    std::deque<Vector3> vertices;
-    std::deque<Texture2> textureUVCoords;
+    std::vector<Vector3> vertices;
+    std::vector<Texture2> textureUVCoords;
 
     Polygon(Triangle triangle)
     {
@@ -82,7 +82,7 @@ public:
         ClipAgainstPlane(viewFrustum.farPlane);
     }
 
-    void GenerateClippedTriangles(std::deque<Triangle>& clippedTriangles)
+    void GenerateClippedTriangles(std::vector<Triangle>& clippedTriangles)
     {
         // Ensure a minimum of 3 vertices to create a new triangle
         if (vertices.size() >= 3)
@@ -119,9 +119,9 @@ private:
     void ClipAgainstPlane(Plane plane)
     {
         // Creamos una cola para almacenar los vértices dentro del plano
-        std::deque<Vector3> insideVertices;
+        std::vector<Vector3> insideVertices;
         // Creamos una cola para almacenar las coordenadas UV de las tetxturas dentro del plano
-        std::deque<Texture2> insideTextureUVCoords;
+        std::vector<Texture2> insideTextureUVCoords;
 
         // Recorremos todos los vértices
         for (size_t i = 0; i < vertices.size(); i++)

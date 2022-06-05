@@ -1,8 +1,8 @@
-# CPU 3D Graphics en C++
+# CPU 3D Renderer
 
-La meta de este proyecto es entender el pipeline del renderizado 3D sin utilizar la GPU, implementando en C++ todo el sistema desde cero.
+La meta de este proyecto es dejar un registro del desarrollo de un *pipeline* de renderizado 3D sin utilizar la GPU, implementando todo el sistema desde cero en C++.
 
-Se utiliza SDL2 como biblioteca multiplataforma para manejar el hardware del sistema.
+Se utilizará `SDL2` como biblioteca multiplataforma para el hardware del sistema y `Dear ImGui` para implementar la interfaz.
 
 ## Índice
 
@@ -7947,7 +7947,7 @@ Ahora el sistema de renderizado está mucho más optimizado, el *clipping* nos a
 
 ### Frustum clipping y space clipping
 
-Al final el proceso de realizar el *clipping* es bastante costoso para nuestra CPU. Debemos tener en cuenta que se ejecuta todo el procedimiento de recortar los polígonos, rengerar los triángulos y todas sus interpolaciones en cada fotograma. Con una malla formada por pocos triángulos no se notará, como un cubo de 8 vértices el rendimiento es exagerado y fácilmente llego a los `300` FPS:
+Al final el proceso de realizar el *clipping* es bastante costoso para nuestra CPU. Debemos tener en cuenta que se ejecuta todo el procedimiento de recortar los polígonos, regenerar los triángulos y todas sus interpolaciones en cada fotograma. Con una malla formada por pocos triángulos no se notará, como un cubo de 8 vértices el rendimiento es exagerado y fácilmente llego a los `300` FPS:
 
 ![](./docs/image-162.png)
 
@@ -7963,7 +7963,7 @@ Repasando el *rendering pipeline* de mi sistema:
 4. **Back-face culling**: Mediante el cálculo de las normales determinamos qué triángulos no son visibles por la cámara y les hacemos un *bypass*.
 5. **Frustum clipping**: Realizamos el descarte y recorte de los triángulos para cada plano del *frustum* regenerando los triángulos mediante la interpolación de los vértices y coordenadas.
 6. **Projection**: Aplicamos la matriz de proyección para transformar el espacio 3D a 2D. 
-7. **Perspective divide**: Realizamos los cálculos de la brecha de perspectiva para generar el efecto de profundidad 2D.
+7. **Perspective divide**: Realizamos los cálculos de la brecha de perspectiva para generar el efecto de profundidad.
 8. **Image space**: Conseguimos el espacio de valores normalizados (*NDC*).
 9. **Screen space**: En este punto tendremos los valores preparados para dibujarlos en la pantalla pero todavía faltará aplicar diferentes rectificaciones para ubicar los elementos en el lugar adecuado.
 
@@ -7978,7 +7978,7 @@ La realidad es que la mayoría de renders y APIs para GPUs (*DirectX*, *OpenGL*,
 7. Image space (NDC)
 8. Screen space
 
-En este espacio se realiza tanto el *culling* como el *clipping* (*homogeneuos clipping*) respecto al *frustum*, lo que les otorga alguna ventajas.
+En este espacio se realiza tanto el *culling* como el *clipping* (*homogeneuos clipping*) respecto al *frustum*, lo que les otorga algunas ventajas.
 
 Durante el **frustum culling**: 
 
@@ -7995,5 +7995,95 @@ Por mi parte como este proyecto tiene la finalidad de aprender, creo que impleme
 
 Para profundizar sobre los algoritmos de *culling* recomiendo el artículo de la Wikipedia sobre la [determinación de las caras ocultas](https://en.wikipedia.org/wiki/Hidden-surface_determination). Los llamados algoritmos **HSR** (*Hidden Surface Determination*), **OC** (*Oclusion culling*) o el **VSD** (*Visible Surface Determination*) abarcan todo tipo de técnicas desde el *Z-Buffer*, el algoritmo del pintor o el *Ray tracing*, vale la pena echar un vistazo.
 
+
 ## Múltiples mallas
 
+Mi sistema cumple con todos los pasos importantes del *rendering pipeline*, pero antes de darlo por finalizado me gustaría añadir la funcionalidad de controlar múltiples `meshes`.
+
+Esto incluye una serie de problemáticas respecto al funcionamiento actual y es que cada `mesh` se renderizada de forma independiente en su propio código, además la interfaz no está preparada para manejar múltiples modelos.
+
+Voy a crear una clase llamada `RenderEngine` que tomará un vector de diferentes `mesh` y ejecutará sus métodos `Update` y `Render`:
+
+```cpp
+#ifndef ENGINE_H
+#define ENGINE_H
+
+#include <vector>
+#include "mesh.h"
+
+class RenderEngine
+{
+public:
+
+	void SetMeshes(std::vector<Mesh> meshes)
+	{
+		this->meshes = meshes;
+	}
+
+	void Update()
+	{
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			meshes[i].Update();
+		}
+	}
+
+	void Render()
+	{
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			
+			meshes[i].Render();
+		}
+	}
+
+private:
+	std::vector<Mesh> meshes;
+};
+
+#endif
+```
+
+Luego puedo crear un vector de `mesh` en la ventana, generarlos y pasárselos al `RenderEngine`:
+
+```cpp
+/* Mesh loading */
+meshes.push_back(
+    Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(-3, 0, 8)));
+meshes.push_back(
+    Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(0, 0, 8)));
+meshes.push_back(
+    Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(3, 0, 8)));
+meshes.push_back(
+    Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(-2, 3, 8)));
+meshes.push_back(
+    Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(2, 3, 8)));
+meshes.push_back(
+    Mesh(this, "res/cube.obj", "res/cube.png", Vector3(1, 1, 1), Vector3(0, 0, 0), Vector3(3, 6, 8)));
+
+renderEngine.SetMeshes(meshes);
+```
+
+Ahora en lugar de actualizar y dibujar una sola malla ejecuto `renderEngine.Update` y `renderEngine.Render` para procesar todos mis modelos de golpe:
+
+![](./docs/anim-50.gif) 
+
+Evidentemente lo óptimo sería unificar todo el *rendering pipeline* pero no tengo otros proyectos en mente (como aprender `OpenGL`) y será en ese momento cuando aprovecharé para rehacer este experimento de una forma mucho más óptima.
+
+Por cierto, ¿por qué un `<vector>` y no una `deque`? Porque hoy me ha dado por realizar algunos experimentos para determinar qué contenedor es más rápido y este es el resultado:
+
+* `<deque>`:
+    * Inicialización de 50'000'000 `Vector3`: 2782ms
+    * Iteración y modificación de 50'000'000 `Vector3`: 377ms
+
+* `<vector>`:
+    * Inicialización de 50'000'000 `Vector3`: 1143ms
+    * Iteración y modificación de 50'000'000 `Vector3`: 111ms
+
+* `<vector>` con reserva:
+    * Inicialización de 50'000'000 `Vector3`: 303ms
+    * Iteración y modificación de 50'000'000 `Vector3`: 109ms
+
+Por eso he cambiado todas mis `deque` por `vector`.
+
+En cualquier caso con esto termino el desarrollo de este renderizador de modelos mediante la CPU implementando cada funcionalidad desde cero. He aprendido muchísimo y estoy muy ilusionado, sé que esto es solo el primer escalón y me he animado a aprender más tecnologías gráficas para complementar y mejorar este proyecto.

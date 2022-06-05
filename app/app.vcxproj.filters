@@ -80,6 +80,9 @@
     <ClInclude Include="src\clipping.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -117,6 +120,9 @@
     </ClCompile>
     <ClCompile Include="src\upng.cpp">
       <Filter>Archivos de origen\upng</Filter>
+    </ClCompile>
+    <ClCompile Include="src\engine.cpp">
+      <Filter>Archivos de origen</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
