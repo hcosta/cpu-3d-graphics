@@ -8086,4 +8086,4 @@ Por cierto, ¿por qué un `<vector>` y no una `deque`? Porque hoy me ha dado por
 
 Por eso he cambiado todas mis `deque` por `vector`.
 
-En cualquier caso con esto termino el desarrollo de este renderizador de modelos mediante la CPU implementando cada funcionalidad desde cero. He aprendido muchísimo y estoy muy ilusionado, sé que esto es solo el primer escalón y me he animado a aprender más tecnologías gráficas para complementar y mejorar este proyecto.
+En cualquier caso así termino el desarrollo de mi renderizador de modelos 3D mediante la CPU implementando cada funcionalidad desde cero. He aprendido muchísimo y estoy muy ilusionado con aprender más tecnologías gráficas para complementar éste y futuros proyectos.
